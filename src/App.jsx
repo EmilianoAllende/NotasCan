@@ -23,6 +23,7 @@ const App = () => {
   const [selectedCampaignType, setSelectedCampaignType] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingOrg, setEditingOrg] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
   
   const [organizaciones, setOrganizaciones] = useState(() => {
     const cachedData = localStorage.getItem('organizaciones_cache');
@@ -44,7 +45,7 @@ const App = () => {
       setIsLoading(true);
       const fetchOrganizaciones = async () => {
         try {
-          const response = await apiClient.get('/webhook/3d99f525-7267-4b7c-9f79-ce91f3a3d3cd');
+          const response = await apiClient.get('/webhook/1d55c52f-afbb-4c02-8d16-00af17caac57');
 
 // Esto almacena los datos junto con la marca de tiempo actual.
           const cache = {
@@ -78,15 +79,43 @@ const App = () => {
     setShowEditModal(true);
   };
 
-  const saveEditedOrg = () => {
-    console.log('Guardando cambios para:', editingOrg);
-    if (selectedOrg && selectedOrg.id === editingOrg.id) {
-      setSelectedOrg({ ...editingOrg });
+
+  const saveEditedOrg = async (updatedOrg) => {
+    setIsSaving(true);
+    setError(null);
+
+    // Preparamos el objeto para enviar, limpiando campos vacíos
+    const orgToSend = { ...updatedOrg };
+    Object.keys(orgToSend).forEach(key => {
+      const value = orgToSend[key];
+      if (key === 'telefono' && (value === '' || value === null || value === undefined)) {
+        orgToSend[key] = 0;
+      } else if (typeof value === 'string' && value === '') {
+        orgToSend[key] = '[vacio]';
+      }
+    });
+
+    try {
+      // 1. Enviamos la actualización a n8n
+      await apiClient.put(`/webhook/organizaciones`, orgToSend);
+
+      // 2. --- CAMBIO CLAVE ---
+      // Si la llamada fue exitosa, en lugar de actualizar el estado manualmente,
+      // simplemente llamamos a nuestra función de refresco.
+      handleRefresh();
+
+    } catch (err) {
+      console.error("Error al actualizar la organización:", err);
+      alert("No se pudieron guardar los cambios. Inténtalo de nuevo.");
+      setError(err);
+    } finally {
+      // 3. Haya éxito o error, cerramos el modal y limpiamos los estados
+      setIsSaving(false);
+      setShowEditModal(false);
+      setEditingOrg(null);
     }
-    setShowEditModal(false);
-    setEditingOrg(null);
   };
-  
+
   const renderView = () => {
     switch (activeView) {
       case 'dashboard':
