@@ -44,7 +44,7 @@ const App = () => {
       setIsLoading(true);
       const fetchOrganizaciones = async () => {
         try {
-          const response = await apiClient.get('/webhook/573b9827-ad59-425f-9526-e2d16a7e2198');
+          const response = await apiClient.getOrganizaciones();
           const cache = { data: response.data, timestamp: new Date().getTime() };
           localStorage.setItem('organizaciones_cache', JSON.stringify(cache));
           setOrganizaciones(response.data);
@@ -94,7 +94,7 @@ const App = () => {
     });
 
     try {
-      await apiClient.put(`/webhook/organizaciones`, orgToSend);
+      await apiClient.updateOrganization(orgToSend);
       handleRefresh();
       setActiveView('listado');
     } catch (err) {
@@ -135,6 +135,7 @@ const App = () => {
             selectedOrg={selectedOrg}
             onSave={saveContact}
             onCancel={() => setActiveView('listado')}
+            isSaving={isSaving}
           />
         );
 

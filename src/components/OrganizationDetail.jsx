@@ -2,7 +2,7 @@ import React from 'react';
 import { Mail, Edit, Zap, CheckCircle, Globe, Download } from 'lucide-react';
 import StatusBadge from './shared/StatusBadge';
 
-const OrganizationDetail = ({ selectedOrg, setShowCampaignModal, openEditModal }) => {
+const OrganizationDetail = ({ selectedOrg, openEditModal, setShowCampaignModal }) => {
   if (!selectedOrg) {
     return (
       <div className="flex items-center justify-center h-full">

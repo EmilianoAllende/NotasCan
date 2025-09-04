@@ -6,6 +6,12 @@
  * @returns {string} - Tipo de entidad o string vacío
  */
 export const getEntityType = (org) => {
+  // Priorizar el campo directo tipo_entidad si existe
+  if (org.tipo_entidad) {
+    return org.tipo_entidad;
+  }
+  
+  // Fallback al metadata si no existe tipo_entidad
   try {
     if (typeof org.metadata === 'string' && org.metadata !== 'indefinido') {
       const parsedMeta = JSON.parse(org.metadata);
