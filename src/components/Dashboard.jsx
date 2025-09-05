@@ -15,9 +15,9 @@ const Dashboard = ({ metricas, estadosData, islasData, sectoresData }) => {
         <MetricCard icon={Brain} title="Precisión IA" value={`${metricas.precision_ia}%`} color="indigo" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-gray-900 dark:text-gray-100">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Estado de enriquecimiento</h3>
+          <h3 className="text-lg font-bold mb-4">Estado de enriquecimiento</h3>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie
@@ -37,7 +37,7 @@ const Dashboard = ({ metricas, estadosData, islasData, sectoresData }) => {
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Distribución por islas</h3>
+          <h3 className="text-lg font-bold mb-4">Distribución por islas</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={islasData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -50,7 +50,7 @@ const Dashboard = ({ metricas, estadosData, islasData, sectoresData }) => {
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-bold text-gray-900 dark: mb-4">Sectores principales</h3>
+          <h3 className="text-lg font-bold mb-4">Sectores principales</h3>
           <div className="space-y-3">
             {sectoresData.map((sector, index) => (
               <div key={index} className="flex justify-between items-center">
@@ -62,8 +62,8 @@ const Dashboard = ({ metricas, estadosData, islasData, sectoresData }) => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 className="text-lg font-bold text-gray-900 dark:text mb-4">Acciones rápidas</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-gray-900 dark:text-gray-100">
+        <h3 className="text-lg font-bold mb-4">Acciones rápidas</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <button className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-700 text-blue-700 dark:text-blue-200">
             <Zap size={20} />

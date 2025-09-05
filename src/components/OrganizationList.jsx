@@ -116,7 +116,7 @@ const OrganizationList = ({
               <th className="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-300">Acciones</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody className="divide-y divide-gray-300 dark:divide-gray-600">
             {paginatedOrgs.map((org) => (
               <tr key={org.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td className="px-6 py-4">

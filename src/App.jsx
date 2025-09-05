@@ -190,7 +190,7 @@ const App = () => {
       <div className="p-6">
         {isLoading && <p className="text-center text-gray-500 dark:text-gray-400">Cargando organizaciones...</p>}
         {error && <p className="text-center text-red-500">Error al cargar los datos: {error.message}</p>}
-        {!isLoading && !error && <div className="h-[calc(100vh-200px)]">{renderView()}</div>}
+        {!isLoading && !error && <div className="h-auto">{renderView()}</div>}
       </div>
 
       <SendCampaignModal 

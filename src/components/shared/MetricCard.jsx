@@ -1,7 +1,7 @@
 import React from 'react';
 
 const MetricCard = ({ icon: Icon, title, value, color, subtext }) => {
-  const cardBgClass = `bg-${color}-50`;
+  const cardBgClass = `bg-${color}-100`;
   const cardDarkBgClass = `bg-${color}-900`;
   const iconTextClass = `text-${color}-600`;
   const iconDarkTextClass = `text-${color}-300`;

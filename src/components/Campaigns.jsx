@@ -6,25 +6,25 @@ const Campaigns = ({ campanasActivas }) => {
     <div className="space-y-6">
       <div className="bg-white dark:bg-gray-700 rounded-lg shadow p-6">
         <h3 className="text-xl font-bold text-gray-900 dark:text-gray-300 mb-4">Campañas enviadas</h3>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-md">
           <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-950 rounded-md">
+            <thead className="bg-gray-200 dark:bg-gray-950">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Organización</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Tipo</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Asunto</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Fecha</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Estado</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Métricas</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Acciones</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Organización</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Tipo</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Asunto</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Fecha</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Estado</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Métricas</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-500 dark:text-gray-300">
+            <tbody className="divide-y divide-gray-400 dark:divide-gray-500 dark:text-gray-300">
               {campanasActivas.map((campana) => (
                 <tr key={campana.id} className="hover:bg-gray-50 dark:hover:bg-gray-600">
                   <td className="px-6 py-4 font-medium">{campana.organizacion}</td>
                   <td className="px-6 py-4">
-                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300">
+                    <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 text-center">
                       {campana.tipo}
                     </span>
                   </td>
@@ -39,10 +39,10 @@ const Campaigns = ({ campanasActivas }) => {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-4 text-xs">
-                      <span className={`${campana.abierto ? 'text-green-600 dark:text-green-500' : 'text-gray-400 dark:text-gray-600'}`}>
+                      <span className={`${campana.abierto ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-400 text-center'}`}>
                         {campana.abierto ? 'Abierto' : 'No abierto'}
                       </span>
-                      <span className={`${campana.respondido ? 'text-blue-600 dark:text-blue-500' : 'text-gray-400 dark:text-gray-600'}`}>
+                      <span className={`${campana.respondido ? 'text-blue-600 dark:text-blue-500' : 'text-gray-600 dark:text-gray-400 text-center'}`}>
                         {campana.respondido ? 'Respondido' : 'Sin respuesta'}
                       </span>
                     </div>

@@ -10,7 +10,7 @@ const apiClient = axios.create({
 
 
 const GET_ORGANIZACIONES_PATH = '/webhook/573b9827-ad59-425f-9526-e2d16a7e2198';
-const UPDATE_ORGANIZACION_PATH = '/webhook/organizaciones'; // Usar el mismo endpoint
+const UPDATE_ORGANIZACION_PATH = '/webhook/organizaciones';
 
 
 //Función para OBTENER toda la lista de organizaciones.
