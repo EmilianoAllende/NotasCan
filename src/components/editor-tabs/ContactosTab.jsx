@@ -7,13 +7,25 @@ const ContactosTab = ({ data, handleChange }) => (
             <p className="mb-4 text-xs text-gray-600 dark:text-gray-400">Datos principales obtenidos por el sistema (Jefe de Prensa, etc.).</p>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                    <label className="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Nombre del contacto</label>
+                    <label className="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Nombre del contacto principal</label>
+                    <input
+                        type="text"
+                        name="nombre_contacto"
+                        value={data.nombre_contacto || ''}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                    />
+                </div>
+
+                <div>
+                    <label className="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Nombres alternativos</label>
                     <input
                         type="text"
                         name="nombres_org"
                         value={data.nombres_org || ''}
                         onChange={handleChange}
                         className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                        placeholder="CCE, Confederación Empresarios..."
                     />
                 </div>
 
@@ -97,7 +109,49 @@ const ContactosTab = ({ data, handleChange }) => (
             <div>
                 <h4 className="mb-3 text-xs font-semibold text-indigo-800 dark:text-indigo-300">Contacto 2</h4>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    {/* Aquí puedes agregar los campos para el Contacto 2 de la misma manera */}
+                    <div>
+                        <label className="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Nombre completo</label>
+                        <input
+                        type="text"
+                        name="contacto2_nombre"
+                        value={data.contacto2_nombre || ''}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Cargo</label>
+                        <input
+                        type="text"
+                        name="contacto2_cargo"
+                        value={data.contacto2_cargo || ''}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Email</label>
+                        <input
+                        type="email"
+                        name="contacto2_email"
+                        value={data.contacto2_email || ''}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Teléfono</label>
+                        <input
+                        type="tel"
+                        name="contacto2_telefono"
+                        value={data.contacto2_telefono || ''}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                        />
+                    </div>
                 </div>
             </div>
         </div>

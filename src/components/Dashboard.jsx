@@ -12,7 +12,7 @@ const Dashboard = ({ metricas, estadosData, islasData, sectoresData }) => {
         <MetricCard icon={AlertCircle} title="En revisión" value={metricas.en_revision} color="yellow" />
         <MetricCard icon={RefreshCw} title="Pendientes" value={metricas.pendientes} color="red" />
         <MetricCard icon={Zap} title="Automatización" value={`${metricas.automatizacion}%`} color="purple" />
-        <MetricCard icon={Brain} title="Precisión IA" value={`${metricas.precision_ia}%`} color="indigo" />
+        <MetricCard icon={Brain} title="Precisión IA" value={`${metricas.precision_ia}%`} color="sky" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-gray-900 dark:text-gray-100">

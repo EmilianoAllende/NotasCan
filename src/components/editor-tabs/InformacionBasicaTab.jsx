@@ -125,6 +125,34 @@ const InformacionBasicaTab = ({ data, handleChange }) => (
                 </div>
             </div>
         </div>
+
+        <div className="p-4 bg-teal-50 rounded-lg dark:bg-gray-700/50">
+            <h3 className="mb-4 text-sm font-semibold text-teal-900 dark:text-teal-200">Clasificación y metadatos</h3>
+            <div className="space-y-3">
+                <div>
+                    <label className="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Intereses principales</label>
+                    <textarea
+                        name="intereses"
+                        value={data.intereses || ''}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                        rows={2}
+                        placeholder="Separados por comas: economía, empleo, competitividad..."
+                    />
+                </div>
+                <div>
+                    <label className="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Segmentación sugerida</label>
+                    <textarea
+                        name="segmentacion"
+                        value={data.segmentacion || ''}
+                        onChange={handleChange}
+                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                        rows={2}
+                        placeholder="Separados por comas: Empresarios, Medios de comunicación..."
+                    />
+                </div>
+            </div>
+        </div>
     </div>
 );
 

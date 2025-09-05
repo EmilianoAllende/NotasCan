@@ -82,7 +82,7 @@ const App = () => {
   const saveContact = async (updatedOrg) => {
     setIsSaving(true);
     setError(null);
-    
+
     const orgToSend = { ...updatedOrg };
     Object.keys(orgToSend).forEach(key => {
         const value = orgToSend[key];
