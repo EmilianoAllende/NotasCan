@@ -3,6 +3,19 @@ import InformacionBasicaTab from './editor-tabs/InformacionBasicaTab';
 import ContactosTab from './editor-tabs/ContactosTab'
 import EstadoComercialTab from './editor-tabs/EstadoComercialTab';
 
+// Para comparar dos objetos y devolver uno nuevo solo con los campos que han cambiado.
+const getChangedFields = (originalData, currentData) => {
+  const changes = {};
+// Es necesario Iterar sobre todas las claves del formulario actual.
+  Object.keys(currentData).forEach(key => {
+// También nos aseguramos de que la clave exista en el objeto original para no comparar el 'id' consigo mismo si no estuviera (solo por si acaso).
+    if (originalData.hasOwnProperty(key) && originalData[key] !== currentData[key]) {
+      changes[key] = currentData[key];
+    }
+  });
+  return changes;
+};
+
 const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving }) => {
   const [activeTab, setActiveTab] = useState('basica');
   const [formData, setFormData] = useState(null);
@@ -19,7 +32,19 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving }) => {
   };
 
   const handleSave = () => {
-    onSave(formData);
+// Calculamos los campos que realmente cambiaron
+    const changedData = getChangedFields(selectedOrg, formData);
+    if (Object.keys(changedData).length === 0) {
+      console.log("No se detectaron cambios. Cancelando guardado.");
+      onCancel();
+      return;
+    }
+// El payload final para el backend.
+    const payload = {
+      id: selectedOrg.id,
+      ...changedData
+    };
+    onSave(payload);
   };
 
   if (!formData) {
