@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Users, Eye, Mail, Building, FilePenLine } from 'lucide-react';
 import { metricas, tiposCampana, campanasActivas, estadosData, islasData, sectoresData } from './data/data';
 import apiClient from './api/apiClient';
@@ -11,18 +11,16 @@ import SendCampaignModal from './components/SendCampaignModal';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import AIindicator from './components/AIindicator';
 
-// Tiempo de expiración en milisegundos (3 horas para pruebas)
 const CACHE_EXPIRATION_MS = 3 * 60 * 60 * 1000;
 
 const App = () => {
-  const [activeView, setActiveView] = useState('listado');
-  const [selectedOrg, setSelectedOrg] = useState(null);
-  const [filterStatus, setFilterStatus] = useState('todos');
-  const [filterType, setFilterType] = useState('todos');
-  const [showCampaignModal, setShowCampaignModal] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  
-  const [organizaciones, setOrganizaciones] = useState(() => {
+  const [activeView, setActiveView] = React.useState('listado');
+  const [selectedOrg, setSelectedOrg] = React.useState(null);
+  const [filterStatus, setFilterStatus] = React.useState('todos');
+  const [filterType, setFilterType] = React.useState('todos');
+  const [showCampaignModal, setShowCampaignModal] = React.useState(false);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [organizaciones, setOrganizaciones] = React.useState(() => {
     try {
       const cachedData = localStorage.getItem('organizaciones_cache');
       if (!cachedData) return [];
@@ -35,11 +33,41 @@ const App = () => {
     }
   });
 
-  const [isLoading, setIsLoading] = useState(organizaciones.length === 0);
-  const [error, setError] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = React.useState(organizaciones.length === 0);
+  const [error, setError] = React.useState(null);
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [isSendingCampaign, setIsSendingCampaign] = React.useState(false);
+  const [selectedCampaignType, setSelectedCampaignType] = React.useState('');
 
-  useEffect(() => {
+  const handleSendCampaign = async () => {
+    if (!selectedOrg || !selectedCampaignType) {
+        alert("Por favor, selecciona una organización y un tipo de campaña.");
+        return;
+    }
+
+    setIsSendingCampaign(true);
+    
+    try {
+      console.log(`Enviando petición a n8n para la campaña de ${selectedOrg.nombre}...`);
+
+      await apiClient.sendCampaign(selectedOrg, selectedCampaignType);
+
+      console.log("n8n ha recibido la petición con éxito.");
+      alert(`La campaña para ${selectedOrg.nombre} se ha puesto en cola para ser enviada.`);
+      handleRefresh();
+
+    } catch (err) {
+      console.error("Error al enviar la campaña:", err);
+// Este error puede ser por CORS o porque n8n no está corriendo.
+      alert("Hubo un error al conectar con el servicio de envío. Revisa la consola para más detalles.");
+    } finally {
+      setIsSendingCampaign(false);
+      setShowCampaignModal(false);
+      setSelectedCampaignType('');
+    }
+  };
+
+  React.useEffect(() => {
     if (organizaciones.length === 0) {
       setIsLoading(true);
       const fetchOrganizaciones = async () => {
@@ -61,7 +89,7 @@ const App = () => {
   const handleRefresh = () => {
     localStorage.removeItem('organizaciones_cache');
     setOrganizaciones([]);
-    setCurrentPage(1); // Reset pagination on refresh
+    setCurrentPage(1);
   };
 
   const openEditor = (org) => {
@@ -198,6 +226,10 @@ const App = () => {
         onClose={() => setShowCampaignModal(false)}
         selectedOrg={selectedOrg}
         tiposCampana={tiposCampana}
+        selectedCampaignType={selectedCampaignType}
+        setSelectedCampaignType={setSelectedCampaignType}
+        onSend={handleSendCampaign}
+        isSending={isSendingCampaign}
       />
       
       <AIindicator metricas={metricas} />
