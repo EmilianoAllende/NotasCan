@@ -12,8 +12,7 @@ const GET_ORGANIZACIONES_PATH = '/webhook/573b9827-ad59-425f-9526-e2d16a7e2198';
 // --- EDICIÓN DE ORGANIZACIONES EN DYNAMO ---
 const UPDATE_ORGANIZACION_PATH = '/webhook/organizaciones';
 // --- ENVÍO DE CAMPAÑAS ---
-// const SEND_CAMPAIGN_PATH = '/webhook/send-campaign';
-const SEND_CAMPAIGN_PATH = '/webhook/send-campaign';
+// Endpoints removidos: sendCampaign ya no se usa
 
 // Función para OBTENER toda la lista de organizaciones.
 apiClient.getOrganizaciones = () => {
@@ -30,19 +29,33 @@ apiClient.updateOrganization = (formData) => {
     }
 };
 
-// Envía la Organización y el Tipo de campaña a n8n.
-apiClient.sendCampaign = (organization, campaignType) => {
+// NUEVA FUNCIÓN para generar el borrador del email
+apiClient.generatePreview = (organization, campaignType) => {
     try {
         const payload = {
             organization,
             campaignType
         };
-// POST.
-        return apiClient.post(SEND_CAMPAIGN_PATH, payload);
+        // Llama al Workflow #1
+        return apiClient.post('/webhook/generate-preview', payload);
     } catch (error) {
-        console.error("Error al iniciar el envío de la campaña:", error);
+        console.error("Error al generar la previsualización:", error);
         throw error;
     }
 };
+
+// NUEVA FUNCIÓN para enviar el email ya aprobado
+apiClient.confirmAndSend = (payload) => {
+    // El payload será un objeto como: { organizationId, subject, body }
+    try {
+        // Llama al Workflow #2
+        return apiClient.post('/webhook/confirm-and-send', payload);
+    } catch (error) {
+        console.error("Error al confirmar y enviar la campaña:", error);
+        throw error;
+    }
+};
+
+// La función 'sendCampaign' ya no es necesaria y puede ser eliminada.
 
 export default apiClient;

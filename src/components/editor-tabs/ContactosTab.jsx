@@ -2,30 +2,20 @@ import React from 'react';
 
 const ContactosTab = ({ data, handleChange }) => (
     <div className="space-y-6">
-        <div className="p-4 bg-purple-50 rounded-lg dark:bg-gray-700/50">
-            <h3 className="mb-4 text-sm font-semibold text-purple-900 dark:text-purple-200">Información de contacto de comunicación</h3>
-            <p className="mb-4 text-xs text-gray-600 dark:text-gray-400">Datos principales obtenidos por el sistema (Jefe de Prensa, etc.).</p>
+        <div className="p-4 bg-yellow-50 rounded-lg dark:bg-gray-700/50 border-l-4 border-yellow-400">
+            <h3 className="mb-4 text-sm font-semibold text-yellow-900 dark:text-yellow-200">Contacto Principal para Campañas</h3>
+            <p className="mb-4 text-xs text-gray-600 dark:text-gray-400">Este contacto se usará específicamente para el envío de campañas de email.</p>
+            <p className="mb-4 text-xs text-gray-600 dark:text-gray-400">Datos principales obtenidos por el sistema.</p>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                     <label className="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Nombre del contacto principal</label>
-                    <input
-                        type="text"
-                        name="nombre_contacto"
-                        value={data.nombre_contacto || ''}
-                        onChange={handleChange}
-                        className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
-                    />
-                </div>
-
-                <div>
-                    <label className="block mb-1 text-xs font-medium text-gray-700 dark:text-gray-300">Nombres alternativos</label>
                     <input
                         type="text"
                         name="nombres_org"
                         value={data.nombres_org || ''}
                         onChange={handleChange}
                         className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
-                        placeholder="CCE, Confederación Empresarios..."
+                        placeholder="Ej: María García"
                     />
                 </div>
 
@@ -37,6 +27,7 @@ const ContactosTab = ({ data, handleChange }) => (
                         value={data.rol || ''}
                         onChange={handleChange}
                         className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200"
+                        placeholder="Ej: Vicepresidente Ejecutivo"
                     />
                 </div>
 
@@ -55,7 +46,7 @@ const ContactosTab = ({ data, handleChange }) => (
         </div>
 
         <div className="p-4 bg-indigo-50 rounded-lg dark:bg-gray-700/50">
-            <h3 className="mb-4 text-sm font-semibold text-indigo-900 dark:text-indigo-200">Contactos institucionales (Enriquecimiento)</h3>
+            <h3 className="mb-4 text-sm font-semibold text-indigo-900 dark:text-indigo-200">Otros Contactos institucionales</h3>
             <p className="mb-4 text-xs text-gray-600 dark:text-gray-400">Datos adicionales obtenidos para enriquecer el perfil.</p>
             <div className="mb-4">
                 <h4 className="mb-3 text-xs font-semibold text-indigo-800 dark:text-indigo-300">Contacto 1</h4>

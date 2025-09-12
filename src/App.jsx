@@ -38,31 +38,50 @@ const App = () => {
   const [isSaving, setIsSaving] = React.useState(false);
   const [isSendingCampaign, setIsSendingCampaign] = React.useState(false);
   const [selectedCampaignType, setSelectedCampaignType] = React.useState('');
+  // --- NUEVOS ESTADOS PARA LA PREVISUALIZACIÓN ---
+  const [isPreviewLoading, setIsPreviewLoading] = React.useState(false);
+  const [emailPreview, setEmailPreview] = React.useState(null); // { subject, body }
 
-  const handleSendCampaign = async () => {
+  // --- FUNCIÓN 1: Generar el borrador ---
+  const handleGeneratePreview = async () => {
     if (!selectedOrg || !selectedCampaignType) {
-        alert("Por favor, selecciona una organización y un tipo de campaña.");
-        return;
+      alert("Por favor, selecciona un tipo de campaña.");
+      return;
     }
 
-    setIsSendingCampaign(true);
-    
+    setIsPreviewLoading(true);
+    setEmailPreview(null);
+
     try {
-      console.log(`Enviando petición a n8n para la campaña de ${selectedOrg.nombre}...`);
-
-      await apiClient.sendCampaign(selectedOrg, selectedCampaignType);
-
-      console.log("n8n ha recibido la petición con éxito.");
-      alert(`La campaña para ${selectedOrg.nombre} se ha puesto en cola para ser enviada.`);
-      handleRefresh();
-
+      const response = await apiClient.generatePreview(selectedOrg, selectedCampaignType);
+      setEmailPreview(response.data); // Guardamos el { subject, body }
     } catch (err) {
-      console.error("Error al enviar la campaña:", err);
-// Este error puede ser por CORS o porque n8n no está corriendo.
-      alert("Hubo un error al conectar con el servicio de envío. Revisa la consola para más detalles.");
+      alert("Hubo un error al generar el borrador con la IA.");
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
+
+  // --- FUNCIÓN 2: Confirmar y enviar ---
+  const handleConfirmAndSend = async (finalContent) => {
+    // finalContent es un objeto { subject, body } que viene del modal
+    setIsSendingCampaign(true);
+
+    try {
+      const payload = {
+        organizationId: selectedOrg.id,
+        subject: finalContent.subject,
+        body: finalContent.body
+      };
+      await apiClient.confirmAndSend(payload);
+      alert(`Campaña para ${selectedOrg.nombre} enviada con éxito.`);
+      handleRefresh(); // Refrescamos los datos
+    } catch (err) {
+      alert("Hubo un error al enviar la campaña final.");
     } finally {
       setIsSendingCampaign(false);
       setShowCampaignModal(false);
+      setEmailPreview(null); // Limpiamos el estado al cerrar
       setSelectedCampaignType('');
     }
   };
@@ -223,13 +242,20 @@ const App = () => {
 
       <SendCampaignModal 
         show={showCampaignModal}
-        onClose={() => setShowCampaignModal(false)}
+        onClose={() => {
+          setShowCampaignModal(false);
+          setEmailPreview(null); // Limpiar al cerrar
+        }}
         selectedOrg={selectedOrg}
         tiposCampana={tiposCampana}
+        // Pasamos todo lo necesario para el nuevo flujo
+        onGeneratePreview={handleGeneratePreview}
+        onConfirmAndSend={handleConfirmAndSend}
+        isPreviewLoading={isPreviewLoading}
+        isSending={isSendingCampaign}
+        emailPreview={emailPreview}
         selectedCampaignType={selectedCampaignType}
         setSelectedCampaignType={setSelectedCampaignType}
-        onSend={handleSendCampaign}
-        isSending={isSendingCampaign}
       />
       
       <AIindicator metricas={metricas} />
