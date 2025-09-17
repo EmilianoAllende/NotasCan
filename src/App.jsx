@@ -10,6 +10,7 @@ import ContactEditor from './components/ContactEditor';
 import SendCampaignModal from './components/SendCampaignModal';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import AIindicator from './components/AIindicator';
+import Notification from './components/Notification';
 
 const CACHE_EXPIRATION_MS = 3 * 60 * 60 * 1000;
 
@@ -41,11 +42,16 @@ const App = () => {
   // --- NUEVOS ESTADOS PARA LA PREVISUALIZACIÓN ---
   const [isPreviewLoading, setIsPreviewLoading] = React.useState(false);
   const [emailPreview, setEmailPreview] = React.useState(null); // { subject, body }
+  const [notification, setNotification] = React.useState(null);
 
   // --- FUNCIÓN 1: Generar el borrador ---
   const handleGeneratePreview = async () => {
     if (!selectedOrg || !selectedCampaignType) {
-      alert("Por favor, selecciona un tipo de campaña.");
+      setNotification({
+        type: 'warning',
+        title: 'Selección Requerida',
+        message: 'Por favor, selecciona un tipo de campaña antes de continuar.'
+      });
       return;
     }
 
@@ -55,8 +61,18 @@ const App = () => {
     try {
       const response = await apiClient.generatePreview(selectedOrg, selectedCampaignType);
       setEmailPreview(response.data); // Guardamos el { subject, body }
+      setNotification({
+        type: 'success',
+        title: 'Borrador Generado',
+        message: 'El borrador de la campaña ha sido generado exitosamente por la IA.'
+      });
     } catch (err) {
-      alert("Hubo un error al generar el borrador con la IA.");
+      console.error("Error al generar el borrador:", err);
+      setNotification({
+        type: 'error',
+        title: 'Error al Generar Borrador',
+        message: 'No se pudo generar el borrador con la IA. Verifica la conexión con n8n.'
+      });
     } finally {
       setIsPreviewLoading(false);
     }
@@ -73,11 +89,95 @@ const App = () => {
         subject: finalContent.subject,
         body: finalContent.body
       };
-      await apiClient.confirmAndSend(payload);
-      alert(`Campaña para ${selectedOrg.nombre} enviada con éxito.`);
-      handleRefresh(); // Refrescamos los datos
+      
+      const response = await apiClient.confirmAndSend(payload);
+      let result = response.data;
+      
+      // Debug: Log de la respuesta completa para diagnosticar
+      console.log("Respuesta completa de n8n:", response);
+      console.log("Datos de respuesta (raw):", result);
+      console.log("Tipo de datos:", typeof result);
+      
+      // Si la respuesta es una cadena vacía, el workflow no llegó al nodo de respuesta
+      if (result === "" || result === null || result === undefined) {
+        console.error("n8n devolvió respuesta vacía. El workflow no ejecutó ningún nodo 'Respond to Webhook'");
+        setNotification({
+          type: 'warning',
+          title: 'Envío Cancelado',
+          message: 'El envío fue cancelado porque el último correo se envió hace menos de 15 días. (El workflow de n8n necesita configurar el nodo de respuesta para este caso)'
+        });
+        return;
+      }
+      
+      // Si la respuesta es una cadena, intentar parsearla como JSON
+      if (typeof result === 'string') {
+        try {
+          result = JSON.parse(result);
+          console.log("JSON parseado:", result);
+        } catch (parseError) {
+          console.error("Error al parsear JSON:", parseError);
+          setNotification({
+            type: 'error',
+            title: 'Error de Formato',
+            message: 'La respuesta del webhook no es un JSON válido.'
+          });
+          return;
+        }
+      }
+      
+      console.log("Status recibido:", result?.status);
+      
+      // Manejo de respuestas del webhook n8n
+      if (result && result.status === 'success') {
+        setNotification({
+          type: 'success',
+          title: 'Campaña Enviada',
+          message: `La campaña para ${selectedOrg.nombre} se ha enviado correctamente.`
+        });
+        handleRefresh(); // Refrescamos los datos
+      } else if (result && result.status === 'canceled') {
+        setNotification({
+          type: 'warning',
+          title: 'Envío Cancelado',
+          message: result.message || 'Envío de campaña cancelado. El tiempo desde el último correo enviado es inferior a 15 días.'
+        });
+        // No refrescamos datos en caso de cancelación
+      } else {
+        // Respuesta inesperada - incluir más información para debug
+        console.warn("Respuesta inesperada del webhook:", result);
+        setNotification({
+          type: 'error',
+          title: 'Respuesta Inesperada',
+          message: `Estado recibido: "${result?.status || 'undefined'}". ${result?.message || 'El servidor devolvió un estado desconocido.'}`
+        });
+      }
+      
     } catch (err) {
-      alert("Hubo un error al enviar la campaña final.");
+      console.error("Error al enviar la campaña:", err);
+      
+      // Manejo de errores de red o del servidor
+      if (err.response && err.response.data) {
+        const errorData = err.response.data;
+        if (errorData.status === 'canceled') {
+          setNotification({
+            type: 'warning',
+            title: 'Envío Cancelado',
+            message: errorData.message || 'Envío cancelado por el servidor.'
+          });
+        } else {
+          setNotification({
+            type: 'error',
+            title: 'Error del Servidor',
+            message: errorData.message || 'Error desconocido del servidor.'
+          });
+        }
+      } else {
+        setNotification({
+          type: 'error',
+          title: 'Error de Conexión',
+          message: 'No se pudo conectar con n8n. Verifica que esté ejecutándose en http://localhost:5678'
+        });
+      }
     } finally {
       setIsSendingCampaign(false);
       setShowCampaignModal(false);
@@ -259,6 +359,11 @@ const App = () => {
       />
       
       <AIindicator metricas={metricas} />
+      
+      <Notification 
+        notification={notification}
+        onClose={() => setNotification(null)}
+      />
     </div>
   );
 };
