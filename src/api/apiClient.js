@@ -11,8 +11,6 @@ const apiClient = axios.create({
 const GET_ORGANIZACIONES_PATH = '/webhook/573b9827-ad59-425f-9526-e2d16a7e2198';
 // --- EDICIÓN DE ORGANIZACIONES EN DYNAMO ---
 const UPDATE_ORGANIZACION_PATH = '/webhook/organizaciones';
-// --- ENVÍO DE CAMPAÑAS ---
-// Endpoints removidos: sendCampaign ya no se usa
 
 // Función para OBTENER toda la lista de organizaciones.
 apiClient.getOrganizaciones = () => {

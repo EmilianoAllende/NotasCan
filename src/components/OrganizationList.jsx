@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Eye, Edit, Mail, Zap, RefreshCw, HelpCircle } from 'lucide-react';
+import { Search, Eye, Edit, Mail, Zap, RefreshCw, HelpCircle, RotateCcw } from 'lucide-react';
 import StatusBadge from './shared/StatusBadge';
 import Pagination from './shared/Pagination';
 import { getEntityType, ESTADOS_CLIENTE } from '../utils/organizationUtils';
@@ -10,6 +10,13 @@ const OrganizationList = ({
   setFilterStatus,
   filterType,
   setFilterType,
+  // Nuevos filtros
+  filterIsla,
+  setFilterIsla,
+  filterSuscripcion,
+  setFilterSuscripcion,
+  // Fin nuevos filtros
+  lastRefreshTs,
   openEditModal,
   viewDetail,
   openCampaign,
@@ -19,6 +26,49 @@ const OrganizationList = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const ITEMS_PER_PAGE = 25;
+
+  // Etiqueta dinámica para el tiempo transcurrido desde la última actualización
+  const [lastRefreshLabel, setLastRefreshLabel] = useState('');
+
+  const getElapsedString = (ts) => {
+    if (!ts) return '';
+    const diffMs = Date.now() - ts;
+    if (diffMs < 0) return '0 s';
+    const seconds = Math.floor(diffMs / 1000);
+    if (seconds < 60) return `${seconds} s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) {
+      const remMin = minutes % 60;
+      return remMin ? `${hours} h ${remMin} min` : `${hours} h`;
+    }
+    const days = Math.floor(hours / 24);
+    return days === 1 ? '1 día' : `${days} días`;
+  };
+
+  useEffect(() => {
+    if (!lastRefreshTs) { setLastRefreshLabel(''); return; }
+    const update = () => setLastRefreshLabel(getElapsedString(lastRefreshTs));
+    update();
+    const id = setInterval(update, 60000); // Actualiza cada minuto
+    return () => clearInterval(id);
+  }, [lastRefreshTs]);
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setFilterStatus('todos');
+    setFilterType('todos');
+    setFilterIsla('todos');
+    setFilterSuscripcion('todos');
+    setCurrentPage(1);
+  };
+
+  // Lista de islas para el selector del filtro
+  const islasCanarias = [
+    'Gran Canaria', 'Tenerife', 'Lanzarote', 'Fuerteventura',
+    'La Palma', 'La Gomera', 'El Hierro', 'Canarias'
+  ];
 
   const filteredOrgs = useMemo(() => {
     const lowercasedSearchTerm = searchTerm.toLowerCase();
@@ -35,10 +85,12 @@ const OrganizationList = ({
 
       const tipoEntidad = getEntityType(org);
       const matchesType = filterType === 'todos' ? true : tipoEntidad === filterType;
+      const matchesIsla = filterIsla === 'todos' ? true : org.isla === filterIsla;
+      const matchesSuscripcion = filterSuscripcion === 'todos' ? true : org.suscripcion === filterSuscripcion;
 
-      return matchesSearch && matchesStatus && matchesType;
+      return matchesSearch && matchesStatus && matchesType && matchesIsla && matchesSuscripcion;
     });
-  }, [organizaciones, searchTerm, filterStatus, filterType]);
+  }, [organizaciones, searchTerm, filterStatus, filterType, filterIsla, filterSuscripcion]);
 
   const totalPages = Math.ceil(filteredOrgs.length / ITEMS_PER_PAGE);
   
@@ -51,14 +103,64 @@ const OrganizationList = ({
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterStatus, filterType, setCurrentPage]);
+  }, [searchTerm, filterStatus, filterType, filterIsla, filterSuscripcion, setCurrentPage]);
 
   return (
     <div className="space-y-6">
       <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <div className="relative">
+        <div className="grid gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {/* Estado */}
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value === 'todos' ? 'todos' : parseInt(e.target.value))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+            >
+              <option value="todos">Todos los estados</option>
+              <option value={ESTADOS_CLIENTE.COMPLETADO}>Completado</option>
+              <option value={ESTADOS_CLIENTE.EN_REVISION}>En revisión</option>
+              <option value={ESTADOS_CLIENTE.PENDIENTE}>Pendiente</option>
+            </select>
+
+            {/* Tipo */}
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+            >
+              <option value="todos">Todos los tipos</option>
+              <option value="Administración Pública">Público</option>
+              <option value="Empresa">Empresa</option>
+              <option value="Asociación">Asociación</option>
+            </select>
+
+            {/* Isla */}
+            <select
+              value={filterIsla}
+              onChange={(e) => setFilterIsla(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+            >
+              <option value="todos">Todas las islas</option>
+              {islasCanarias.map((isla) => (
+                <option key={isla} value={isla}>{isla}</option>
+              ))}
+            </select>
+
+            {/* Suscripción */}
+            <select
+              value={filterSuscripcion}
+              onChange={(e) => setFilterSuscripcion(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+            >
+              <option value="todos">Todas las suscripciones</option>
+              <option value="activa">Activa</option>
+              <option value="inactiva">Inactiva</option>
+            </select>
+          </div>
+
+          <div className="flex">
+            {/* Buscador */}
+            <div className="relative lg:col-span-2 w-full">
               <Search className="absolute text-gray-400 left-3 top-3" size={20} />
               <input
                 type="text"
@@ -68,37 +170,33 @@ const OrganizationList = ({
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-          </div>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value === 'todos' ? 'todos' : parseInt(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-          >
-            <option value="todos">Todos los estados</option>
-            <option value={ESTADOS_CLIENTE.COMPLETADO}>Completado</option>
-            <option value={ESTADOS_CLIENTE.EN_REVISION}>En revisión</option>
-            <option value={ESTADOS_CLIENTE.PENDIENTE}>Pendiente</option>
-          </select>
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-          >
-            <option value="todos">Todos los tipos</option>
-            <option value="Administración Pública">Público</option>
-            <option value="Empresa">Empresa</option>
-            <option value="Asociación">Asociación</option>
-          </select>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onRefresh}
-              className="p-2 text-gray-500 rounded-md hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
-              title="Refrescar datos"
-            >
-              <RefreshCw size={18} />
-            </button>
-            <div title="Fuerza la recarga de datos desde el servidor. Los datos se actualizan automáticamente cada 3 horas.">
-              <HelpCircle size={18} className="text-gray-400" />
+
+            {/* Acciones */}
+            <div className="flex items-center justify-end gap-2 lg:col-start-5 ml-4">
+              <button
+                onClick={handleClearFilters}
+                className="p-2 text-gray-500 rounded-md hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                title="Limpiar filtros y búsqueda"
+              >
+                <RotateCcw size={18} />
+              </button>
+
+              <div className="flex">
+                <button
+                  onClick={onRefresh}
+                  className="p-2 text-gray-500 rounded-md hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                  title="Refrescar listado de Organizaciones"
+                >
+                  <RefreshCw size={18} />
+                </button>
+
+                <div
+                  className="my-auto"
+                  title={`Actualizado ${lastRefreshLabel ? 'hace ' + lastRefreshLabel : 'recientemente'}. Se actualiza automáticamente cada 3 horas.`}
+                >
+                  <HelpCircle size={18} className="text-gray-400" />
+                </div>
+              </div>
             </div>
           </div>
         </div>

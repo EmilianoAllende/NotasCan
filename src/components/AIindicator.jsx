@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { metricas } from '../data/data';
 import { X, Zap } from 'lucide-react';
 
-const AIindicator = () => {
+const AIindicator = ({ metricas }) => {
     const [isIndicatorCollapsed, setIsIndicatorCollapsed] = useState(false);
+    const automatizacion = metricas?.automatizacion ?? 0;
 
     return (
             <div
@@ -37,7 +37,7 @@ const AIindicator = () => {
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-300">
                 <div>• IA procesando: 12 organizaciones</div>
-                <div>• Automatización: {metricas.automatizacion}% activa</div>
+                <div>• Automatización: {automatizacion}% activa</div>
                 </div>
             </>
             )}

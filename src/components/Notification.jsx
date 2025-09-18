@@ -7,7 +7,7 @@ const Notification = ({ notification, onClose }) => {
   useEffect(() => {
     if (notification) {
       setIsVisible(true);
-      // Auto-close after 5 seconds for success, 8 seconds for others
+      // Auto-close después de 5 segundos en "success", 8 segundos los demás.
       const timeout = setTimeout(() => {
         handleClose();
       }, notification.type === 'success' ? 5000 : 8000);
@@ -20,7 +20,7 @@ const Notification = ({ notification, onClose }) => {
     setIsVisible(false);
     setTimeout(() => {
       onClose();
-    }, 300); // Wait for animation to complete
+    }, 300);
   };
 
   if (!notification) return null;

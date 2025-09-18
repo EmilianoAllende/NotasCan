@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Edit } from 'lucide-react';
+import { Mail, Edit, ExternalLink } from 'lucide-react';
 import StatusBadge from './shared/StatusBadge';
 
 const OrganizationDetail = ({ selectedOrg, openEditModal, setShowCampaignModal }) => {
@@ -51,52 +51,93 @@ const OrganizationDetail = ({ selectedOrg, openEditModal, setShowCampaignModal }
                 </div>
                 <div className="col-span-2">
                     <p className="text-sm text-gray-500 dark:text-gray-400">Actividad Principal</p>
-                    <p className="font-medium dark:text-gray-200">{orgInfo.actividad_principal || 'No especificado'}</p>
+                    <p className="font-medium dark:text-gray-200">{selectedOrg.actividad_principal || orgInfo.actividad_principal || 'No especificado'}</p>
                 </div>
+                <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Fecha de Creación</p>
+                    <p className="font-medium dark:text-gray-200">{selectedOrg.created_date ? new Date(selectedOrg.created_date).toLocaleDateString() : 'No especificada'}</p>
+                </div>
+                {selectedOrg.url && selectedOrg.url !== 'indefinido' && (
+                    <div className="col-span-2">
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Sitio Web</p>
+                        <a href={selectedOrg.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                            {selectedOrg.url} <ExternalLink size={14} />
+                        </a>
+                    </div>
+                )}
                 </div>
             </div>
 
             {/* --- Información de Contacto --- */}
-            {(selectedOrg.nombres_org || orgInfo.contacto_principal) && (
+            {(selectedOrg.nombres_org || selectedOrg.nombre_contacto || orgInfo.contacto_principal) && (
                 <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
-                <h3 className="mb-4 text-lg font-bold text-gray-900 dark:text-gray-100">Información de contacto</h3>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    {selectedOrg.nombres_org && (
-                    <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Contacto Principal (Campañas)</p>
-                        <p className="font-medium text-blue-600 dark:text-blue-400">{selectedOrg.nombres_org}</p>
+                    <h3 className="mb-4 text-lg font-bold text-gray-900 dark:text-gray-100">Información de contacto</h3>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        {selectedOrg.nombres_org && selectedOrg.nombres_org !== 'indefinido' && (
+                            <div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Contacto Principal (Campañas)</p>
+                                <p className="font-medium text-blue-600 dark:text-blue-400">{selectedOrg.nombres_org}</p>
+                            </div>
+                        )}
+                        {selectedOrg.nombre_contacto && selectedOrg.nombre_contacto !== 'indefinido' && (
+                            <div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Contacto general</p>
+                                <p className="font-medium dark:text-gray-200">{selectedOrg.nombre_contacto}</p>
+                            </div>
+                        )}
+                        <div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Cargo</p>
+                            <p className="font-medium dark:text-gray-200">{selectedOrg.rol || orgInfo.contacto_principal?.cargo || '[vacio]'}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Teléfono</p>
+                            <p className="font-medium text-blue-600 dark:text-blue-400">{selectedOrg.telefono || orgInfo.contacto_principal?.telefono || '[vacio]'}</p>
+                        </div>
+                        {selectedOrg.direccion && selectedOrg.direccion !== 'indefinido' && (
+                            <div className="col-span-2">
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Dirección</p>
+                                <p className="font-medium dark:text-gray-200">{selectedOrg.direccion}</p>
+                            </div>
+                        )}
                     </div>
-                    )}
-                    <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Contacto general</p>
-                    <p className="font-medium dark:text-gray-200">{orgInfo.contacto_principal?.nombre || '[vacio]'}</p>
-                    </div>
-                    <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Cargo</p>
-                    <p className="font-medium dark:text-gray-200">{selectedOrg.rol || orgInfo.contacto_principal?.cargo || '[vacio]'}</p>
-                    </div>
-                    <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Teléfono</p>
-                    <p className="font-medium text-blue-600 dark:text-blue-400">{selectedOrg.telefono || orgInfo.contacto_principal?.telefono || '[vacio]'}</p>
-                    </div>
-                </div>
                 </div>
             )}
 
             {/* --- Análisis de Actividad y Temas --- */}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
-                <h3 className="mb-4 text-lg font-bold text-gray-900 dark:text-gray-100">Actividad Comunicacional</h3>
-                <div className="space-y-4">
-                    <div className="flex justify-between">
-                    <span className="dark:text-gray-300">Frecuencia:</span>
-                    <span className="font-medium dark:text-gray-200">{selectedOrg.frecuencia}</span>
+                    <h3 className="mb-4 text-lg font-bold text-gray-900 dark:text-gray-100">Actividad Comunicacional</h3>
+                    <div className="space-y-4">
+                        <div className="flex justify-between">
+                            <span className="dark:text-gray-300">Frecuencia:</span>
+                            <span className="font-medium dark:text-gray-200">{selectedOrg.frecuencia !== undefined ? selectedOrg.frecuencia : 'N/A'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="dark:text-gray-300">Último posteo:</span>
+                            <span className="font-medium dark:text-gray-200">{selectedOrg.ultimo_posteo || 'No registrado'}</span>
+                        </div>
+                        {selectedOrg.titulo_posteo && selectedOrg.titulo_posteo !== 'indefinido' && (
+                            <div>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Título del último posteo</p>
+                                <p className="font-medium dark:text-gray-200">{selectedOrg.titulo_posteo}</p>
+                                {selectedOrg.url_posteo && selectedOrg.url_posteo !== 'indefinido' && (
+                                    <a href={selectedOrg.url_posteo} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-1 text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                                        Ver posteo <ExternalLink size={14} />
+                                    </a>
+                                )}
+                            </div>
+                        )}
+                        <div className="flex items-center justify-between">
+                            <span className="dark:text-gray-300">Suscripción:</span>
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                selectedOrg.suscripcion === 'activa' 
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            }`}>
+                                {selectedOrg.suscripcion || 'No especificada'}
+                            </span>
+                        </div>
                     </div>
-                    <div className="flex justify-between">
-                    <span className="dark:text-gray-300">Último posteo:</span>
-                    <span className="font-medium dark:text-gray-200">{selectedOrg.ultimo_posteo}</span>
-                    </div>
-                </div>
                 </div>
 
                 <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
