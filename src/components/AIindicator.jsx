@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { X, Zap } from 'lucide-react';
 
-const AIindicator = ({ metricas }) => {
+const AIindicator = ({ metricas, procesando = 0 }) => {
     const [isIndicatorCollapsed, setIsIndicatorCollapsed] = useState(false);
     const automatizacion = metricas?.automatizacion ?? 0;
+    const pendientes = metricas?.pendientes ?? 0;
 
     return (
             <div
@@ -36,7 +37,8 @@ const AIindicator = ({ metricas }) => {
                 <h4 className="font-semibold text-gray-900 dark:text-gray-400">Sistema activo</h4>
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-300">
-                <div>• IA procesando: 12 organizaciones</div>
+                <div>• IA procesando: {procesando} organizaciones</div>
+                <div>• Organizaciones pendientes de procesamiento: {pendientes}</div>
                 <div>• Automatización: {automatizacion}% activa</div>
                 </div>
             </>

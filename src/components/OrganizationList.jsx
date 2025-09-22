@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Eye, Edit, Mail, Zap, RefreshCw, HelpCircle, RotateCcw } from 'lucide-react';
+import { Search, Eye, Edit, Mail, Zap, RefreshCw, HelpCircle, RotateCcw, Download } from 'lucide-react';
 import StatusBadge from './shared/StatusBadge';
 import Pagination from './shared/Pagination';
 import { getEntityType, ESTADOS_CLIENTE } from '../utils/organizationUtils';
+import { getElapsedString } from '../utils/dateUtils';
 
 const OrganizationList = ({
   organizaciones,
@@ -30,23 +31,6 @@ const OrganizationList = ({
   // Etiqueta dinámica para el tiempo transcurrido desde la última actualización
   const [lastRefreshLabel, setLastRefreshLabel] = useState('');
 
-  const getElapsedString = (ts) => {
-    if (!ts) return '';
-    const diffMs = Date.now() - ts;
-    if (diffMs < 0) return '0 s';
-    const seconds = Math.floor(diffMs / 1000);
-    if (seconds < 60) return `${seconds} s`;
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes} min`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) {
-      const remMin = minutes % 60;
-      return remMin ? `${hours} h ${remMin} min` : `${hours} h`;
-    }
-    const days = Math.floor(hours / 24);
-    return days === 1 ? '1 día' : `${days} días`;
-  };
-
   useEffect(() => {
     if (!lastRefreshTs) { setLastRefreshLabel(''); return; }
     const update = () => setLastRefreshLabel(getElapsedString(lastRefreshTs));
@@ -62,6 +46,59 @@ const OrganizationList = ({
     setFilterIsla('todos');
     setFilterSuscripcion('todos');
     setCurrentPage(1);
+  };
+
+  const isClean =
+    searchTerm === '' &&
+    filterStatus === 'todos' &&
+    filterType === 'todos' &&
+    filterIsla === 'todos' &&
+    filterSuscripcion === 'todos';
+
+  const handleExportCSV = () => {
+    const headers = [
+      'id',
+      'organizacion',
+      'nombre',
+      'isla',
+      'municipio',
+      'estado_cliente',
+      'nombres_org',
+      'rol',
+      'telefono',
+      'ultimo_posteo',
+      'suscripcion',
+      'tipo_entidad'
+    ];
+    const lines = [headers.join(',')];
+    filteredOrgs.forEach((org) => {
+      const row = [
+        org.id ?? '',
+        (org.organizacion ?? '').toString().replaceAll(',', ' '),
+        (org.nombre ?? '').toString().replaceAll(',', ' '),
+        (org.isla ?? '').toString().replaceAll(',', ' '),
+        (org.municipio ?? '').toString().replaceAll(',', ' '),
+        org.estado_cliente ?? '',
+        (org.nombres_org ?? '').toString().replaceAll(',', ' '),
+        (org.rol ?? '').toString().replaceAll(',', ' '),
+        (org.telefono ?? '').toString().replaceAll(',', ' '),
+        (org.ultimo_posteo ?? '').toString().replaceAll(',', ' '),
+        (org.suscripcion ?? '').toString().replaceAll(',', ' '),
+        (getEntityType(org) || '').toString().replaceAll(',', ' '),
+      ];
+      lines.push(row.join(','));
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const date = new Date();
+    const stamp = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')}`;
+    link.download = `organizaciones_export_${stamp}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // Lista de islas para el selector del filtro
@@ -175,7 +212,8 @@ const OrganizationList = ({
             <div className="flex items-center justify-end gap-2 lg:col-start-5 ml-4">
               <button
                 onClick={handleClearFilters}
-                className="p-2 text-gray-500 rounded-md hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                disabled={isClean}
+                className="p-2 text-gray-500 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:bg-gray-700"
                 title="Limpiar filtros y búsqueda"
               >
                 <RotateCcw size={18} />
@@ -188,6 +226,14 @@ const OrganizationList = ({
                   title="Refrescar listado de Organizaciones"
                 >
                   <RefreshCw size={18} />
+                </button>
+
+                <button
+                  onClick={handleExportCSV}
+                  className="p-2 text-gray-500 rounded-md hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                  title="Exportar CSV (filtros aplicados)"
+                >
+                  <Download size={18} />
                 </button>
 
                 <div

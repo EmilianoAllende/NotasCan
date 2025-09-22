@@ -2,7 +2,8 @@ import React from 'react';
 import { Users, Eye, Mail, Building, FilePenLine } from 'lucide-react';
 import { tiposCampana, campanasActivas } from './data/data';
 import apiClient from './api/apiClient';
-import { getEntityType, ESTADOS_CLIENTE } from './utils/organizationUtils';
+// organizationUtils ya no se usa directamente aquí; lo usa el hook useDashboardData
+import { useDashboardData } from './hooks/useDashboardData';
 import Dashboard from './components/Dashboard';
 import OrganizationList from './components/OrganizationList';
 import OrganizationDetail from './components/OrganizationDetail';
@@ -59,47 +60,8 @@ const App = () => {
   const [emailPreview, setEmailPreview] = React.useState(null); // { subject, body }
   const [notification, setNotification] = React.useState(null);
 
-  // Métricas y datasets derivados de las organizaciones reales
-  const computedMetricas = React.useMemo(() => {
-    const total = organizaciones.length;
-    const completadas = organizaciones.filter(o => o.estado_cliente === ESTADOS_CLIENTE.COMPLETADO).length;
-    const en_revision = organizaciones.filter(o => o.estado_cliente === ESTADOS_CLIENTE.EN_REVISION).length;
-    const pendientes = organizaciones.filter(o => o.estado_cliente === ESTADOS_CLIENTE.PENDIENTE).length;
-    const automatizacion = total > 0 ? Math.round((completadas / total) * 100) : 0;
-    // No tenemos una métrica de precisión de IA real aún. Dejamos 0 por ahora.
-    const precision_ia = 0;
-    return { total_organizaciones: total, completadas, en_revision, pendientes, automatizacion, precision_ia };
-  }, [organizaciones]);
-
-  const computedEstadosData = React.useMemo(() => ([
-    { estado: 'Completadas', cantidad: computedMetricas.completadas, color: '#10b981' },
-    { estado: 'En revisión', cantidad: computedMetricas.en_revision, color: '#f59e0b' },
-    { estado: 'Pendientes', cantidad: computedMetricas.pendientes, color: '#ef4444' }
-  ]), [computedMetricas]);
-
-  const computedIslasData = React.useMemo(() => {
-    const counts = new Map();
-    for (const org of organizaciones) {
-      const isla = (org.isla && org.isla !== 'indefinido') ? org.isla : null;
-      if (!isla) continue;
-      counts.set(isla, (counts.get(isla) || 0) + 1);
-    }
-    return Array.from(counts.entries())
-      .map(([isla, count]) => ({ isla, organizaciones: count }))
-      .sort((a, b) => b.organizaciones - a.organizaciones);
-  }, [organizaciones]);
-
-  const computedSectoresData = React.useMemo(() => {
-    const counts = new Map();
-    for (const org of organizaciones) {
-      const tipo = getEntityType(org) || 'Otros';
-      counts.set(tipo, (counts.get(tipo) || 0) + 1);
-    }
-    return Array.from(counts.entries())
-      .map(([sector, cantidad]) => ({ sector, cantidad }))
-      .sort((a, b) => b.cantidad - a.cantidad)
-      .slice(0, 6);
-  }, [organizaciones]);
+  // Métricas y datasets mediante hook reutilizable
+  const { metricas, estadosData, islasData, sectoresData } = useDashboardData(organizaciones);
 
 // --- FUNCIÓN 1: Generar el borrador ---
   const handleGeneratePreview = async () => {
@@ -267,6 +229,7 @@ const App = () => {
     localStorage.removeItem('organizaciones_cache');
     setOrganizaciones([]);
     setCurrentPage(1);
+    setLastRefreshTs(null);
   };
 
   const openEditor = (org) => {
@@ -314,7 +277,7 @@ const App = () => {
   const renderView = () => {
     switch (activeView) {
       case 'dashboard':
-        return <Dashboard metricas={computedMetricas} estadosData={computedEstadosData} islasData={computedIslasData} sectoresData={computedSectoresData} />;
+        return <Dashboard metricas={metricas} estadosData={estadosData} islasData={islasData} sectoresData={sectoresData} />;
       case 'listado':
         return (
           <OrganizationList
@@ -368,7 +331,7 @@ const App = () => {
         <div className="flex items-center justify-between px-6 py-4">
             <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">NotasCan - Centro de enriquecimiento automático</h1>
-                <p className="text-gray-600 dark:text-gray-400">Transformando {computedMetricas.total_organizaciones} organizaciones en la base de datos comercial más precisa de Canarias</p>
+                <p className="text-gray-600 dark:text-gray-400">Transformando {metricas.total_organizaciones} organizaciones en la base de datos comercial más precisa de Canarias</p>
             </div>
             <ThemeSwitcher />
         </div>
@@ -421,7 +384,7 @@ const App = () => {
         setSelectedCampaignType={setSelectedCampaignType}
       />
       
-      <AIindicator metricas={computedMetricas} />
+      <AIindicator metricas={metricas} procesando={organizaciones.length} />
       
       <Notification 
         notification={notification}

@@ -110,7 +110,13 @@ const OrganizationDetail = ({ selectedOrg, openEditModal, setShowCampaignModal }
                     <div className="space-y-4">
                         <div className="flex justify-between">
                             <span className="dark:text-gray-300">Frecuencia:</span>
-                            <span className="font-medium dark:text-gray-200">{selectedOrg.frecuencia !== undefined ? selectedOrg.frecuencia : 'N/A'}</span>
+                            <span className="font-medium dark:text-gray-200">{
+                                (selectedOrg.frecuencia_comunicacion && selectedOrg.frecuencia_comunicacion !== 'indefinido')
+                                    ? selectedOrg.frecuencia_comunicacion
+                                    : ((selectedOrg.frecuencia && selectedOrg.frecuencia !== 'indefinido')
+                                        ? selectedOrg.frecuencia
+                                        : 'N/A')
+                            }</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="dark:text-gray-300">Último posteo:</span>
