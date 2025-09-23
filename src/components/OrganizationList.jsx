@@ -292,7 +292,8 @@ const OrganizationList = ({
                     <button onClick={() => openEditModal(org)} className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300" title="Editar">
                       <Edit size={16} />
                     </button>
-                    <button onClick={() => openCampaign(org)} className="p-1 text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300" title="Enviar email">
+                    <button onClick={() => openCampaign(org)} className="p-1 text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-3
+                    00" title="Enviar email">
                       <Mail size={16} />
                     </button>
                     {org.estado_cliente === 3 && (

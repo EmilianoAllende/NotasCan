@@ -4,14 +4,14 @@ const SendCampaignModal = ({
   show,
   onClose,
   selectedOrg,
-  tiposCampana,
+  campaignTemplates,
   onGeneratePreview,
   onConfirmAndSend,
   isPreviewLoading,
   isSending,
   emailPreview,
-  selectedCampaignType,
-  setSelectedCampaignType
+  selectedCampaignId,
+  setSelectedCampaignId
 }) => {
   // Estado local para manejar el contenido editable
   const [editableContent, setEditableContent] = useState({
@@ -39,21 +39,27 @@ const SendCampaignModal = ({
   const renderInitialView = () => (
     <>
       <h2 className="text-xl font-bold mb-4 dark:text-white">Generar campaña para {selectedOrg.nombre}</h2>
-      <div className="space-y-4">
-        {Object.entries(tiposCampana).map(([key, campana]) => (
+      <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+        {campaignTemplates.map((tpl) => (
           <div
-            key={key}
-            onClick={() => setSelectedCampaignType(key)}
+            key={tpl.id}
+            onClick={() => setSelectedCampaignId(tpl.id)}
             className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-              selectedCampaignType === key
+              selectedCampaignId === tpl.id
                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900'
                 : 'border-gray-300 dark:border-gray-500 hover:border-gray-400'
             }`}
           >
-            <h4 className="font-semibold dark:text-gray-100">{campana.nombre}</h4>
-            <p className="text-sm text-gray-600 dark:text-gray-300">{campana.descripcion}</p>
+            <div className="flex items-center justify-between">
+              <h4 className="font-semibold dark:text-gray-100">{tpl.title}</h4>
+              <span className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 dark:text-gray-200">{tpl.mode === 'raw' ? 'RAW' : 'Builder'}</span>
+            </div>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{tpl.description}</p>
           </div>
         ))}
+        {campaignTemplates.length === 0 && (
+          <div className="text-sm text-gray-600 dark:text-gray-300">No hay plantillas. Crea campañas desde la pestaña "Campañas".</div>
+        )}
       </div>
       <div className="flex justify-end gap-3 mt-6">
         <button
@@ -65,7 +71,7 @@ const SendCampaignModal = ({
         </button>
         <button
           onClick={onGeneratePreview}
-          disabled={!selectedCampaignType || isPreviewLoading}
+          disabled={!selectedCampaignId || isPreviewLoading}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
         >
           {isPreviewLoading ? 'Generando...' : 'Generar Borrador'}

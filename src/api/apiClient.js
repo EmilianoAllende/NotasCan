@@ -28,12 +28,9 @@ apiClient.updateOrganization = (formData) => {
 };
 
 // NUEVA FUNCIÓN para generar el borrador del email
-apiClient.generatePreview = (organization, campaignType) => {
+apiClient.generatePreview = (payload) => {
+    // payload esperado: { organization, campaign: { title, description, prompt, mode, id? } }
     try {
-        const payload = {
-            organization,
-            campaignType
-        };
         // Llama al Workflow #1
         return apiClient.post('/webhook/generate-preview', payload);
     } catch (error) {
@@ -52,6 +49,12 @@ apiClient.confirmAndSend = (payload) => {
         console.error("Error al confirmar y enviar la campaña:", error);
         throw error;
     }
+};
+
+// PREPARADO: historial de campañas (por tipo y fecha). Endpoint placeholder para cuando exista en el back.
+apiClient.getCampaignsHistory = () => {
+    // Espera que el backend exponga este webhook con estructura adecuada.
+    return apiClient.get('/webhook/campaigns-history');
 };
 
 // La función 'sendCampaign' ya no es necesaria y puede ser eliminada.

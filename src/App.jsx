@@ -2,7 +2,6 @@ import React from 'react';
 import { Users, Eye, Mail, Building, FilePenLine } from 'lucide-react';
 import { tiposCampana, campanasActivas } from './data/data';
 import apiClient from './api/apiClient';
-// organizationUtils ya no se usa directamente aquí; lo usa el hook useDashboardData
 import { useDashboardData } from './hooks/useDashboardData';
 import Dashboard from './components/Dashboard';
 import OrganizationList from './components/OrganizationList';
@@ -13,6 +12,7 @@ import SendCampaignModal from './components/SendCampaignModal';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import AIindicator from './components/AIindicator';
 import Notification from './components/Notification';
+import { seedIfEmpty, saveTemplates } from './utils/campaignsStore';
 
 const CACHE_EXPIRATION_MS = 3 * 60 * 60 * 1000;
 
@@ -55,17 +55,91 @@ const App = () => {
   const [error, setError] = React.useState(null);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isSendingCampaign, setIsSendingCampaign] = React.useState(false);
-  const [selectedCampaignType, setSelectedCampaignType] = React.useState('');
+  const [selectedCampaignId, setSelectedCampaignId] = React.useState('');
   const [isPreviewLoading, setIsPreviewLoading] = React.useState(false);
   const [emailPreview, setEmailPreview] = React.useState(null); // { subject, body }
   const [notification, setNotification] = React.useState(null);
 
+  // Plantilla por defecto para prompts (modo RAW), basada en el ejemplo provisto
+  const DEFAULT_PROMPT = `Tu tarea es generar un correo electrónico de tipo "{{ $('Data Extractor').item.json.campaignType }}" para la organización "{{ $('Data Extractor').item.json.organizacion }}".
+**Datos del destinatario:**
+- Persona de contacto: {{ $('Data Extractor').item.json.persona_contacto }}
+- Si el elemento anterior no existe o es "indefinido" (o similar), usa en su lugar "{{ $('Data Extractor').item.json.persona }}"
+- Industria: {{ $('Data Extractor').item.json.industria }}
+- Metadata: : {{ $('Data Extractor').item.json.industria }}
+**Instrucciones:**
+- El tono debe ser profesional pero cercano.
+- El asunto (subject) debe ser corto y atractivo.
+- El cuerpo (body) debe ser conciso.
+- Ten en cuenta metadata como "actividad principal" y "intereses".
+- Debes basarte en los siguientes ejemplos sobre cómo redactar (y cómo no redactar) el correo.
+---
+**EJEMPLOS DE CÓMO SÍ REDACTAR (BUENOS):**
+**Ejemplo 1:** {
+  "subject": "Potenciando a [Nombre de la Empresa]",
+  "body": "Hola [Nombre de Contacto], nos comunicamos con usted porque veo que [Nombre de la Empresa] es un referente en el sector de [Industria]. Creo que nuestra solución podría ayudarles a optimizar sus procesos. ¿Te interesaría conversar 15 minutos la próxima semana?"
+}
+**Ejemplo 2:** {
+  "subject": "Una idea para [Nombre de la Empresa]",
+  "body": "Estimado/a [Nombre de Contacto], Nuestro equipo ha desarrollado una herramienta que está ayudando a empresas de [Industria] a mejorar su rendimiento. Me encantaría mostrarte cómo podría aplicarse en [Nombre de la Empresa]. Saludos."
+}
+**Ejemplo 3:** {
+  "subject": "Colaboración con [Nombre de la Empresa]",
+  "body": "Hola [Nombre de Contacto], espero que se encuentre muy bien. Vemos el gran trabajo que hacen en [Industria] y queríamos proponer una sinergia. ¿Tendrías un momento para explorar esta posibilidad?"
+}
+---
+**EJEMPLOS DE CÓMO NO REDACTAR (MALOS):**
+**Ejemplo 1 (Demasiado genérico):** {
+  "subject": "Oportunidad de negocio",
+  "body": "Estimado cliente, tenemos un producto que le puede interesar. Contáctenos."
+}
+**Ejemplo 2 (Muy informal y vago):** {
+  "subject": "Hola!",
+  "body": "Qué tal? Vi tu empresa y pensé que podríamos hacer algo juntos. Avísame."
+}
+**Ejemplo 3 (Exagerado y poco profesional):** {
+  "subject": "¡¡LA MEJOR OFERTA DE SU VIDA!!",
+  "body": "No creerá lo que tenemos para usted. ¡Es una revolución! ¡Llame ya!"
+}`;
+
+  // Inicialización de plantillas de campaña (templates) en localStorage a partir de tiposCampana
+  const [campaignTemplates, setCampaignTemplates] = React.useState(() => {
+    const defaults = Object.entries(tiposCampana).map(([id, t]) => ({
+      id,
+      title: t.nombre,
+      description: t.descripcion,
+      mode: 'builder',
+      rawPrompt: DEFAULT_PROMPT,
+      builder: { campaignType: id, instructions: '', examplesGood: '', examplesBad: '', useMetadata: true }
+    }));
+    return seedIfEmpty(defaults);
+  });
+
   // Métricas y datasets mediante hook reutilizable
   const { metricas, estadosData, islasData, sectoresData } = useDashboardData(organizaciones);
 
+  const handleTemplatesChange = (next) => {
+    setCampaignTemplates(next);
+    saveTemplates(next);
+  };
+
+  const buildPromptFromTemplate = (template, org) => {
+    if (!template) return DEFAULT_PROMPT;
+    if (template.mode === 'raw' && template.rawPrompt) return template.rawPrompt;
+    // Constructor simple: incluimos título/descripcion y pistas básicas
+    const persona = org?.nombres_org || org?.nombre || '[Contacto]';
+    const industria = org?.sector || org?.industria || '[Industria]';
+    const orgName = org?.organizacion || org?.nombre || '[Organización]';
+    const header = `Genera un correo de tipo "${template?.builder?.campaignType || template.id}" para la organización "${orgName}".`;
+    const meta = `Datos del destinatario: contacto: ${persona}; industria: ${industria}.`;
+    const baseInstr = `El tono debe ser profesional pero cercano. El asunto corto y atractivo. El cuerpo conciso.`;
+    const extra = template?.builder?.instructions ? `Instrucciones extra: ${template.builder.instructions}` : '';
+    return [header, `Título de campaña: ${template.title}`, `Descripción: ${template.description}`, meta, baseInstr, extra].filter(Boolean).join('\n');
+  };
+
 // --- FUNCIÓN 1: Generar el borrador ---
   const handleGeneratePreview = async () => {
-    if (!selectedOrg || !selectedCampaignType) {
+    if (!selectedOrg || !selectedCampaignId) {
       setNotification({
         type: 'warning',
         title: 'Selección Requerida',
@@ -78,7 +152,19 @@ const App = () => {
     setEmailPreview(null);
 
     try {
-      const response = await apiClient.generatePreview(selectedOrg, selectedCampaignType);
+      const template = campaignTemplates.find(t => t.id === selectedCampaignId);
+      const prompt = buildPromptFromTemplate(template, selectedOrg);
+      const payload = {
+        organization: selectedOrg,
+        campaign: {
+          id: template.id,
+          title: template.title,
+          description: template.description,
+          mode: template.mode,
+          prompt
+        }
+      };
+      const response = await apiClient.generatePreview(payload);
       setEmailPreview(response.data); // Guardamos el object { subject, body }
       setNotification({
         type: 'success',
@@ -117,7 +203,7 @@ const App = () => {
       console.log("Datos de respuesta (raw):", result);
       console.log("Tipo de datos:", typeof result);
       
-      //! Si la respuesta es [] (string vacío), el workflow no llegó al nodo de respuesta.
+//! Si la respuesta es [] (string vacío), el workflow no llegó al nodo de respuesta.
       if (result === "" || result === null || result === undefined) {
         console.error("n8n devolvió respuesta vacía. El workflow no ejecutó ningún nodo 'Respond to Webhook'");
         setNotification({
@@ -201,7 +287,7 @@ const App = () => {
       setIsSendingCampaign(false);
       setShowCampaignModal(false);
       setEmailPreview(null); // Limpiamos el estado al cerrar
-      setSelectedCampaignType('');
+      setSelectedCampaignId('');
     }
   };
 
@@ -313,7 +399,14 @@ const App = () => {
         );
 
       case 'campanas':
-        return <Campaigns campanasActivas={campanasActivas} />;
+        return (
+          <Campaigns 
+            campanasActivas={campanasActivas} 
+            organizaciones={organizaciones}
+            campaignTemplates={campaignTemplates}
+            onTemplatesChange={handleTemplatesChange}
+          />
+        );
       default:
         return (
             <div className="flex items-center justify-center h-full">
@@ -373,15 +466,15 @@ const App = () => {
           setEmailPreview(null); // Limpiar al cerrar
         }}
         selectedOrg={selectedOrg}
-        tiposCampana={tiposCampana}
+        campaignTemplates={campaignTemplates}
         // Pasamos todo lo necesario para el nuevo flujo
         onGeneratePreview={handleGeneratePreview}
         onConfirmAndSend={handleConfirmAndSend}
         isPreviewLoading={isPreviewLoading}
         isSending={isSendingCampaign}
         emailPreview={emailPreview}
-        selectedCampaignType={selectedCampaignType}
-        setSelectedCampaignType={setSelectedCampaignType}
+        selectedCampaignId={selectedCampaignId}
+        setSelectedCampaignId={setSelectedCampaignId}
       />
       
       <AIindicator metricas={metricas} procesando={organizaciones.length} />
