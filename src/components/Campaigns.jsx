@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, ChevronRight, Plus, Trash2, Save } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Trash2, Save, Mail } from 'lucide-react';
 import apiClient from '../api/apiClient';
 
 // Esperamos que el backend provea, por organización, los siguientes campos:
@@ -19,7 +19,7 @@ import apiClient from '../api/apiClient';
 //   summary: { hace_dias_ultima_campana: 12 }
 // }
 
-const Campaigns = ({ campanasActivas = [], organizaciones = [], campaignTemplates = [], onTemplatesChange }) => {
+const Campaigns = ({ campanasActivas = [], organizaciones = [], campaignTemplates = [], onTemplatesChange, onSelectTemplateForSend }) => {
   // Historial de campañas (por tipo -> fechas -> organizaciones)
   const [history, setHistory] = React.useState({ types: [], summary: { hace_dias_ultima_campana: null } });
   const [loadingHistory, setLoadingHistory] = React.useState(false);
@@ -350,6 +350,13 @@ const Campaigns = ({ campanasActivas = [], organizaciones = [], campaignTemplate
                 )}
 
                 <div className="flex items-center gap-2 justify-end pt-2">
+                  <button
+                    onClick={() => editingTpl && onSelectTemplateForSend?.(editingTpl.id)}
+                    className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded border border-blue-300 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900"
+                    title="Seleccionar esta plantilla para el envío"
+                  >
+                    <Mail size={16} /> Usar en envío
+                  </button>
                   <button onClick={deleteTemplate} className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded border border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-900">
                     <Trash2 size={16} /> Eliminar
                   </button>
@@ -371,10 +378,53 @@ function slugify(str) {
 }
 
 function buildFallbackHistory(campanasActivas, campaignTemplates, organizaciones) {
-  // Agrupa campanasActivas en estructura por tipo -> fechas -> organizaciones
+  // 1) Preferente: derivar desde organizaciones[].campaigns_log (enfoque dinámico)
+  const hasLogs = Array.isArray(organizaciones) && organizaciones.some(o => o && o.campaigns_log && typeof o.campaigns_log === 'object');
+  if (hasLogs) {
+    const typeMap = new Map(); // id -> { id, title, description, dates: Map(date -> orgs[]) }
+    const allDates = [];
+    organizaciones.forEach(org => {
+      const log = org?.campaigns_log;
+      if (!log || typeof log !== 'object') return;
+      Object.entries(log).forEach(([key, info]) => {
+        if (!info) return;
+        const id = extractTemplateId(key);
+        const tpl = campaignTemplates.find(t => t.id === id);
+        const title = tpl?.title || info.template_title || id;
+        const description = tpl?.description || '';
+        if (!typeMap.has(id)) typeMap.set(id, { id, title, description, dates: new Map() });
+        const entry = typeMap.get(id);
+        const last = normalizeDate(info.last_sent);
+        if (last) {
+          allDates.push(last);
+          if (!entry.dates.has(last)) entry.dates.set(last, []);
+          entry.dates.get(last).push({ name: org.organizacion || org.nombre || org.id || 'Org', id: org.id });
+        }
+      });
+    });
+
+    const types = Array.from(typeMap.values()).map(t => ({
+      id: t.id,
+      title: t.title,
+      description: t.description,
+      last_sent_at: null,
+      last_sent_hace_dias: null,
+      dates: Array.from(t.dates.entries()).sort((a,b) => b[0].localeCompare(a[0])).map(([date, orgs]) => ({ date, organizations: orgs }))
+    }));
+
+    // Calcular 'hace_dias_ultima_campana' a partir de la fecha más reciente en logs
+    let hace_dias = null;
+    if (allDates.length) {
+      const newest = allDates.sort((a,b) => b.localeCompare(a))[0];
+      hace_dias = daysSince(newest);
+    }
+    return { types, summary: { hace_dias_ultima_campana: hace_dias } };
+  }
+
+  // 2) Alternativa: agrupar campanasActivas (si no hay campaigns_log disponible)
   const titleToId = Object.fromEntries(campaignTemplates.map(t => [t.title, t.id]));
   const map = new Map(); // id -> { id, title, description, dates: Map(date -> orgs[]) }
-  campanasActivas.forEach(c => {
+  (campanasActivas || []).forEach(c => {
     const id = titleToId[c.tipo] || slugify(c.tipo);
     if (!map.has(id)) {
       const tpl = campaignTemplates.find(t => t.id === id) || { title: c.tipo, description: '' };
@@ -393,7 +443,7 @@ function buildFallbackHistory(campanasActivas, campaignTemplates, organizaciones
     last_sent_hace_dias: null,
     dates: Array.from(t.dates.entries()).sort((a,b) => b[0].localeCompare(a[0])).map(([date, orgs]) => ({ date, organizations: orgs }))
   }));
-  // Calcular fallback de 'hace_dias_ultima_campana' a partir del mínimo 'hace_dias' presente en organizaciones
+  // Fallback de 'hace_dias_ultima_campana' usando organizaciones.hace_dias
   let hace_dias = null;
   if (Array.isArray(organizaciones) && organizaciones.length) {
     const values = organizaciones.map(o => o?.hace_dias).filter(v => Number.isFinite(v));
@@ -411,6 +461,27 @@ function normalizeDate(d) {
   const m = d.match(/^(\d{2})-(\d{2})-(\d{4})$/);
   if (m) return `${m[3]}-${m[2]}-${m[1]}`;
   return d;
+}
+
+function extractTemplateId(key) {
+  // Si la clave viene con sufijo (p.ej., "mmi_analytics_123"), extraemos prefijo hasta el último "_" si coincide con algún template.
+  // Estrategia: probar exacto; si no hay match, intentar recortar sufijo numérico.
+  if (!key) return '';
+  // Mantener clave completa como id por defecto (enfoque 100% dinámico)
+  return key;
+}
+
+function daysSince(isoOrYMD) {
+  try {
+    const dateStr = normalizeDate(isoOrYMD?.slice(0, 10));
+    const dt = new Date(dateStr);
+    if (Number.isNaN(dt.getTime())) return null;
+    const now = new Date();
+    const diffMs = now.getTime() - dt.getTime();
+    return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  } catch {
+    return null;
+  }
 }
 
 export default Campaigns;

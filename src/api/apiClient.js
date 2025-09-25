@@ -41,7 +41,16 @@ apiClient.generatePreview = (payload) => {
 
 // NUEVA FUNCIÓN para enviar el email ya aprobado
 apiClient.confirmAndSend = (payload) => {
-    // El payload será un objeto como: { organizationId, subject, body }
+    // Payload esperado:
+    // {
+    //   organizationId: string,
+    //   subject: string,
+    //   body: string,
+//? Opcionales para integración dinámica con campaigns_log y compatibilidad con 'hace_dias'
+    //   campaignId?: string,     // id de la plantilla usada (para actualizar campaigns_log[campaignId])
+    //   sentAt?: string,         // ISODate del envío (para cálculo de hace_dias en backend)
+    //   updateHaceDias?: boolean // si true, el backend debe actualizar el campo raíz 'hace_dias'
+    // }
     try {
         // Llama al Workflow #2
         return apiClient.post('/webhook/confirm-and-send', payload);

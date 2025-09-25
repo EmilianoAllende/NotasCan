@@ -192,7 +192,13 @@ const App = () => {
       const payload = {
         organizationId: selectedOrg.id,
         subject: finalContent.subject,
-        body: finalContent.body
+        body: finalContent.body,
+        // Opcional: id de la plantilla usada para campañas_log en backend
+        campaignId: selectedCampaignId || undefined,
+        // Opcional: fecha de envío (ISO) para facilitar cálculo de hace_dias en backend
+        sentAt: new Date().toISOString(),
+        // Opcional: solicitar que el backend actualice el campo raíz 'hace_dias' (por compatibilidad con vistas existentes)
+        updateHaceDias: true
       };
       
       const response = await apiClient.confirmAndSend(payload);
@@ -405,6 +411,7 @@ const App = () => {
             organizaciones={organizaciones}
             campaignTemplates={campaignTemplates}
             onTemplatesChange={handleTemplatesChange}
+            onSelectTemplateForSend={(id) => setSelectedCampaignId(id)}
           />
         );
       default:
