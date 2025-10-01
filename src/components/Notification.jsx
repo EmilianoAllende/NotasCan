@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { CheckCircle, AlertTriangle, X, AlertCircle } from 'lucide-react';
 
 const Notification = ({ notification, onClose }) => {
   const [isVisible, setIsVisible] = useState(false);
+
+  const handleClose = useCallback(() => {
+    setIsVisible(false);
+    setTimeout(() => {
+      onClose();
+    }, 300);
+  }, [onClose]);
 
   useEffect(() => {
     if (notification) {
@@ -14,14 +21,7 @@ const Notification = ({ notification, onClose }) => {
 
       return () => clearTimeout(timeout);
     }
-  }, [notification]);
-
-  const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(() => {
-      onClose();
-    }, 300);
-  };
+  }, [notification, handleClose]);
 
   if (!notification) return null;
 
