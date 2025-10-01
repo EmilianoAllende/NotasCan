@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // RECORDAR MODIFICAR. Ahora n8n corre localmente, entonces uso 'http://localhost:5678'.
-const N8N_BASE_URL = 'http://localhost:5678';
+const N8N_BASE_URL = 'https://n8n.icc-e.org';
 
 const apiClient = axios.create({
     baseURL: N8N_BASE_URL
