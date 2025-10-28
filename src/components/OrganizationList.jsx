@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Eye, Edit, Mail, Zap, RefreshCw, HelpCircle, RotateCcw, Download } from 'lucide-react';
+import { Search, Eye, Edit, Mail, Zap, RefreshCw, RotateCcw } from 'lucide-react';
 import StatusBadge from './shared/StatusBadge';
 import Pagination from './shared/Pagination';
 import { getEntityType, ESTADOS_CLIENTE } from '../utils/organizationUtils';
@@ -11,12 +11,10 @@ const OrganizationList = ({
   setFilterStatus,
   filterType,
   setFilterType,
-  // Nuevos filtros
   filterIsla,
   setFilterIsla,
   filterSuscripcion,
   setFilterSuscripcion,
-  // Fin nuevos filtros
   lastRefreshTs,
   openEditModal,
   viewDetail,
@@ -24,8 +22,10 @@ const OrganizationList = ({
   currentPage,
   setCurrentPage,
   onRefresh,
+  startCallCenterMode,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedOrg, setSelectedOrg] = useState(null);
   const ITEMS_PER_PAGE = 25;
 
   // Etiqueta dinámica para el tiempo transcurrido desde la última actualización
@@ -54,52 +54,6 @@ const OrganizationList = ({
     filterType === 'todos' &&
     filterIsla === 'todos' &&
     filterSuscripcion === 'todos';
-
-  const handleExportCSV = () => {
-    const headers = [
-      'id',
-      'organizacion',
-      'nombre',
-      'isla',
-      'municipio',
-      'estado_cliente',
-      'nombres_org',
-      'rol',
-      'telefono',
-      'ultimo_posteo',
-      'suscripcion',
-      'tipo_entidad'
-    ];
-    const lines = [headers.join(',')];
-    filteredOrgs.forEach((org) => {
-      const row = [
-        org.id ?? '',
-        (org.organizacion ?? '').toString().replaceAll(',', ' '),
-        (org.nombre ?? '').toString().replaceAll(',', ' '),
-        (org.isla ?? '').toString().replaceAll(',', ' '),
-        (org.municipio ?? '').toString().replaceAll(',', ' '),
-        org.estado_cliente ?? '',
-        (org.nombres_org ?? '').toString().replaceAll(',', ' '),
-        (org.rol ?? '').toString().replaceAll(',', ' '),
-        (org.telefono ?? '').toString().replaceAll(',', ' '),
-        (org.ultimo_posteo ?? '').toString().replaceAll(',', ' '),
-        (org.suscripcion ?? '').toString().replaceAll(',', ' '),
-        (getEntityType(org) || '').toString().replaceAll(',', ' '),
-      ];
-      lines.push(row.join(','));
-    });
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    const date = new Date();
-    const stamp = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')}`;
-    link.download = `organizaciones_export_${stamp}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
 
   // Lista de islas para el selector del filtro
   const islasCanarias = [
@@ -141,6 +95,8 @@ const OrganizationList = ({
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, filterStatus, filterType, filterIsla, filterSuscripcion, setCurrentPage]);
+
+  const isLoading = organizaciones.length === 0;
 
   return (
     <div className="space-y-6">
@@ -195,126 +151,236 @@ const OrganizationList = ({
             </select>
           </div>
 
-          <div className="flex">
-            {/* Buscador */}
-            <div className="relative lg:col-span-2 w-full">
-              <Search className="absolute text-gray-400 left-3 top-3" size={20} />
+          <div className="flex items-center justify-between">
+            <div className="relative flex-1 max-w-auto">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-gray-400" />
+              </div>
               <input
                 type="text"
-                placeholder="Buscar por organización, contacto, email..."
-                className="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder="Buscar organizaciones..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                >
+                  <span className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                    ×
+                  </span>
+                </button>
+              )}
             </div>
 
-            {/* Acciones */}
-            <div className="flex items-center justify-end gap-2 lg:col-start-5 ml-4">
+            <div className="ml-4 flex space-x-2">
+              {startCallCenterMode && filteredOrgs.length > 0 && (
+                <button
+                  onClick={() => startCallCenterMode(filteredOrgs)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 flex items-center gap-2"
+                  title="Iniciar envío masivo con las organizaciones filtradas"
+                >
+                  <Zap className="h-4 w-4" />
+                  Modo Call Center
+                </button>
+              )}
               <button
                 onClick={handleClearFilters}
                 disabled={isClean}
-                className="p-2 text-gray-500 rounded-md hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed dark:text-gray-400 dark:hover:bg-gray-700"
-                title="Limpiar filtros y búsqueda"
+                className={`px-3 py-2 text-sm font-medium rounded-lg ${
+                  isClean
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600'
+                }`}
+                title="Limpiar todos los filtros"
               >
-                <RotateCcw size={18} />
+                <RotateCcw className="h-4 w-4" />
               </button>
-
-              <div className="flex">
-                <button
-                  onClick={onRefresh}
-                  className="p-2 text-gray-500 rounded-md hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
-                  title="Refrescar listado de Organizaciones"
-                >
-                  <RefreshCw size={18} />
-                </button>
-
-                <button
-                  onClick={handleExportCSV}
-                  className="p-2 text-gray-500 rounded-md hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
-                  title="Exportar CSV (filtros aplicados)"
-                >
-                  <Download size={18} />
-                </button>
-
-                <div
-                  className="my-auto"
-                  title={`Actualizado ${lastRefreshLabel ? 'hace ' + lastRefreshLabel : 'recientemente'}. Se actualiza automáticamente cada 3 horas.`}
-                >
-                  <HelpCircle size={18} className="text-gray-400" />
-                </div>
-              </div>
+              <button
+                onClick={onRefresh}
+                className="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                title="Actualizar datos"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="overflow-x-auto bg-white rounded-lg shadow dark:bg-gray-800">
-        <table className="w-full">
-          <thead className="bg-gray-50 dark:bg-gray-700">
-            <tr>
-              <th className="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-300">Organización</th>
-              <th className="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-300">Contacto</th>
-              <th className="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-300">Ubicación</th>
-              <th className="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-300">Estado</th>
-              <th className="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-300">Último Posteo</th>
-              <th className="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-300">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-300 dark:divide-gray-600">
-            {paginatedOrgs.map((org) => (
-              <tr key={org.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td className="px-6 py-4">
-                  <div>
-                    <div className="font-medium text-gray-900 dark:text-gray-100">{org.organizacion || org.nombre}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{org.id}</div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div>
-                    <div className="font-medium text-gray-900 dark:text-gray-100">{org.nombres_org || '[sin contacto]'}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{org.rol}</div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-800 dark:text-gray-300">
-                  {org.municipio && org.isla ? `${org.municipio}, ${org.isla}` : 'Por determinar'}
-                </td>
-                <td className="px-6 py-4">
-                  <StatusBadge estado={org.estado_cliente} />
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-800 dark:text-gray-300">
-                  {org.ultimo_posteo}
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex gap-2">
-                    <button onClick={() => viewDetail(org)} className="p-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300" title="Ver detalle">
-                      <Eye size={16} />
-                    </button>
-                    <button onClick={() => openEditModal(org)} className="p-1 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300" title="Editar">
-                      <Edit size={16} />
-                    </button>
-                    <button onClick={() => openCampaign(org)} className="p-1 text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-3
-                    00" title="Enviar email">
-                      <Mail size={16} />
-                    </button>
-                    {org.estado_cliente === 3 && (
-                      <button className="p-1 text-orange-600 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-300" title="Procesar con IA">
-                        <Zap size={16} />
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          totalItems={filteredOrgs.length}
-          itemsPerPage={ITEMS_PER_PAGE}
-        />
+          {!isClean && (
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              Mostrando {filteredOrgs.length} de {organizaciones.length} organizaciones
+              {searchTerm && ` que coinciden con "${searchTerm}"`}
+              {filterStatus !== 'todos' && `, estado: ${
+                filterStatus === ESTADOS_CLIENTE.COMPLETADO ? 'Completado' :
+                filterStatus === ESTADOS_CLIENTE.EN_REVISION ? 'En revisión' :
+                filterStatus === ESTADOS_CLIENTE.PENDIENTE ? 'Pendiente' : filterStatus
+              }`}
+              {filterType !== 'todos' && `, tipo: ${filterType}`}
+              {filterIsla !== 'todos' && `, isla: ${filterIsla}`}
+              {filterSuscripcion !== 'todos' && `, suscripción: ${filterSuscripcion}`}
+              <button
+                onClick={handleClearFilters}
+                className="ml-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                (Limpiar filtros)
+              </button>
+            </div>
+          )}
+
+          {lastRefreshLabel && (
+            <div className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
+              Última actualización: {lastRefreshLabel}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-6 overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-white sm:pl-6">
+                    Organización
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                    Contacto
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                    Estado
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white">
+                    Último contacto
+                  </th>
+                  <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                    <span className="sr-only">Acciones</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-800">
+                {paginatedOrgs.length > 0 ? (
+                  paginatedOrgs.map((org) => (
+                    <tr 
+                      key={org.id} 
+                      className={`${
+                        selectedOrg?.id === org.id 
+                          ? 'bg-blue-50 dark:bg-blue-900/20' 
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      }`}
+                    >
+                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 dark:text-white sm:pl-6">
+                        <div className="flex items-center">
+                          <span 
+                            className={`inline-block h-3 w-3 rounded-full mr-2 ${
+                              org.estado_cliente === ESTADOS_CLIENTE.COMPLETADO 
+                                ? 'bg-green-500' 
+                                : org.estado_cliente === ESTADOS_CLIENTE.EN_REVISION 
+                                  ? 'bg-yellow-500' 
+                                  : 'bg-gray-300'
+                            }`}
+                            title={
+                              org.estado_cliente === ESTADOS_CLIENTE.COMPLETADO 
+                                ? 'Completado' 
+                                : org.estado_cliente === ESTADOS_CLIENTE.EN_REVISION 
+                                  ? 'En revisión' 
+                                  : 'Pendiente'
+                            }
+                          />
+                          {org.organizacion || org.nombre || 'Sin nombre'}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {org.sector || 'Sin sector'}
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">
+                        <div>{org.nombres_org || 'Sin contacto'}</div>
+                        {org.cargo && (
+                          <div className="text-xs text-gray-400">{org.cargo}</div>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm">
+                        <StatusBadge estado={org.estado_cliente} />
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                        {org.ultimo_contacto 
+                          ? new Date(org.ultimo_contacto).toLocaleDateString() 
+                          : 'Nunca'}
+                        {org.hace_dias !== undefined && org.hace_dias !== null && (
+                          <div className="text-xs text-gray-400">
+                            Hace {org.hace_dias} días
+                          </div>
+                        )}
+                      </td>
+                      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                        <div className="flex items-center justify-end space-x-2">
+                          <button
+                            onClick={() => {
+                              setSelectedOrg(org);
+                              viewDetail(org);
+                            }}
+                            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                            title="Ver detalles"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedOrg(org);
+                              openEditModal(org);
+                            }}
+                            className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
+                            title="Editar"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedOrg(org);
+                              openCampaign(org);
+                            }}
+                            className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+                            title="Enviar campaña"
+                          >
+                            <Mail className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                      {isLoading ? (
+                        <div className="flex items-center justify-center">
+                          <RefreshCw className="animate-spin h-5 w-5 mr-2" />
+                          Cargando organizaciones...
+                        </div>
+                      ) : (
+                        'No se encontraron organizaciones que coincidan con los filtros seleccionados.'
+                      )}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Mostrando{' '}
+            {paginatedOrgs.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} -{' '}
+            {Math.min(currentPage * ITEMS_PER_PAGE, filteredOrgs.length)} de{' '}
+            {filteredOrgs.length} organizaciones
+          </div>
+          
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       </div>
     </div>
   );

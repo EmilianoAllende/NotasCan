@@ -11,7 +11,8 @@ const SendCampaignModal = ({
   isSending,
   emailPreview,
   selectedCampaignId,
-  setSelectedCampaignId
+  setSelectedCampaignId,
+  isTaskLoading
 }) => {
   // Estado local para manejar el contenido editable
   const [editableContent, setEditableContent] = useState({
@@ -27,6 +28,18 @@ const SendCampaignModal = ({
   }, [emailPreview]);
 
   if (!show || !selectedOrg) return null;
+
+  // Modifica el render del modal para mostrar un estado de carga
+  if (isTaskLoading) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-2xl w-full mx-4 text-center">
+          <h2 className="text-xl font-bold mb-4 dark:text-white">Cargando siguiente tarea...</h2>
+          <p className="dark:text-gray-300">Por favor, espera.</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleContentChange = (e) => {
     const { name, value } = e.target;
