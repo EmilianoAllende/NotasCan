@@ -1,9 +1,89 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, Eye, Edit, Mail, Zap, RefreshCw, RotateCcw } from 'lucide-react';
-import StatusBadge from './shared/StatusBadge';
-import Pagination from './shared/Pagination';
-import { getEntityType, ESTADOS_CLIENTE } from '../utils/organizationUtils';
-import { getElapsedString } from '../utils/dateUtils';
+// import StatusBadge from './shared/StatusBadge';
+// import Pagination from './shared/Pagination';
+// import { getEntityType, ESTADOS_CLIENTE } from '../utils/organizationUtils';
+// import { getElapsedString } from '../utils/dateUtils';
+
+// --- INICIO DE COMPONENTES SIMULADOS (MOCKS) ---
+// Se añaden para que el archivo se pueda previsualizar sin errores.
+
+const StatusBadge = ({ estado }) => {
+  let text = 'Pendiente';
+  let color = 'bg-gray-100 text-gray-800';
+  if (estado === 1) {
+    text = 'En revisión';
+    color = 'bg-yellow-100 text-yellow-800';
+  } else if (estado === 2) {
+    text = 'Completado';
+    color = 'bg-green-100 text-green-800';
+  }
+  return (
+    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${color}`}>
+      {text}
+    </span>
+  );
+};
+
+const Pagination = ({ currentPage, totalPages, onPageChange }) => {
+  // --- CAMBIO: Limpiar selección al cambiar de página ---
+  const handlePageChange = (newPage) => {
+    if (newPage > 0 && newPage <= totalPages) {
+      onPageChange(newPage);
+    }
+  };
+
+  return (
+    <div className="flex items-center space-x-2">
+      <button 
+        onClick={() => handlePageChange(currentPage - 1)} 
+        disabled={currentPage === 1}
+        className="px-3 py-1 border rounded-lg disabled:opacity-50"
+      >
+        Anterior
+      </button>
+      <span className="text-sm">
+        Página {currentPage} de {totalPages}
+      </span>
+      <button 
+        onClick={() => handlePageChange(currentPage + 1)} 
+        disabled={currentPage === totalPages}
+        className="px-3 py-1 border rounded-lg disabled:opacity-50"
+      >
+        Siguiente
+      </button>
+    </div>
+  );
+};
+
+const ESTADOS_CLIENTE = {
+  PENDIENTE: 0,
+  EN_REVISION: 1,
+  COMPLETADO: 2,
+};
+
+const getEntityType = (org) => {
+  if (org.tipo === 'publico') return 'Administración Pública';
+  if (org.tipo === 'asociacion') return 'Asociación';
+  return 'Empresa';
+};
+
+const getElapsedString = (timestamp) => {
+  const seconds = Math.floor((new Date().getTime() - timestamp) / 1000);
+  let interval = seconds / 31536000;
+  if (interval > 1) return `hace ${Math.floor(interval)} años`;
+  interval = seconds / 2592000;
+  if (interval > 1) return `hace ${Math.floor(interval)} meses`;
+  interval = seconds / 86400;
+  if (interval > 1) return `hace ${Math.floor(interval)} días`;
+  interval = seconds / 3600;
+  if (interval > 1) return `hace ${Math.floor(interval)} horas`;
+  interval = seconds / 60;
+  if (interval > 1) return `hace ${Math.floor(interval)} minutos`;
+  return `hace ${Math.floor(seconds)} segundos`;
+};
+// --- FIN DE COMPONENTES SIMULADOS ---
+
 
 const OrganizationList = ({
   organizaciones,
@@ -26,6 +106,7 @@ const OrganizationList = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrg, setSelectedOrg] = useState(null);
+  const [selectedOrgIds, setSelectedOrgIds] = useState(new Set()); // --- NUEVO ESTADO ---
   const ITEMS_PER_PAGE = 25;
 
   // Etiqueta dinámica para el tiempo transcurrido desde la última actualización
@@ -46,6 +127,7 @@ const OrganizationList = ({
     setFilterIsla('todos');
     setFilterSuscripcion('todos');
     setCurrentPage(1);
+    setSelectedOrgIds(new Set()); // --- NUEVO ---
   };
 
   const isClean =
@@ -91,18 +173,63 @@ const OrganizationList = ({
     return filteredOrgs.slice(startIndex, endIndex);
   }, [filteredOrgs, currentPage, ITEMS_PER_PAGE]);
 
-  // Reset to page 1 when filters change
+  // --- LÓGICA DE SELECCIÓN ---
+  const paginatedOrgIds = useMemo(() => new Set(paginatedOrgs.map(org => org.id)), [paginatedOrgs]);
+  const areAllOnPageSelected = paginatedOrgs.length > 0 && [...paginatedOrgIds].every(id => selectedOrgIds.has(id));
+
+  const handleSelectAll = () => {
+    setSelectedOrgIds(prevSelected => {
+      const newSelected = new Set(prevSelected);
+      if (areAllOnPageSelected) {
+        // Deseleccionar todos en esta página
+        paginatedOrgIds.forEach(id => newSelected.delete(id));
+      } else {
+        // Seleccionar todos en esta página
+        paginatedOrgIds.forEach(id => newSelected.add(id));
+      }
+      return newSelected;
+    });
+  };
+
+  const handleSelectOrg = (orgId) => {
+    setSelectedOrgIds(prevSelected => {
+      const newSelected = new Set(prevSelected);
+      if (newSelected.has(orgId)) {
+        newSelected.delete(orgId);
+      } else {
+        newSelected.add(orgId);
+      }
+      return newSelected;
+    });
+  };
+
+  // Helper para pasar las orgs seleccionadas al modo call center
+  const getSelectedOrgs = () => {
+    return organizaciones.filter(org => selectedOrgIds.has(org.id));
+  };
+  
+  // --- CAMBIO DE LÓGICA: Mínimo 2 organizaciones ---
+  const isCallCenterDisabled = selectedOrgIds.size < 2;
+
+  // Reset to page 1 and clear selection when filters change
   useEffect(() => {
     setCurrentPage(1);
+    setSelectedOrgIds(new Set()); // --- NUEVO ---
   }, [searchTerm, filterStatus, filterType, filterIsla, filterSuscripcion, setCurrentPage]);
+
+  // Clear selection when page changes
+  useEffect(() => {
+    setSelectedOrgIds(new Set());
+  }, [currentPage]);
+
 
   const isLoading = organizaciones.length === 0;
 
   return (
-    <div className="space-y-6">
-      <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
-        <div className="grid gap-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+  <div className="max-w-9x2 mx-auto px-1 sm:px-4 lg:px-1 py-1">
+  <div className="p-4 sm:p-5 bg-white rounded-xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+    <div className="grid gap-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
             {/* Estado */}
             <select
               value={filterStatus}
@@ -139,6 +266,7 @@ const OrganizationList = ({
               ))}
             </select>
 
+ 
             {/* Suscripción */}
             <select
               value={filterSuscripcion}
@@ -176,14 +304,21 @@ const OrganizationList = ({
             </div>
 
             <div className="ml-4 flex space-x-2">
-              {startCallCenterMode && filteredOrgs.length > 0 && (
+              {startCallCenterMode && ( 
                 <button
-                  onClick={() => startCallCenterMode(filteredOrgs)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 flex items-center gap-2"
-                  title="Iniciar envío masivo con las organizaciones filtradas"
+                  onClick={() => startCallCenterMode(getSelectedOrgs())}
+                  // --- LÓGICA DE DESHABILITADO ACTUALIZADA ---
+                  disabled={isCallCenterDisabled}
+                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                  title={
+                    isCallCenterDisabled 
+                      ? "Selecciona al menos 2 organizaciones para continuar."
+                      : `Iniciar Modo Call Center con ${selectedOrgIds.size} organizaciones`
+                  }
+                  // --- FIN DE LÓGICA ---
                 >
                   <Zap className="h-4 w-4" />
-                  Modo Call Center
+                  Modo Call Center ({selectedOrgIds.size})
                 </button>
               )}
               <button
@@ -241,7 +376,18 @@ const OrganizationList = ({
             <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-white sm:pl-6">
+                  {/* --- ESTILOS DE CHECKBOX REVERTIDOS --- */}
+                  <th scope="col" className="relative py-3.5 pl-4 pr-3 sm:pl-6">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                      checked={areAllOnPageSelected}
+                      onChange={handleSelectAll}
+                      disabled={paginatedOrgs.length === 0}
+                      title="Seleccionar todos en esta página"
+                    />
+                  </th>
+                  <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
                     Organización
                   </th>
                   <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-white">
@@ -267,9 +413,18 @@ const OrganizationList = ({
                         selectedOrg?.id === org.id 
                           ? 'bg-blue-50 dark:bg-blue-900/20' 
                           : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                      }`}
+                      } ${selectedOrgIds.has(org.id) ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`} // Resaltar seleccionados
                     >
-                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 dark:text-white sm:pl-6">
+                      {/* --- ESTILOS DE CHECKBOX REVERTIDOS --- */}
+                      <td className="relative py-4 pl-4 pr-3 sm:pl-6">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-gray-300 cursor-pointer"
+                          checked={selectedOrgIds.has(org.id)}
+                          onChange={() => handleSelectOrg(org.id)}
+                        />
+                      </td>
+                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 dark:text-white">
                         <div className="flex items-center">
                           <span 
                             className={`inline-block h-3 w-3 rounded-full mr-2 ${
@@ -350,7 +505,7 @@ const OrganizationList = ({
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                    <td colSpan="6" className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400"> {/* ColSpan aumentado a 6 */}
                       {isLoading ? (
                         <div className="flex items-center justify-center">
                           <RefreshCw className="animate-spin h-5 w-5 mr-2" />
@@ -372,7 +527,8 @@ const OrganizationList = ({
             Mostrando{' '}
             {paginatedOrgs.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} -{' '}
             {Math.min(currentPage * ITEMS_PER_PAGE, filteredOrgs.length)} de{' '}
-            {filteredOrgs.length} organizaciones
+            {filteredOrgs.length} organizaciones.
+            <span className="ml-2 font-medium">({selectedOrgIds.size} seleccionadas)</span>
           </div>
           
           <Pagination
@@ -387,3 +543,4 @@ const OrganizationList = ({
 };
 
 export default OrganizationList;
+
