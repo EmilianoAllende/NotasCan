@@ -22,22 +22,3 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-api/apiClient
-apiClient
-/apiClient
-
-package.json
-package
-/package
-
-package-lock.json
-package-lock
-/package-lock
-
-src/api/apiClient.js
-src/api/apiClient
-\src\api\apiClient.js
-package.json
-src/api/
-
-package.json
