@@ -14,8 +14,9 @@ import AIindicator from './components/AIindicator';
 import Notification from './components/Notification';
 import { seedIfEmpty, saveTemplates } from './utils/campaignsStore';
 
-// --- NUEVO COMPONENTE DE NAVEGACIÓN ---
+// --- NUEVOS COMPONENTES MODULARES ---
 import Sidebar from './components/Sidebar'; 
+import ConfirmModal from './components/ConfirmModal'; // --- ¡NUEVO! Modal de Confirmación ---
 // -------------------------------------
 
 const CACHE_EXPIRATION_MS = 3 * 60 * 60 * 1000;
@@ -63,6 +64,15 @@ const App = () => {
   const [isPreviewLoading, setIsPreviewLoading] = React.useState(false);
   const [emailPreview, setEmailPreview] = React.useState(null); // { subject, body }
   const [notification, setNotification] = React.useState(null);
+
+  // --- ¡NUEVO! Estado para el modal de confirmación ---
+  const [confirmProps, setConfirmProps] = React.useState({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+  // ---------------------------------------------------
 
 // Estados para modo call center
   const [isCallCenterMode, setIsCallCenterMode] = React.useState(false);
@@ -128,6 +138,11 @@ const App = () => {
   // Métricas y datasets mediante hook reutilizable
   const { metricas, estadosData, islasData, sectoresData } = useDashboardData(organizaciones);
 
+  // --- ¡NUEVO! Helper para cerrar el modal de confirmación ---
+  const closeConfirm = () => {
+    setConfirmProps({ show: false, title: '', message: '', onConfirm: () => {} });
+  };
+
   const handleTemplatesChange = (next) => {
   	setCampaignTemplates(next);
   	saveTemplates(next);
@@ -164,23 +179,33 @@ const App = () => {
   	try {
   	  const template = campaignTemplates.find(t => t.id === selectedCampaignId);
   	  const prompt = buildPromptFromTemplate(template, selectedOrg);
+
+      // --- ¡INICIO DE CORRECCIÓN! ---
+      // El payload debe estar envuelto en un objeto "data"
+      // para coincidir con el formato del modo call center.
   	  const payload = {
-  	 	organization: selectedOrg,
-  	 	campaign: {
-  	 	  id: template.id,
-  	 	  title: template.title,
-  	 	  description: template.description,
-  	 	  mode: template.mode,
-  	 	  prompt
-  	 	}
+        data: {
+  	 	  organization: selectedOrg,
+  	 	  campaign: {
+  	 	 	id: template.id,
+  	 	 	title: template.title,
+  	 	 	description: template.description,
+  	 	 	mode: template.mode,
+  	 	 	prompt
+  	 	  }
+        }
   	  };
+      // --- FIN DE CORRECCIÓN ---
+
   	  const response = await apiClient.generatePreview(payload);
+      
   	  setEmailPreview(response.data); // Guardamos el object { subject, body }
   	  setNotification({
   	 	type: 'success',
   	 	title: 'Borrador Generado',
   	 	message: 'El borrador de la campaña ha sido generado exitosamente por la IA.'
   	  });
+
   	} catch (err) {
   	  console.error("Error al generar el borrador:", err);
   	  setNotification({
@@ -193,8 +218,8 @@ const App = () => {
   	}
   };
 
-// --- FUNCIÓN 2: Confirmar y enviar ---
-  const handleConfirmAndSend = async (finalContent) => {
+// --- FUNCIÓN 2: Lógica REAL de envío (Nombre cambiado) ---
+  const _executeConfirmAndSend = async (finalContent) => {
   	// finalContent es un objeto { subject, body } que viene del modal
   	setIsSendingCampaign(true);
 
@@ -204,11 +229,8 @@ const App = () => {
   	 	subject: finalContent.subject,
   	 	body: finalContent.body,
   	 	...(currentTask?.taskInfo && { taskInfo: currentTask.taskInfo }), // Añadir taskInfo si existe
-  	 	// Opcional: id de la plantilla usada para campañas_log en backend
   	 	campaignId: selectedCampaignId || undefined,
-  	 	// Opcional: fecha de envío (ISO) para facilitar cálculo de hace_dias en backend
   	 	sentAt: new Date().toISOString(),
-  	 	// Opcional: solicitar que el backend actualice el campo raíz 'hace_dias' (por compatibilidad con vistas existentes)
   	 	updateHaceDias: true
   	  };
   	  
@@ -322,6 +344,21 @@ const App = () => {
   	}
   };
 
+  // --- ¡NUEVO! Esta función "intercepta" la llamada de envío para mostrar la confirmación ---
+  const handleConfirmAndSend = (finalContent) => {
+    setConfirmProps({
+      show: true,
+      title: 'Confirmar Envío de Correo',
+      message: `¿Estás seguro de que quieres enviar este correo a ${selectedOrg?.nombre}?`,
+      confirmText: 'Enviar Correo',
+      onConfirm: () => {
+        _executeConfirmAndSend(finalContent);
+        closeConfirm();
+      }
+    });
+  };
+  // -----------------------------------------------------------------------------------
+
   // --- NUEVA FUNCIÓN PARA MODO CALL CENTER ---
   const fetchNextTask = async () => {
   	setIsTaskLoading(true);
@@ -361,19 +398,8 @@ const App = () => {
   	}
   };
 
-  // --- CAMBIO DE LÓGICA AQUÍ ---
-  const startCallCenterMode = async (selectedOrgs) => { 
-  	// Validar que haya organizaciones
-  	if (!selectedOrgs || selectedOrgs.length < 2) { // --- CAMBIO: Mínimo 2 ---
-  	  setNotification({ 
-  	 	type: 'warning', 
-  	 	title: 'Selección Insuficiente', 
-  	 	message: 'Debes seleccionar al menos 2 organizaciones para iniciar el modo call center.' 
-  	  });
-  	  return;
-  	}
-  // --- FIN DE CAMBIO DE LÓGICA ---
-
+  // --- Lógica REAL de inicio (Nombre cambiado) ---
+  const _executeStartCallCenterMode = async (selectedOrgs) => { 
   	setIsTaskLoading(true);
   	try {
   	// 1. Extraer los IDs de las organizaciones seleccionadas
@@ -405,6 +431,30 @@ const App = () => {
   	  setIsTaskLoading(false);
   	}
   };
+
+  // --- ¡NUEVO! Esta función "intercepta" la llamada para mostrar la confirmación ---
+  const startCallCenterMode = (selectedOrgs) => {
+    if (!selectedOrgs || selectedOrgs.length < 2) {
+      setNotification({
+        type: 'warning',
+        title: 'Selección Insuficiente',
+        message: 'Debes seleccionar al menos 2 organizaciones para iniciar el modo call center.'
+      });
+      return;
+    }
+
+    setConfirmProps({
+      show: true,
+      title: 'Iniciar Modo Call Center',
+      message: `¿Estás seguro de que quieres generar una cola con ${selectedOrgs.length} organizaciones?`,
+      confirmText: 'Generar Cola',
+      onConfirm: () => {
+        _executeStartCallCenterMode(selectedOrgs);
+        closeConfirm();
+      }
+    });
+  };
+  // ------------------------------------------------------------------------------
 
   React.useEffect(() => {
   	if (organizaciones.length === 0) {
@@ -498,7 +548,7 @@ const App = () => {
   	 	 	currentPage={currentPage}
   	 	 	setCurrentPage={setCurrentPage}
   	 	 	onRefresh={handleRefresh}
-  	 	 	startCallCenterMode={startCallCenterMode}
+  	 	 	startCallCenterMode={startCallCenterMode} // Prop se mantiene igual
   	 	  />
   	 	);
   	  case 'detalle':
@@ -538,50 +588,63 @@ const App = () => {
   // --- NUEVO DISEÑO DE LAYOUT ---
   return (
   	<div className="flex h-screen bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-200">
-  
-  {/* --- Barra Lateral de Navegación --- */}
-  <Sidebar 
-    activeView={activeView}
-    setActiveView={setActiveView}
-    selectedOrg={selectedOrg}
-  />
+  	  
+  	  {/* --- Barra Lateral de Navegación --- */}
+  	  <Sidebar 
+  	 	activeView={activeView}
+  	 	setActiveView={setActiveView}
+  	 	selectedOrg={selectedOrg}
+  	  />
 
-  {/* --- Contenido Principal --- */}
-  <main className="flex-1 flex flex-col overflow-y-auto">
-    {/* Contenedor del contenido con menos padding superior */}
-    <div className="px-4 sm:px-6 lg:px-8 pt-2 pb-4 flex-1">
-      {isLoading && <p className="text-center text-slate-500 dark:text-slate-400">Cargando organizaciones...</p>}
-      {error && <p className="text-center text-red-500">Error al cargar los datos: {error.message}</p>}
-      {!isLoading && !error && <div className="h-auto">{renderView()}</div>}
-    </div>
-  </main>
+  	  {/* --- Contenido Principal --- */}
+  	  <main className="flex-1 flex flex-col overflow-y-auto">
+  	 	{/* Contenedor del contenido con padding */}
+  	 	<div className="p-4 sm:p-6 lg:p-8 flex-1">
+  	 	  {isLoading && <p className="text-center text-slate-500 dark:text-slate-400">Cargando organizaciones...</p>}
+  	 	  {error && <p className="text-center text-red-500">Error al cargar los datos: {error.message}</p>}
+  	 	  {!isLoading && !error && <div className="h-auto">{renderView()}</div>}
+  	 	</div>
+  	  </main>
 
-  <SendCampaignModal 
-    show={showCampaignModal}
-    onClose={() => {
-      setShowCampaignModal(false);
-      setEmailPreview(null); // Limpiar al cerrar
-    }}
-    selectedOrg={selectedOrg}
-    campaignTemplates={campaignTemplates}
-    onGeneratePreview={handleGeneratePreview}
-    onConfirmAndSend={handleConfirmAndSend}
-    isPreviewLoading={isPreviewLoading}
-    isSending={isSendingCampaign}
-    emailPreview={emailPreview}
-    selectedCampaignId={selectedCampaignId}
-    setSelectedCampaignId={setSelectedCampaignId}
-    isTaskLoading={isTaskLoading}
-  />
-  
-  <AIindicator metricas={metricas} procesando={organizaciones.length} />
-  
-  <Notification 
-    notification={notification}
-    onClose={() => setNotification(null)}
-  />
-</div>
+  	  <SendCampaignModal 
+  	 	show={showCampaignModal}
+  	 	onClose={() => {
+  	 	  setShowCampaignModal(false);
+  	 	  setEmailPreview(null); // Limpiar al cerrar
+  	 	}}
+  	 	selectedOrg={selectedOrg}
+  	 	campaignTemplates={campaignTemplates}
+  	 	onGeneratePreview={handleGeneratePreview}
+  	 	onConfirmAndSend={handleConfirmAndSend} // Prop se mantiene igual
+  	 	isPreviewLoading={isPreviewLoading}
+  	 	isSending={isSendingCampaign}
+  	 	emailPreview={emailPreview}
+  	 	selectedCampaignId={selectedCampaignId}
+  	 	setSelectedCampaignId={setSelectedCampaignId}
+  	 	isTaskLoading={isTaskLoading}
+        // --- ¡NUEVO! Pasamos los controladores del modal de confirmación ---
+        setConfirmProps={setConfirmProps}
+        closeConfirm={closeConfirm}
+        // -----------------------------------------------------------------
+  	  />
+  	  
+      {/* --- ¡NUEVO! Renderiza el modal de confirmación --- */}
+      <ConfirmModal 
+        show={confirmProps.show}
+        title={confirmProps.title}
+        message={confirmProps.message}
+        onConfirm={confirmProps.onConfirm}
+        onCancel={closeConfirm}
+        confirmText={confirmProps.confirmText}
+      />
 
+  	  <AIindicator metricas={metricas} procesando={organizaciones.length} />
+  	  
+  	  <Notification 
+  	 	notification={notification}
+  	 	onClose={() => setNotification(null)}
+  	  />
+  	</div>
   );
   // --- FIN DE NUEVO DISEÑO ---
 };
