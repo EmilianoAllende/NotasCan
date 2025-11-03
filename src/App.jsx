@@ -176,23 +176,19 @@ const App = () => {
   	setIsPreviewLoading(true);
   	setEmailPreview(null);
 
-  	try {
-  	  const template = campaignTemplates.find(t => t.id === selectedCampaignId);
-  	  const prompt = buildPromptFromTemplate(template, selectedOrg);
-
-      // --- ¡INICIO DE CORRECCIÓN! ---
-      // El payload debe estar envuelto en un objeto "data"
-      // para coincidir con el formato del modo call center.
-  	  const payload = {
-        data: {
-  	 	  organization: selectedOrg,
-  	 	  campaign: {
-  	 	 	id: template.id,
-  	 	 	title: template.title,
-  	 	 	description: template.description,
-  	 	 	mode: template.mode,
-  	 	 	prompt
-  	 	  }
+    try {
+      const template = campaignTemplates.find(t => t.id === selectedCampaignId);
+      const prompt = buildPromptFromTemplate(template, selectedOrg);
+      const payload = {
+        data: {  // ← ENVOLVEMOS TODO EN "data"
+          organization: selectedOrg,
+          campaign: {
+            id: template.id,
+            title: template.title,
+            description: template.description,
+            mode: template.mode,
+            prompt
+          }
         }
   	  };
       // --- FIN DE CORRECCIÓN ---
