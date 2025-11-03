@@ -11,7 +11,7 @@ const ThemeSwitcher = () => {
         className="p-2 text-gray-800 bg-gray-200 rounded-full ml-auto dark:bg-gray-700 dark:text-gray-200"
         aria-label="Cambiar tema"
         >
-        {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+        {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
         </button>
     );
 };
