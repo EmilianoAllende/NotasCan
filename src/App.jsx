@@ -161,13 +161,15 @@ const App = () => {
       const template = campaignTemplates.find(t => t.id === selectedCampaignId);
       const prompt = buildPromptFromTemplate(template, selectedOrg);
       const payload = {
-        organization: selectedOrg,
-        campaign: {
-          id: template.id,
-          title: template.title,
-          description: template.description,
-          mode: template.mode,
-          prompt
+        data: {  // ← ENVOLVEMOS TODO EN "data"
+          organization: selectedOrg,
+          campaign: {
+            id: template.id,
+            title: template.title,
+            description: template.description,
+            mode: template.mode,
+            prompt
+          }
         }
       };
       const response = await apiClient.generatePreview(payload);
