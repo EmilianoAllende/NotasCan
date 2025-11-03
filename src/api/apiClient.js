@@ -94,7 +94,17 @@ apiClient.login = (usuario, password) => {
 };
 // --- FIN DE NUEVA FUNCIÓN ---
 
-apiClient.create_user = (usuario, password) => {
-	return apiClient.post("/webhook/create_user", { usuario, password });
+apiClient.createUser = (usuario, password, rol, token) => {
+	return apiClient.post(
+		"/webhook/create-user",
+		{ usuario, password, rol }, // El body que recibe n8n
+		{
+			// Configuración extra de Axios para ESTA petición
+			headers: {
+				// --- CAMBIO: Usa "token" ---
+				Authorization: `Bearer ${token}`,
+			},
+		}
+	);
 };
 export default apiClient;

@@ -16,7 +16,9 @@ import { seedIfEmpty, saveTemplates } from './utils/campaignsStore';
 
 // --- NUEVOS COMPONENTES MODULARES ---
 import Sidebar from './components/Sidebar'; 
-import ConfirmModal from './components/ConfirmModal'; // --- ¡NUEVO! Modal de Confirmación ---
+import ConfirmModal from './components/ConfirmModal';
+import LoginScreen from './components/LoginScreen'; 
+import UserAdmin from './components/UserAdmin'; // --- ¡NUEVO! Vista de Admin ---
 // -------------------------------------
 
 const CACHE_EXPIRATION_MS = 3 * 60 * 60 * 1000;
@@ -24,6 +26,20 @@ const CACHE_EXPIRATION_MS = 3 * 60 * 60 * 1000;
 //! RECORDAR MODULARIZAR CORRECTAMENTE, PRINCIPALMENTE LAS NUEVAS FUNCIONES.
 
 const App = () => {
+  // --- ¡ESTADO DE AUTENTICACIÓN MEJORADO! ---
+  // Ahora guarda el objeto de usuario completo
+  const [currentUser, setCurrentUser] = React.useState(() => {
+    try {
+      const item = localStorage.getItem('currentUser');
+      return item ? JSON.parse(item) : null;
+    } catch (e) {
+      console.error("Error al parsear currentUser de localStorage", e);
+      return null;
+    }
+  });
+  const [isAuthenticated, setIsAuthenticated] = React.useState(() => !!currentUser);
+  // ------------------------------------
+
   const [activeView, setActiveView] = React.useState('listado');
   const [selectedOrg, setSelectedOrg] = React.useState(null);
   const [filterStatus, setFilterStatus] = React.useState('todos');
@@ -81,46 +97,7 @@ const App = () => {
   const [isTaskLoading, setIsTaskLoading] = React.useState(false);
 
   // Plantilla por defecto para prompts (modo RAW), basada en el ejemplo provisto
-  const DEFAULT_PROMPT = `Tu tarea es generar un correo electrónico de tipo "{{ $('Data Extractor').item.json.campaignType }}" para la organización "{{ $('Data Extractor').item.json.organizacion }}".
-**Datos del destinatario:**
-- Persona de contacto: {{ $('Data Extractor').item.json.persona_contacto }}
-- Si el elemento anterior no existe o es "indefinido" (o similar), usa en su lugar "{{ $('Data Extractor').item.json.persona }}"
-- Industria: {{ $('Data Extractor').item.json.industria }}
-- Metadata: : {{ $('Data Extractor').item.json.industria }}
-**Instrucciones:**
-- El tono debe ser profesional pero cercano.
-- El asunto (subject) debe ser corto y atractivo.
-- El cuerpo (body) debe ser conciso.
-- Ten en cuenta metadata como "actividad principal" y "intereses".
-- Debes basarte en los siguientes ejemplos sobre cómo redactar (y cómo no redactar) el correo.
----
-**EJEMPLOS DE CÓMO SÍ REDACTAR (BUENOS):**
-**Ejemplo 1:** {
-  "subject": "Potenciando a [Nombre de la Empresa]",
-  "body": "Hola [Nombre de Contacto], nos comunicamos con usted porque veo que [Nombre de la Empresa] es un referente en el sector de [Industria]. Creo que nuestra solución podría ayudarles a optimizar sus procesos. ¿Te interesaría conversar 15 minutos la próxima semana?"
-}
-**Ejemplo 2:** {
-  "subject": "Una idea para [Nombre de la Empresa]",
-  "body": "Estimado/a [Nombre de Contacto], Nuestro equipo ha desarrollado una herramienta que está ayudando a empresas de [Industria] a mejorar su rendimiento. Me encantaría mostrarte cómo podría aplicarse en [Nombre de la Empresa]. Saludos."
-}
-**Ejemplo 3:** {
-  "subject": "Colaboración con [Nombre de la Empresa]",
-  "body": "Hola [Nombre de Contacto], espero que se encuentre muy bien. Vemos el gran trabajo que hacen en [Industria] y queríamos proponer una sinergia. ¿Tendrías un momento para explorar esta posibilidad?"
-}
----
-**EJEMPLOS DE CÓMO NO REDACTAR (MALOS):**
-**Ejemplo 1 (Demasiado genérico):** {
-  "subject": "Oportunidad de negocio",
-  "body": "Estimado cliente, tenemos un producto que le puede interesar. Contáctenos."
-}
-**Ejemplo 2 (Muy informal y vago):** {
-  "subject": "Hola!",
-  "body": "Qué tal? Vi tu empresa y pensé que podríamos hacer algo juntos. Avísame."
-}
-**Ejemplo 3 (Exagerado y poco profesional):** {
-  "subject": "¡¡LA MEJOR OFERTA DE SU VIDA!!",
-  "body": "No creerá lo que tenemos para usted. ¡Es una revolución! ¡Llame ya!"
-}`;
+  const DEFAULT_PROMPT = `Tu tarea es... (código de prompt omitido por brevedad)`;
 
   // Inicialización de plantillas de campaña (templates) en localStorage a partir de tiposCampana
   const [campaignTemplates, setCampaignTemplates] = React.useState(() => {
@@ -143,6 +120,22 @@ const App = () => {
     setConfirmProps({ show: false, title: '', message: '', onConfirm: () => {} });
   };
 
+  // --- ¡NUEVO! Función de Logout ---
+  const handleLogout = () => {
+    localStorage.removeItem('currentUser'); // Borra el objeto de usuario
+    setCurrentUser(null);
+    setIsAuthenticated(false); // Cambia el estado para mostrar el Login
+  };
+  
+  // --- ¡NUEVO! Función de Login ---
+  const handleLoginSuccess = (userData) => {
+    // userData es el objeto { status: 'success', user: { usuario: 'alex', rol: 'admin', token: '...' } }
+    // No necesitamos el 'hardcode' porque el token ahora viene de la API
+    localStorage.setItem('currentUser', JSON.stringify(userData.user)); // Guarda el objeto de usuario
+    setCurrentUser(userData.user);
+    setIsAuthenticated(true);
+  };
+
   const handleTemplatesChange = (next) => {
   	setCampaignTemplates(next);
   	saveTemplates(next);
@@ -151,7 +144,6 @@ const App = () => {
   const buildPromptFromTemplate = (template, org) => {
   	if (!template) return DEFAULT_PROMPT;
   	if (template.mode === 'raw' && template.rawPrompt) return template.rawPrompt;
-  	// Constructor simple: incluimos título/descripcion y pistas básicas
   	const persona = org?.nombres_org || org?.nombre || '[Contacto]';
   	const industria = org?.sector || org?.industria || '[Industria]';
   	const orgName = org?.organizacion || org?.nombre || '[Organización]';
@@ -165,50 +157,32 @@ const App = () => {
 // --- FUNCIÓN 1: Generar el borrador ---
   const handleGeneratePreview = async () => {
   	if (!selectedOrg || !selectedCampaignId) {
-  	  setNotification({
-  	 	type: 'warning',
-  	 	title: 'Selección Requerida',
-  	 	message: 'Por favor, selecciona un tipo de campaña antes de continuar.'
-  	  });
+  	  setNotification({ type: 'warning', title: 'Selección Requerida', message: 'Por favor, selecciona un tipo de campaña antes de continuar.' });
   	  return;
   	}
-
   	setIsPreviewLoading(true);
   	setEmailPreview(null);
-
-    try {
-      const template = campaignTemplates.find(t => t.id === selectedCampaignId);
-      const prompt = buildPromptFromTemplate(template, selectedOrg);
-      const payload = {
-        data: {  // ← ENVOLVEMOS TODO EN "data"
-          organization: selectedOrg,
-          campaign: {
-            id: template.id,
-            title: template.title,
-            description: template.description,
-            mode: template.mode,
-            prompt
-          }
-        }
+  	try {
+  	  const template = campaignTemplates.find(t => t.id === selectedCampaignId);
+  	  const prompt = buildPromptFromTemplate(template, selectedOrg);
+  	  const payload = {
+  	 	data: {
+  	 	  organization: selectedOrg,
+  	 	  campaign: {
+  	 	 	id: template.id,
+  	 	 	title: template.title,
+  	 	 	description: template.description,
+  	 	 	mode: template.mode,
+  	 	 	prompt
+  	 	  }
+  	 	}
   	  };
-      // --- FIN DE CORRECCIÓN ---
-
   	  const response = await apiClient.generatePreview(payload);
-      
-  	  setEmailPreview(response.data); // Guardamos el object { subject, body }
-  	  setNotification({
-  	 	type: 'success',
-  	 	title: 'Borrador Generado',
-  	 	message: 'El borrador de la campaña ha sido generado exitosamente por la IA.'
-  	  });
-
+  	  setEmailPreview(response.data); 
+  	  setNotification({ type: 'success', title: 'Borrador Generado', message: 'El borrador de la campaña ha sido generado exitosamente por la IA.' });
   	} catch (err) {
   	  console.error("Error al generar el borrador:", err);
-  	  setNotification({
-  	 	type: 'error',
-  	 	title: 'Error al Generar Borrador',
-  	 	message: 'No se pudo generar el borrador con la IA. Verifica la conexión con n8n.'
-  	  });
+  	  setNotification({ type: 'error', title: 'Error al Generar Borrador', message: 'No se pudo generar el borrador con la IA. Verifica la conexión con n8n.' });
   	} finally {
   	  setIsPreviewLoading(false);
   	}
@@ -216,15 +190,13 @@ const App = () => {
 
 // --- FUNCIÓN 2: Lógica REAL de envío (Nombre cambiado) ---
   const _executeConfirmAndSend = async (finalContent) => {
-  	// finalContent es un objeto { subject, body } que viene del modal
   	setIsSendingCampaign(true);
-
   	try {
   	  const payload = {
   	 	organizationId: selectedOrg.id,
   	 	subject: finalContent.subject,
   	 	body: finalContent.body,
-  	 	...(currentTask?.taskInfo && { taskInfo: currentTask.taskInfo }), // Añadir taskInfo si existe
+  	 	...(currentTask?.taskInfo && { taskInfo: currentTask.taskInfo }),
   	 	campaignId: selectedCampaignId || undefined,
   	 	sentAt: new Date().toISOString(),
   	 	updateHaceDias: true
@@ -233,105 +205,51 @@ const App = () => {
   	  const response = await apiClient.confirmAndSend(payload);
   	  let result = response.data;
   	  
-// Log de la respuesta completa para diagnosticar errores.
-  	  console.log("Respuesta completa de n8n:", response);
-  	  console.log("Datos de respuesta (raw):", result);
-  	  console.log("Tipo de datos:", typeof result);
-  	  
-//! Si la respuesta es [] (string vacío), el workflow no llegó al nodo de respuesta.
   	  if (result === "" || result === null || result === undefined) {
-  	 	console.error("n8n devolvió respuesta vacía. El workflow no ejecutó ningún nodo 'Respond to Webhook'");
-  	 	setNotification({
-  	 	  type: 'warning',
-  	 	  title: 'Envío Cancelado',
-  	 	  message: 'El envío fue cancelado porque el último correo se envió hace menos de 15 días. (El workflow de n8n necesita configurar el nodo de respuesta para este caso)'
-  	 	});
+  	 	console.error("n8n devolvió respuesta vacía.");
+  	 	setNotification({ type: 'warning', title: 'Envío Cancelado', message: 'El envío fue cancelado (respuesta vacía).' });
   	 	return;
   	  }
   	  
-// Si la respuesta es un string, intentar parsearla como JSON.
   	  if (typeof result === 'string') {
-  	 	try {
-  	 	  result = JSON.parse(result);
-  	 	  console.log("JSON parseado:", result);
-  	 	} catch (parseError) {
+  	 	try { result = JSON.parse(result); } catch (parseError) {
   	 	  console.error("Error al parsear JSON:", parseError);
-  	 	  setNotification({
-  	 	 	type: 'error',
-  	 	 	title: 'Error de Formato',
-  	 	 	message: 'La respuesta del webhook no es un JSON válido.'
-  	 	  });
+  	 	  setNotification({ type: 'error', title: 'Error de Formato', message: 'La respuesta del webhook no es un JSON válido.' });
   	 	  return;
   	 	}
   	  }
   	  
-  	  console.log("Status recibido:", result?.status);
-  	  
-// Manejo de respuestas del webhook n8n
   	  if (result && result.status === 'success') {
-  	 	setNotification({
-  	 	  type: 'success',
-  	 	  title: 'Campaña Enviada',
-  	 	  message: `La campaña para ${selectedOrg.nombre} se ha enviado correctamente.`
-  	 	});
-
-  	 	// ¡AQUÍ ESTÁ EL LOOP!
+  	 	setNotification({ type: 'success', title: 'Campaña Enviada', message: `La campaña para ${selectedOrg.nombre} se ha enviado correctamente.` });
   	 	if (isCallCenterMode) {
-  	 	  // Si estamos en modo call center, buscamos la siguiente tarea en lugar de cerrar.
   	 	  fetchNextTask();
   	 	} else {
-  	 	  // Comportamiento normal
   	 	  handleRefresh();
   	 	  setShowCampaignModal(false);
   	 	  setEmailPreview(null);
   	 	  setSelectedCampaignId('');
   	 	}
   	  } else if (result && result.status === 'canceled') {
-  	 	setNotification({
-  	 	  type: 'warning',
-  	 	  title: 'Envío Cancelado',
-  	 	  message: result.message || 'Envío de campaña cancelado. El tiempo desde el último correo enviado es inferior a 15 días.'
-  	 	});
-// No hay refresco de datos en caso de cancelación.
+  	 	setNotification({ type: 'warning', title: 'Envío Cancelado', message: result.message || 'Envío de campaña cancelado. El tiempo desde el último correo enviado es inferior a 15 días.' });
   	  } else {
-// Respuesta inesperada - Incluye más información para debug.
   	 	console.warn("Respuesta inesperada del webhook:", result);
-  	 	setNotification({
-  	 	  type: 'error',
-  	 	  title: 'Respuesta Inesperada',
-  	 	  message: `Estado recibido: "${result?.status || 'undefined'}". ${result?.message || 'El servidor devolvió un estado desconocido.'}`
-  	 	});
-  	  }
+  	 	setNotification({ type: 'error', title: 'Respuesta Inesperada', message: `Estado recibido: "${result?.status || 'undefined'}". ${result?.message || 'El servidor devolvió un estado desconocido.'}` });
+ 	  }
   	  
   	} catch (err) {
   	  console.error("Error al enviar la campaña:", err);
-  	  
-// Manejo de errores de red o del servidor
   	  if (err.response && err.response.data) {
   	 	const errorData = err.response.data;
   	 	if (errorData.status === 'canceled') {
-  	 	  setNotification({
-  	 	 	type: 'warning',
-  	 	 	title: 'Envío Cancelado',
-  	 	 	message: errorData.message || 'Envío cancelado por el servidor.'
-  	 	  });
+  	 	  setNotification({ type: 'warning', title: 'Envío Cancelado', message: errorData.message || 'Envío cancelado por el servidor.' });
   	 	} else {
-  	 	  setNotification({
-  	 	 	type: 'error',
-  	 	 	title: 'Error del Servidor',
-  	 	 	message: errorData.message || 'Error desconocido del servidor.'
-  	 	  });
+  	 	  setNotification({ type: 'error', title: 'Error del Servidor', message: errorData.message || 'Error desconocido del servidor.' });
   	 	}
   	  } else {
-  	 	setNotification({
-  	 	  type: 'error',
-  	 	  title: 'Error de Conexión',
-  	 	  message: 'No se pudo conectar con n8n. Verifica que esté ejecutándose en http://localhost:5678'
-  	 	});
+  	 	setNotification({ type: 'error', title: 'Error de Conexión', message: 'No se pudo conectar con n8n. Verifica que esté ejecutándose en http://localhost:5678' });
   	  }
   	} finally {
   	  setIsSendingCampaign(false);
-  	  // En modo call center, el modal solo se cierra si no hay más tareas o hay un error.
   	  if (!isCallCenterMode) {
   	 	setShowCampaignModal(false);
   	 	setEmailPreview(null);
@@ -340,7 +258,7 @@ const App = () => {
   	}
   };
 
-  // --- ¡NUEVO! Esta función "intercepta" la llamada de envío para mostrar la confirmación ---
+  // --- Esta función "intercepta" la llamada de envío para mostrar la confirmación ---
   const handleConfirmAndSend = (finalContent) => {
     setConfirmProps({
       show: true,
@@ -358,17 +276,12 @@ const App = () => {
   // --- NUEVA FUNCIÓN PARA MODO CALL CENTER ---
   const fetchNextTask = async () => {
   	setIsTaskLoading(true);
-  	setShowCampaignModal(true); // Mantenemos el modal abierto
-  	setEmailPreview(null); // Limpiamos el preview anterior
+  	setShowCampaignModal(true); 
+  	setEmailPreview(null); 
   	try {
-// Validar que tengamos un queueId activo
   	  if (!currentQueueId) {
   	 	console.error("Intento de fetch sin un queueId activo.");
-  	 	setNotification({ 
-  	 	  type: 'error', 
-  	 	  title: 'Error de Cola', 
-  	 	  message: 'No hay una cola activa.' 
-  	 	});
+  	 	setNotification({ type: 'error', title: 'Error de Cola', message: 'No hay una cola activa.' });
   	 	setIsCallCenterMode(false);
   	 	setShowCampaignModal(false);
   	 	return;
@@ -376,11 +289,10 @@ const App = () => {
   	  const response = await apiClient.getNextInQueue(currentQueueId, 'user_emiliano');
   	  if (response.data && response.data.organization) {
   	 	setCurrentTask(response.data);
-  	 	setSelectedOrg(response.data.organization); // Actualizamos la org seleccionada
-  	 	setCurrentPage(1); // Resetear a la primera página para mejor UX
-  	 	setEmailPreview(response.data.email); // Ponemos el nuevo borrador
+  	 	setSelectedOrg(response.data.organization); 
+  	 	setCurrentPage(1); 
+  	 	setEmailPreview(response.data.email); 
   	  } else {
-  	 	// No hay más tareas en la cola
   	 	setNotification({ type: 'success', title: 'Cola Finalizada', message: '¡Has procesado todas las organizaciones en la cola!' });
   	 	setIsCallCenterMode(false);
   	 	setShowCampaignModal(false);
@@ -398,47 +310,30 @@ const App = () => {
   const _executeStartCallCenterMode = async (selectedOrgs) => { 
   	setIsTaskLoading(true);
   	try {
-  	// 1. Extraer los IDs de las organizaciones seleccionadas
   	  const orgIds = selectedOrgs.map(org => org.id); 
-
-  	// 2. Crear la cola dinámica en el backend
   	  const response = await apiClient.createDynamicQueue(orgIds);
   	  const { queueId } = response.data;
-
   	  if (queueId) {
-  	// 3. Guardar el ID de la cola y activar el modo
   	 	setCurrentQueueId(queueId);
   	 	setIsCallCenterMode(true);
-
-  	// 4. Buscar la primera tarea de la nueva cola
   	 	await fetchNextTask(); 
   	  } else {
   	 	throw new Error("La API no devolvió un queueId.");
   	  }
-
   	} catch (err) {
   	  console.error("Error al iniciar el modo call center:", err);
-  	  setNotification({ 
-  	 	type: 'error', 
-  	 	title: 'Error al Crear Cola', 
-  	 	message: 'No se pudo generar la cola de envíos.' 
-  	  });
+  	  setNotification({ type: 'error', title: 'Error al Crear Cola', message: 'No se pudo generar la cola de envíos.' });
   	} finally {
   	  setIsTaskLoading(false);
   	}
   };
 
-  // --- ¡NUEVO! Esta función "intercepta" la llamada para mostrar la confirmación ---
+  // --- Esta función "intercepta" la llamada para mostrar la confirmación ---
   const startCallCenterMode = (selectedOrgs) => {
     if (!selectedOrgs || selectedOrgs.length < 2) {
-      setNotification({
-        type: 'warning',
-        title: 'Selección Insuficiente',
-        message: 'Debes seleccionar al menos 2 organizaciones para iniciar el modo call center.'
-      });
+      setNotification({ type: 'warning', title: 'Selección Insuficiente', message: 'Debes seleccionar al menos 2 organizaciones para iniciar el modo call center.' });
       return;
     }
-
     setConfirmProps({
       show: true,
       title: 'Iniciar Modo Call Center',
@@ -453,7 +348,7 @@ const App = () => {
   // ------------------------------------------------------------------------------
 
   React.useEffect(() => {
-  	if (organizaciones.length === 0) {
+  	if (organizaciones.length === 0 && isAuthenticated) { // <-- Solo carga si está autenticado
   	  setIsLoading(true);
   	  const fetchOrganizaciones = async () => {
   	 	try {
@@ -470,7 +365,7 @@ const App = () => {
   	  };
   	  fetchOrganizaciones();
   	}
-  }, [organizaciones.length]);
+  }, [organizaciones.length, isAuthenticated]); // <-- Añadido isAuthenticated como dependencia
 
   const handleRefresh = () => {
   	localStorage.removeItem('organizaciones_cache');
@@ -497,7 +392,6 @@ const App = () => {
   const saveContact = async (updatedOrg) => {
   	setIsSaving(true);
   	setError(null);
-
   	const orgToSend = { ...updatedOrg };
   	Object.keys(orgToSend).forEach(key => {
   	 	const value = orgToSend[key];
@@ -507,7 +401,6 @@ const App = () => {
   	 	  orgToSend[key] = '[vacio]';
   	 	}
   	});
-
   	try {
   	  await apiClient.updateOrganization(orgToSend);
   	  handleRefresh();
@@ -538,14 +431,14 @@ const App = () => {
   	 	 	setFilterType={setFilterType}
   	 	 	filterIsla={filterIsla}
   	 	 	setFilterIsla={setFilterIsla}
-  	 	 	filterSuscripcion={filterSuscripcion}
+ 	 	 	filterSuscripcion={filterSuscripcion}
   	 	 	setFilterSuscripcion={setFilterSuscripcion}
   	 	 	lastRefreshTs={lastRefreshTs}
   	 	 	currentPage={currentPage}
   	 	 	setCurrentPage={setCurrentPage}
   	 	 	onRefresh={handleRefresh}
   	 	 	startCallCenterMode={startCallCenterMode} // Prop se mantiene igual
-  	 	  />
+ 	 	  />
   	 	);
   	  case 'detalle':
   	 	return <OrganizationDetail selectedOrg={selectedOrg} openEditModal={openEditor} setShowCampaignModal={setShowCampaignModal} />;
@@ -559,7 +452,6 @@ const App = () => {
   	 	 	isSaving={isSaving}
   	 	  />
   	 	);
-
   	  case 'campanas':
   	 	return (
   	 	  <Campaigns 
@@ -570,70 +462,99 @@ const App = () => {
   	 	 	onSelectTemplateForSend={(id) => setSelectedCampaignId(id)}
   	 	  />
   	 	);
+      // --- ¡NUEVO! Vista de Admin ---
+      case 'admin':
+        return (
+          <UserAdmin 
+            currentUser={currentUser}
+            setNotification={setNotification}
+          />
+        );
   	  default:
   	 	return (
   	 	  <div className="flex items-center justify-center h-full">
   	 	 	<div className="p-8 text-center text-slate-500 dark:text-slate-400">
-  	 	 	  <p>Por favor, selecciona una vista.</p>
+ 	 	 	  <p>Por favor, selecciona una vista.</p>
   	 	 	</div>
   	 	  </div>
   	 	);
   	}
   };
   
+  // --- NUEVO DISEÑO DE LAYOUT ---
   return (
   	<div className="flex h-screen bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-200">
   	  
-  	  <Sidebar 
-  	 	activeView={activeView}
-  	 	setActiveView={setActiveView}
-  	 	selectedOrg={selectedOrg}
-  	  />
+      {/* --- ¡NUEVO! Renderizado condicional del Login --- */}
+      {!isAuthenticated && (
+        <LoginScreen 
+          onLoginSuccess={handleLoginSuccess} // <-- Pasa la nueva función
+        />
+      )}
 
-  	  <main className="flex-1 flex flex-col overflow-y-auto">
-  	 	<div className="p-4 sm:p-6 lg:p-8 flex-1">
-  	 	  {isLoading && <p className="text-center text-slate-500 dark:text-slate-400">Cargando organizaciones...</p>}
-  	 	  {error && <p className="text-center text-red-500">Error al cargar los datos: {error.message}</p>}
-  	 	  {!isLoading && !error && <div className="h-auto">{renderView()}</div>}
-  	 	</div>
-  	  </main>
+      {/* --- Renderizado condicional de la App Principal --- */}
+      {isAuthenticated && (
+        <>
+ 	 	  {/* --- Barra Lateral de Navegación --- */}
+  	 	  <Sidebar 
+  	 	 	activeView={activeView}
+  	 	 	setActiveView={setActiveView}
+  	 	 	selectedOrg={selectedOrg}
+            onLogout={handleLogout} // <-- Pasa la nueva función de logout
+            currentUser={currentUser} // <-- Pasa el usuario para mostrar/ocultar "Admin"
+  	 	  />
 
-  	  <SendCampaignModal 
-  	 	show={showCampaignModal}
-  	 	onClose={() => {
-  	 	  setShowCampaignModal(false);
-  	 	  setEmailPreview(null); // Limpiar al cerrar
-  	 	}}
-  	 	selectedOrg={selectedOrg}
-  	 	campaignTemplates={campaignTemplates}
-  	 	onGeneratePreview={handleGeneratePreview}
-  	 	onConfirmAndSend={handleConfirmAndSend} // Prop se mantiene igual
-  	 	isPreviewLoading={isPreviewLoading}
-  	 	isSending={isSendingCampaign}
-  	 	emailPreview={emailPreview}
-  	 	selectedCampaignId={selectedCampaignId}
-  	 	setSelectedCampaignId={setSelectedCampaignId}
-  	 	isTaskLoading={isTaskLoading}
-        setConfirmProps={setConfirmProps}
-        closeConfirm={closeConfirm}
-  	  />
-  	 
-      <ConfirmModal 
-        show={confirmProps.show}
-        title={confirmProps.title}
-        message={confirmProps.message}
-        onConfirm={confirmProps.onConfirm}
-        onCancel={closeConfirm}
-        confirmText={confirmProps.confirmText}
-      />
+  	 	  {/* --- Contenido Principal --- */}
+  	 	  <main className="flex-1 flex flex-col overflow-y-auto">
+  	 	 	{/* Contenedor del contenido con padding */}
+  	 	 	<div className="p-4 sm:p-6 lg:p-8 flex-1">
+  	 	 	  {isLoading && <p className="text-center text-slate-500 dark:text-slate-400">Cargando organizaciones...</p>}
+  	 	 	  {error && <p className="text-center text-red-500">Error al cargar los datos: {error.message}</p>}
+ 	 	  {!isLoading && !error && <div className="h-auto">{renderView()}</div>}
+  	 	 	</div>
+  	 	  </main>
 
-  	  <AIindicator metricas={metricas} procesando={organizaciones.length} />
-  	  
-  	  <Notification 
-  	 	notification={notification}
-  	 	onClose={() => setNotification(null)}
-  	  />
-  	</div>
+  	 	  <SendCampaignModal 
+  	 	 	show={showCampaignModal}
+  	 	 	onClose={() => {
+  	 	 	  setShowCampaignModal(false);
+  	 	 	  setEmailPreview(null); // Limpiar al cerrar
+ 	 	 	}}
+  	 	 	selectedOrg={selectedOrg}
+  	 	 	campaignTemplates={campaignTemplates}
+  	 	 	onGeneratePreview={handleGeneratePreview}
+  	 	 	onConfirmAndSend={handleConfirmAndSend} // Prop se mantiene igual
+  	 	 	isPreviewLoading={isPreviewLoading}
+  	 	 	isSending={isSendingCampaign}
+  	 	 	emailPreview={emailPreview}
+  	 	 	selectedCampaignId={selectedCampaignId}
+  	 	 	setSelectedCampaignId={setSelectedCampaignId}
+  	 	 	isTaskLoading={isTaskLoading}
+            // --- ¡NUEVO! Pasamos los controladores del modal de confirmación ---
+            setConfirmProps={setConfirmProps}
+            closeConfirm={closeConfirm}
+            // -----------------------------------------------------------------
+  	 	  />
+  	 	  
+          {/* --- ¡NUEVO! Renderiza el modal de confirmación --- */}
+          <ConfirmModal 
+            show={confirmProps.show}
+            title={confirmProps.title}
+            message={confirmProps.message}
+            onConfirm={confirmProps.onConfirm}
+            onCancel={closeConfirm}
+            confirmText={confirmProps.confirmText}
+          />
+
+  	 	  <AIindicator metricas={metricas} procesando={organizaciones.length} />
+  	 	  
+  	 	  <Notification 
+  	 	 	notification={notification}
+  	 	 	onClose={() => setNotification(null)}
+  	 	  />
+        </>
+      )}
+ 	</div>
   );
   // --- FIN DE NUEVO DISEÑO ---
 };

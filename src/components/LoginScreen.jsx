@@ -15,12 +15,12 @@ const LoginScreen = ({ onLoginSuccess }) => {
 
     try {
       // 1. Llama a la función de login del apiClient
-      // (Asegúrate de que esta función exista en apiClient.js)
       const response = await apiClient.login(usuario, password);
 
       // 2. Si el status es 'success', llama a la función onLoginSuccess
+      //    (App.jsx recibirá el objeto { status: 'success', user: {...} })
       if (response.data && response.data.status === 'success') {
-        onLoginSuccess();
+        onLoginSuccess(response.data);
       } else {
         // Esto no debería pasar si el backend devuelve 401 en error
         setError('Respuesta inesperada del servidor.');
@@ -44,7 +44,7 @@ const LoginScreen = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-100 dark:bg-slate-900 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-slate-100 dark:bg-slate-900 p-4 w-full">
       <div className="w-full max-w-md">
         <form
           onSubmit={handleLogin}
@@ -83,6 +83,7 @@ const LoginScreen = ({ onLoginSuccess }) => {
               id="usuario"
               name="usuario"
               type="text"
+              autoComplete="username"
               required
               value={usuario}
               onChange={(e) => setUsuario(e.target.value)}
@@ -103,6 +104,7 @@ const LoginScreen = ({ onLoginSuccess }) => {
               id="password"
               name="password"
               type="password"
+              autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
