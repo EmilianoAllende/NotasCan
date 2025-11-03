@@ -88,5 +88,13 @@ apiClient.getNextInQueue = (queueId, userId) => {
 		`/webhook/siguiente-correo?queueId=${queueId}&userId=${userId}`
 	);
 };
+// --- NUEVA FUNCIÓN PARA LOGIN ---
+apiClient.login = (usuario, password) => {
+	return apiClient.post("/webhook/login", { usuario, password });
+};
+// --- FIN DE NUEVA FUNCIÓN ---
 
+apiClient.create_user = (usuario, password) => {
+	return apiClient.post("/webhook/create_user", { usuario, password });
+};
 export default apiClient;

@@ -585,20 +585,16 @@ const App = () => {
   	}
   };
   
-  // --- NUEVO DISEÑO DE LAYOUT ---
   return (
   	<div className="flex h-screen bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-200">
   	  
-  	  {/* --- Barra Lateral de Navegación --- */}
   	  <Sidebar 
   	 	activeView={activeView}
   	 	setActiveView={setActiveView}
   	 	selectedOrg={selectedOrg}
   	  />
 
-  	  {/* --- Contenido Principal --- */}
   	  <main className="flex-1 flex flex-col overflow-y-auto">
-  	 	{/* Contenedor del contenido con padding */}
   	 	<div className="p-4 sm:p-6 lg:p-8 flex-1">
   	 	  {isLoading && <p className="text-center text-slate-500 dark:text-slate-400">Cargando organizaciones...</p>}
   	 	  {error && <p className="text-center text-red-500">Error al cargar los datos: {error.message}</p>}
@@ -622,13 +618,10 @@ const App = () => {
   	 	selectedCampaignId={selectedCampaignId}
   	 	setSelectedCampaignId={setSelectedCampaignId}
   	 	isTaskLoading={isTaskLoading}
-        // --- ¡NUEVO! Pasamos los controladores del modal de confirmación ---
         setConfirmProps={setConfirmProps}
         closeConfirm={closeConfirm}
-        // -----------------------------------------------------------------
   	  />
-  	  
-      {/* --- ¡NUEVO! Renderiza el modal de confirmación --- */}
+  	 
       <ConfirmModal 
         show={confirmProps.show}
         title={confirmProps.title}
