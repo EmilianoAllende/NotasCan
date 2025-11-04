@@ -14,11 +14,9 @@ const Notification = ({ notification, onClose }) => {
   useEffect(() => {
     if (notification) {
       setIsVisible(true);
-      // Auto-close después de 5 segundos en "success", 8 segundos los demás.
       const timeout = setTimeout(() => {
         handleClose();
       }, notification.type === 'success' ? 5000 : 8000);
-
       return () => clearTimeout(timeout);
     }
   }, [notification, handleClose]);
