@@ -88,5 +88,23 @@ apiClient.getNextInQueue = (queueId, userId) => {
 		`/webhook/siguiente-correo?queueId=${queueId}&userId=${userId}`
 	);
 };
+// --- NUEVA FUNCIÓN PARA LOGIN ---
+apiClient.login = (usuario, password) => {
+	return apiClient.post("/webhook/login", { usuario, password });
+};
+// --- FIN DE NUEVA FUNCIÓN ---
 
+apiClient.createUser = (usuario, password, rol, token) => {
+	return apiClient.post(
+		"/webhook/create-user",
+		{ usuario, password, rol }, // El body que recibe n8n
+		{
+			// Configuración extra de Axios para ESTA petición
+			headers: {
+				// --- CAMBIO: Usa "token" ---
+				Authorization: `Bearer ${token}`,
+			},
+		}
+	);
+};
 export default apiClient;
