@@ -9,7 +9,7 @@ const UserAdmin = ({ currentUser, setNotification }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const adminToken = currentUser?.token;
+  const adminToken = currentUser?.adminToken;
 
   // 🧠 Función para generar contraseña segura
   const generateSecurePassword = () => {
