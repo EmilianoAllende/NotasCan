@@ -2,7 +2,14 @@ import React from 'react';
 import { Mail, Edit, ExternalLink } from 'lucide-react';
 import StatusBadge from './shared/StatusBadge';
 
-const OrganizationDetail = ({ selectedOrg, openEditModal, setShowCampaignModal }) => {
+const OrganizationDetail = ({ 
+    selectedOrg, 
+    openEditModal, 
+    setShowCampaignModal,
+    // --- NUEVAS PROPS ---
+    selectedCampaignId,
+    onSelectCampaignRequired 
+}) => {
     if (!selectedOrg) {
         return (
         <div className="flex items-center justify-center h-full">
@@ -178,7 +185,13 @@ const OrganizationDetail = ({ selectedOrg, openEditModal, setShowCampaignModal }
                     </button>
 
                     <button
-                        onClick={() => setShowCampaignModal(true)}
+                        onClick={() => {
+                            if (selectedCampaignId) {
+                                setShowCampaignModal(true);
+                            } else {
+                                onSelectCampaignRequired(); // Muestra notificación de error
+                            }
+                        }}
                         className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"
                     >
                         <Mail size={16} />

@@ -43,6 +43,10 @@ const App = () => {
   });
   const [showCampaignModal, setShowCampaignModal] = React.useState(false);
   const [currentPage, setCurrentPage] = React.useState(1);
+
+  // --- AÑADIR ESTADO GLOBAL DE CAMPAÑA ---
+const [selectedCampaignId, setSelectedCampaignId] = React.useState(null); 
+// ----------------------------------------
   const [organizaciones, setOrganizaciones] = React.useState(() => {
   	try {
   	  const cachedData = localStorage.getItem('organizaciones_cache');
@@ -60,7 +64,6 @@ const App = () => {
   const [error, setError] = React.useState(null);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isSendingCampaign, setIsSendingCampaign] = React.useState(false);
-  const [selectedCampaignId, setSelectedCampaignId] = React.useState('');
   const [isPreviewLoading, setIsPreviewLoading] = React.useState(false);
   const [emailPreview, setEmailPreview] = React.useState(null); // { subject, body }
   const [notification, setNotification] = React.useState(null);
@@ -79,6 +82,9 @@ const App = () => {
   const [currentQueueId, setCurrentQueueId] = React.useState(null);
   const [currentTask, setCurrentTask] = React.useState(null); // Contendrá { taskInfo, organization, email }
   const [isTaskLoading, setIsTaskLoading] = React.useState(false);
+
+  // ESTADO NUEVO: Guarda temporalmente las organizaciones para la cola
+  const [orgsToQueue, setOrgsToQueue] = React.useState(null); 
 
   // Plantilla por defecto para prompts (modo RAW), basada en el ejemplo provisto
   const DEFAULT_PROMPT = `Tu tarea es generar un correo electrónico de tipo "{{ $('Data Extractor').item.json.campaignType }}" para la organización "{{ $('Data Extractor').item.json.organizacion }}".
@@ -163,8 +169,12 @@ const App = () => {
   };
 
 // --- FUNCIÓN 1: Generar el borrador ---
-  const handleGeneratePreview = async () => {
-  	if (!selectedOrg || !selectedCampaignId) {
+  const handleGeneratePreview = React.useCallback(async (orgToPreview, campaignIdToPreview) => {
+    // Usar los argumentos si se pasan, o el estado si no
+    const organization = orgToPreview || selectedOrg;
+    const campaignId = campaignIdToPreview || selectedCampaignId;
+
+  	if (!organization || !campaignId) {
   	  setNotification({
   	 	type: 'warning',
   	 	title: 'Selección Requerida',
@@ -177,11 +187,11 @@ const App = () => {
   	setEmailPreview(null);
 
     try {
-      const template = campaignTemplates.find(t => t.id === selectedCampaignId);
-      const prompt = buildPromptFromTemplate(template, selectedOrg);
+      const template = campaignTemplates.find(t => t.id === campaignId);
+      const prompt = buildPromptFromTemplate(template, organization);
       const payload = {
         data: {  // ← ENVOLVEMOS TODO EN "data"
-          organization: selectedOrg,
+          organization: organization,
           campaign: {
             id: template.id,
             title: template.title,
@@ -212,7 +222,7 @@ const App = () => {
   	} finally {
   	  setIsPreviewLoading(false);
   	}
-  };
+  }, [selectedOrg, selectedCampaignId, campaignTemplates]); // Dependencias
 
 // --- FUNCIÓN 2: Lógica REAL de envío (Nombre cambiado) ---
   const _executeConfirmAndSend = async (finalContent) => {
@@ -356,29 +366,44 @@ const App = () => {
   // -----------------------------------------------------------------------------------
 
   // --- NUEVA FUNCIÓN PARA MODO CALL CENTER ---
-  const fetchNextTask = async () => {
+  const fetchNextTask = async (queueId, campaignId) => {
   	setIsTaskLoading(true);
-  	setShowCampaignModal(true); // Mantenemos el modal abierto
-  	setEmailPreview(null); // Limpiamos el preview anterior
+    setShowCampaignModal(true); // Mantenemos el modal abierto
+    setEmailPreview(null); // Limpiamos el preview anterior
+    const CURRENT_USER_ID = 'user_emiliano';
   	try {
-// Validar que tengamos un queueId activo
-  	  if (!currentQueueId) {
+  	  if (!queueId) {
   	 	console.error("Intento de fetch sin un queueId activo.");
   	 	setNotification({ 
   	 	  type: 'error', 
   	 	  title: 'Error de Cola', 
   	 	  message: 'No hay una cola activa.' 
   	 	});
-  	 	setIsCallCenterMode(false);
-  	 	setShowCampaignModal(false);
   	 	return;
   	  }
-  	  const response = await apiClient.getNextInQueue(currentQueueId, 'user_emiliano');
-  	  if (response.data && response.data.organization) {
-  	 	setCurrentTask(response.data);
-  	 	setSelectedOrg(response.data.organization); // Actualizamos la org seleccionada
-  	 	setCurrentPage(1); // Resetear a la primera página para mejor UX
-  	 	setEmailPreview(response.data.email); // Ponemos el nuevo borrador
+
+      // 1. Llamar a GetNextInQueue (sin prompt, solo para obtener la org)
+      const taskResponse = await apiClient.getNextInQueue(queueId, CURRENT_USER_ID);
+      
+      if (taskResponse.data && taskResponse.data.organization) {
+          const taskData = taskResponse.data;
+          const organization = taskData.organization;
+
+          // 2. Encontrar plantilla y construir prompt
+          const template = campaignTemplates.find(t => t.id === selectedCampaignId); // Usar el ID del estado
+          if (!template) throw new Error("Plantilla no encontrada.");
+          
+          const prompt = buildPromptFromTemplate(template, organization);
+
+          // 3. Llamar a la API de IA (generatePreview)
+          const previewPayload = { data: { organization, campaign: { ...template, prompt } } };
+          const emailResponse = await apiClient.generatePreview(previewPayload);
+          
+          // 4. Combinar los datos y establecer el estado
+          setCurrentTask(taskData);
+          setSelectedOrg(organization);
+          setEmailPreview(emailResponse.data); // <-- El borrador de la IA
+
   	  } else {
   	 	// No hay más tareas en la cola
   	 	setNotification({ type: 'success', title: 'Cola Finalizada', message: '¡Has procesado todas las organizaciones en la cola!' });
@@ -386,8 +411,7 @@ const App = () => {
   	 	setShowCampaignModal(false);
   	  }
   	} catch (err) {
-  	  console.error("Error fetching next task:", err);
-  	  setNotification({ type: 'error', title: 'Error de Red', message: 'No se pudo cargar la siguiente tarea de la cola.' });
+  	  console.error("Error fetching next task:", err); setNotification({ type: 'error', title: 'Error de Red', message: 'No se pudo cargar la siguiente tarea de la cola.' });
   	  setIsCallCenterMode(false);
   	} finally {
   	  setIsTaskLoading(false);
@@ -409,9 +433,10 @@ const App = () => {
   	// 3. Guardar el ID de la cola y activar el modo
   	 	setCurrentQueueId(queueId);
   	 	setIsCallCenterMode(true);
-
-  	// 4. Buscar la primera tarea de la nueva cola
-  	 	await fetchNextTask(); 
+        // selectedCampaignId ya está en el estado, no necesitamos pasarlo como parámetro
+  	 	
+        // 3. Buscar la primera tarea (ahora pasamos el campaignId)
+  	 	await fetchNextTask(queueId, selectedCampaignId); 
   	  } else {
   	 	throw new Error("La API no devolvió un queueId.");
   	  }
@@ -430,6 +455,17 @@ const App = () => {
 
   // --- ¡NUEVO! Esta función "intercepta" la llamada para mostrar la confirmación ---
   const startCallCenterMode = (selectedOrgs) => {
+    // --- VALIDACIÓN DE CAMPAÑA ---
+    if (!selectedCampaignId) {
+      setNotification({
+        type: 'warning',
+        title: 'Campaña no seleccionada',
+        message: 'Por favor, selecciona una campaña del listado antes de iniciar el Modo Call Center.'
+      });
+      return;
+    }
+    // ----------------------------
+
     if (!selectedOrgs || selectedOrgs.length < 2) {
       setNotification({
         type: 'warning',
@@ -489,11 +525,19 @@ const App = () => {
   	setActiveView('detalle');
   };
 
-  const openCampaign = (org) => {
-  	setSelectedOrg(org);
-  	setShowCampaignModal(true);
-  };
+  const handleOpenCampaignModal = React.useCallback((org) => {
+  	setSelectedOrg(org);
+  	setEmailPreview(null); 
+  	// No limpiamos el selectedCampaignId global
+  	setCurrentTask(null); 
+  	setIsCallCenterMode(false);
+  	setShowCampaignModal(true);
 
+    // Si ya hay una campaña seleccionada globalmente, generar el borrador
+    if (selectedCampaignId) {
+        handleGeneratePreview(org, selectedCampaignId);
+    }
+  }, [selectedCampaignId]); // <-- Añadir dependencia
   const saveContact = async (updatedOrg) => {
   	setIsSaving(true);
   	setError(null);
@@ -531,7 +575,7 @@ const App = () => {
   	 	 	organizaciones={organizaciones}
   	 	 	openEditModal={openEditor}
   	 	 	viewDetail={viewDetail}
-  	 	 	openCampaign={openCampaign}
+  	 	 	openCampaign={handleOpenCampaignModal}
   	 	 	filterStatus={filterStatus}
   	 	 	setFilterStatus={setFilterStatus}
   	 	 	filterType={filterType}
@@ -544,11 +588,28 @@ const App = () => {
   	 	 	currentPage={currentPage}
   	 	 	setCurrentPage={setCurrentPage}
   	 	 	onRefresh={handleRefresh}
-  	 	 	startCallCenterMode={startCallCenterMode} // Prop se mantiene igual
+  	 	 	startCallCenterMode={startCallCenterMode} 
+            // --- NUEVAS PROPS ---
+            campaignTemplates={campaignTemplates}
+            selectedCampaignId={selectedCampaignId}
+            setSelectedCampaignId={setSelectedCampaignId}
   	 	  />
   	 	);
   	  case 'detalle':
-  	 	return <OrganizationDetail selectedOrg={selectedOrg} openEditModal={openEditor} setShowCampaignModal={setShowCampaignModal} />;
+  	 	return <OrganizationDetail 
+            selectedOrg={selectedOrg} 
+            openEditModal={openEditor} 
+            setShowCampaignModal={setShowCampaignModal} 
+            // --- NUEVAS PROPS ---
+            selectedCampaignId={selectedCampaignId}
+            onSelectCampaignRequired={() => {
+                setNotification({
+                    type: 'warning',
+                    title: 'Campaña Requerida',
+                    message: 'Por favor, selecciona una campaña en el listado antes de enviar un email.'
+                });
+            }}
+        />;
   	 	
   	  case 'editor':
   	 	return (
@@ -616,8 +677,10 @@ const App = () => {
   	 	isSending={isSendingCampaign}
   	 	emailPreview={emailPreview}
   	 	selectedCampaignId={selectedCampaignId}
-  	 	setSelectedCampaignId={setSelectedCampaignId}
+  	 	setSelectedCampaignId={setSelectedCampaignId} // <-- Pasar el setter
   	 	isTaskLoading={isTaskLoading}
+        isCallCenterMode={isCallCenterMode} // <-- Pasar el estado
+        onExecuteCallCenterStart={_executeStartCallCenterMode} // <-- Pasar la función
         // --- ¡NUEVO! Pasamos los controladores del modal de confirmación ---
         setConfirmProps={setConfirmProps}
         closeConfirm={closeConfirm}
@@ -646,4 +709,3 @@ const App = () => {
 };
 
 export default App;
-
