@@ -1,20 +1,15 @@
 import axios from "axios";
 
-// --- CAMBIO PARA PROXY ---
-// La URL base de n8n ya no es necesaria aquí,
-// porque el proxy en `package.json` la gestiona.
-// const N8N_BASE_URL = 'https://n8n.icc-e.org';
-// const N8N_BASE_URL2 = 'http://localhost:5678';
+// --- ¡CAMBIO CLAVE PARA PRODUCCIÓN! ---
+// Apuntamos directamente a tu URL de n8n en la nube.
+const N8N_BASE_URL = "https://n8n.icc-e.org";
 
 const apiClient = axios.create({
-	// Ahora las peticiones apuntan a la raíz de tu servidor local ('/'),
-	// y el proxy las redirigirá a "https://n8n.icc-e.org"
-	baseURL: "/",
+	// Ya no usamos el proxy "/", usamos la URL completa.
+	baseURL: N8N_BASE_URL,
 });
-// const apiClient2 = axios.create({
-//     baseURL: N8N_BASE_URL2
-// });///
-///////
+// ------------------------------------
+
 // --- LISTADO DE ORGANIZACIONES DESDE DYNAMO ---
 const GET_ORGANIZACIONES_PATH = "/webhook/573b9827-ad59-425f-9526-e2d16a7e2198";
 // --- EDICIÓN DE ORGANIZACIONES EN DYNAMO ---
@@ -45,16 +40,7 @@ apiClient.generatePreview = (payload) => {
 
 // NUEVA FUNCIÓN para enviar el email ya aprobado
 apiClient.confirmAndSend = (payload) => {
-	// Payload esperado:
-	// {
-	//   organizationId: string,
-	//   subject: string,
-	//   body: string,
-	//? Opcionales para integración dinámica con campaigns_log y compatibilidad con 'hace_dias'
-	//   campaignId?: string,     // id de la plantilla usada (para actualizar campaigns_log[campaignId])
-	//   sentAt?: string,         // ISODate del envío (para cálculo de hace_dias en backend)
-	//   updateHaceDias?: boolean // si true, el backend debe actualizar el campo raíz 'hace_dias'
-	// }
+	// Payload esperado: { ... }
 	// Llama al Workflow #2
 	return apiClient.post("/webhook/confirm-and-send", payload).catch((error) => {
 		console.error("Error al confirmar y enviar la campaña:", error);
@@ -71,11 +57,6 @@ apiClient.getCampaignsHistory = () => {
 	});
 };
 
-// // --- NUEVA FUNCIÓN PARA MODO CALL CENTER ---
-// apiClient.getNextInQueue = () => {
-//     return apiClient2.get('/webhook/siguiente-correo');
-// };
-
 // Crear una cola dinámica a partir de una lista de IDs
 apiClient.createDynamicQueue = (orgIds) => {
 	return apiClient.post("/webhook/create-dynamic-queue", { orgIds });
@@ -83,10 +64,28 @@ apiClient.createDynamicQueue = (orgIds) => {
 
 // Obtener el siguiente item de una cola específica (ya modificada para multiusuario)
 apiClient.getNextInQueue = (queueId, userId) => {
-	// return apiClient.get(`/webhook/siguiente-correo`);
 	return apiClient.get(
 		`/webhook/siguiente-correo?queueId=${queueId}&userId=${userId}`
 	);
 };
+
+// --- ¡NUEVO! Función de Login ---
+apiClient.login = (usuario, password) => {
+	return apiClient.post("/webhook/login", { usuario, password });
+};
+
+// --- ¡NUEVO! Función de Crear Usuario (Admin) ---
+apiClient.createUser = (usuario, password, rol, token) => {
+	return apiClient.post(
+		"/webhook/create-user",
+		{ usuario, password, rol }, // El body que recibe n8n
+		{
+			headers: {
+				Authorization: `Bearer ${token}`,
+			},
+		}
+	);
+};
+// --- FIN DE NUEVAS FUNCIONES ---
 
 export default apiClient;

@@ -1,57 +1,45 @@
-import React, { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
 
-// -------------------------
-// Modal de Vista Previa (Simulación Gmail)
-// -------------------------
+// === MODAL DE VISTA PREVIA ===
 const HtmlPreviewModal = ({ htmlContent, onClose }) => {
   return (
     <div
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fadeIn"
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden relative"
         onClick={(e) => e.stopPropagation()}
+        className="relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col overflow-hidden border border-slate-200 dark:border-slate-700 animate-scaleIn"
       >
-        {/* Cabecera estilo Gmail */}
-        <div className="flex items-center justify-between bg-[#D93025] text-white px-5 py-3">
-          <div className="flex items-center gap-3">
-            <img
-              src="https://ssl.gstatic.com/ui/v1/icons/mail/rfr/logo_gmail_lockup_default_1x_r2.png"
-              alt="Gmail"
-              className="h-6"
-            />
-            <span className="text-sm opacity-90">Vista previa de correo</span>
-          </div>
+        {/* Header */}
+        <div className="flex justify-between items-center px-5 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+            Vista previa del correo
+          </h3>
           <button
             onClick={onClose}
-            className="text-white/80 hover:text-white transition-colors"
-            aria-label="Cerrar"
+            className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
           >
             <X size={22} />
           </button>
         </div>
 
         {/* Contenido */}
-        <div className="flex-1 bg-[#f6f8fc] overflow-y-auto">
-          <div className="max-w-3xl mx-auto bg-white shadow-sm my-8 rounded-md overflow-hidden border border-slate-200">
-            <iframe
-              srcDoc={htmlContent}
-              title="Vista Previa de Email"
-              className="w-full h-[80vh]"
-              style={{ border: "none" }}
-            />
-          </div>
+        <div className="flex-1 bg-slate-100 dark:bg-slate-950 p-4 overflow-y-auto">
+          <iframe
+            srcDoc={htmlContent}
+            title="Vista Previa del Email"
+            className="w-full h-full bg-white dark:bg-slate-900 rounded-lg shadow-md border border-slate-200 dark:border-slate-700"
+            style={{ border: 'none' }}
+          />
         </div>
       </div>
     </div>
   );
 };
 
-// -------------------------
-// Modal Principal (Envío de Campañas)
-// -------------------------
+// === MODAL PRINCIPAL ===
 const SendCampaignModal = ({
   show,
   onClose,
@@ -71,11 +59,11 @@ const SendCampaignModal = ({
   onExecuteCallCenterStart // <-- NUEVA PROP
 }) => {
   const [showHtmlPreview, setShowHtmlPreview] = useState(false);
-  const [editableContent, setEditableContent] = useState({ subject: "", body: "" });
+  const [editableContent, setEditableContent] = useState({ subject: '', body: '' });
 
   useEffect(() => {
     if (emailPreview) setEditableContent(emailPreview);
-    else setEditableContent({ subject: "", body: "" });
+    else setEditableContent({ subject: '', body: '' });
   }, [emailPreview]);
 
   // --- NUEVO EFECTO: AUTO-GENERAR BORRADOR ---
@@ -90,31 +78,25 @@ const SendCampaignModal = ({
 
   if (!show || !selectedOrg) return null;
 
-  // Cargando tareas
   if (isTaskLoading) {
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-8 text-center shadow-lg">
-          <h2 className="text-xl font-semibold mb-3 dark:text-white">
-            Cargando siguiente tarea...
-          </h2>
-          <p className="text-slate-600 dark:text-slate-300">
-            Por favor, espera unos segundos.
-          </p>
+        <div className="bg-white dark:bg-slate-800 rounded-xl p-8 max-w-md w-full text-center shadow-xl animate-scaleIn">
+          <h2 className="text-xl font-bold mb-3 dark:text-white">Cargando tarea...</h2>
+          <p className="text-slate-600 dark:text-slate-300">Por favor espera un momento.</p>
         </div>
       </div>
     );
   }
 
-  // Handlers
   const handleCancelClick = () => {
     setConfirmProps({
       show: true,
-      title: "Cancelar acción",
-      message: `¿Seguro que deseas cancelar el envío a ${selectedOrg.nombre}?`,
-      confirmText: "Sí, cancelar",
-      cancelText: "No, volver",
-      type: "danger",
+      title: 'Cancelar Acción',
+      message: `¿Seguro que quieres cancelar el envío a ${selectedOrg.nombre}? Se perderá cualquier borrador no enviado.`,
+      confirmText: 'Sí, salir',
+      cancelText: 'No, volver',
+      type: 'danger',
       onConfirm: () => {
         onClose();
         closeConfirm();
@@ -124,15 +106,14 @@ const SendCampaignModal = ({
 
   const handleGenerateClick = () => {
     const templateName =
-      campaignTemplates.find((t) => t.id === selectedCampaignId)?.title ||
-      "la plantilla seleccionada";
+      campaignTemplates.find((t) => t.id === selectedCampaignId)?.title || 'la plantilla seleccionada';
     setConfirmProps({
       show: true,
-      title: "Generar borrador",
-      message: `¿Deseas usar la IA para crear un borrador con la plantilla "${templateName}"?`,
-      confirmText: "Sí, generar",
-      cancelText: "No, volver",
-      type: "info",
+      title: 'Generar Borrador',
+      message: `Se usará la IA para generar un borrador con la plantilla "${templateName}". ¿Continuar?`,
+      confirmText: 'Sí, generar',
+      cancelText: 'No, volver',
+      type: 'info',
       onConfirm: () => {
         onGeneratePreview();
         closeConfirm();
@@ -145,44 +126,46 @@ const SendCampaignModal = ({
     setEditableContent((prev) => ({ ...prev, [name]: value }));
   };
 
-  // HTML simulando un correo real de Gmail
+  // === HTML para la vista previa ===
   const generatePreviewHtml = () => {
     const bodyHtml = editableContent.body
-      .split("\n")
-      .map((line) => `<p>${line || "&nbsp;"}</p>`)
-      .join("");
+      .split('\n')
+      .map((line) => `<p>${line || '&nbsp;'}</p>`)
+      .join('');
 
     return `
       <!DOCTYPE html>
       <html lang="es">
       <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>${editableContent.subject}</title>
         <style>
-          body { margin:0; background:#f6f8fc; font-family:'Roboto', Arial, sans-serif; color:#202124; }
-          .gmail-container { max-width:600px; margin:40px auto; background:#fff; border:1px solid #dadce0; border-radius:8px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,0.1); }
-          .header { padding:16px 20px; border-bottom:1px solid #e0e0e0; }
-          .header strong { font-size:14px; color:#1a73e8; }
-          .subject { font-size:18px; font-weight:500; margin:12px 0; color:#202124; }
-          .content { padding:24px 20px; font-size:15px; line-height:1.6; }
-          .content p { margin:0 0 14px; }
-          .cta { text-align:center; padding:20px; }
-          .cta a { background:#1a73e8; color:#fff; padding:10px 22px; text-decoration:none; border-radius:4px; font-weight:500; }
-          .footer { font-size:12px; color:#5f6368; text-align:center; padding:16px; border-top:1px solid #e0e0e0; background:#f8f9fa; }
+          body { margin: 0; padding: 0; background-color: #f1f3f5; font-family: 'Segoe UI', sans-serif; color: #333; }
+          .email-container { max-width: 640px; margin: 40px auto; background: #fff; border-radius: 8px; overflow: hidden; border: 1px solid #dee2e6; }
+          .header { background: #e9ecef; padding: 18px; text-align: center; font-size: 18px; font-weight: 600; color: #2c3e50; }
+          .content { padding: 28px; line-height: 1.6; }
+          .content p { margin: 0 0 12px; color: #444; }
+          .button-container { text-align: center; padding: 30px 0; }
+          .button { background: #345995; color: #fff; padding: 12px 24px; border-radius: 4px; text-decoration: none; font-weight: 500; }
+          .footer { background: #f8f9fa; font-size: 13px; color: #6c757d; padding: 20px; text-align: center; border-top: 1px solid #dee2e6; }
+          .footer a { color: #6c757d; text-decoration: underline; }
         </style>
       </head>
       <body>
-        <div class="gmail-container">
-          <div class="header">
-            <div><strong>MMI Analytics</strong> &lt;contacto@mmi-e.com&gt;</div>
-            <div class="subject">${editableContent.subject}</div>
+        <div class="email-container">
+          <div class="header">Comunicado Institucional</div>
+          <div class="content">
+            <p><strong>Asunto:</strong> ${editableContent.subject}</p>
+            ${bodyHtml}
           </div>
-          <div class="content">${bodyHtml}</div>
-          <div class="cta"><a href="https://mmi-e.com/contacto/" target="_blank">Explorar posibles sinergias</a></div>
+          <div class="button-container">
+            <a href="https://mmi-e.com/contacto/" class="button" target="_blank">Explorar posibles sinergias</a>
+          </div>
           <div class="footer">
-            © 2025 MMI Analytics — Todos los derechos reservados.<br>
-            Si no deseas recibir más correos, <a href="#" style="color:#1a73e8;">darte de baja aquí</a>.
+            MMI Analytics © 2024.<br/>
+            Este correo fue enviado a ${selectedOrg.id || 'destinatario@example.com'}.<br/>
+            <a href="#">Darse de baja</a>
           </div>
         </div>
       </body>
@@ -190,7 +173,6 @@ const SendCampaignModal = ({
     `;
   };
 
-  // Vistas
   const renderInitialView = () => (
       <>
         {/* Si el modo Call Center está activo O 
@@ -276,75 +258,72 @@ const SendCampaignModal = ({
   );
 
   const renderPreviewView = () => (
-  <>
-    <h2 className="text-xl font-semibold mb-5 text-center text-slate-900 dark:text-white">
-      Revisa y envía tu campaña
-    </h2>
+    <>
+      <h2 className="text-2xl font-semibold mb-5 text-slate-900 dark:text-white">
+        Revisa y envía la campaña
+      </h2>
 
-    {/* Contenedor más ancho pero centrado */}
-    <div className="space-y-5 max-w-4xl mx-auto">
-      {/* Campo Asunto */}
-      <div>
-        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-          Asunto
-        </label>
-        <input
-          type="text"
-          name="subject"
-          value={editableContent.subject}
-          onChange={handleContentChange}
-          className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500"
-        />
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+            Asunto
+          </label>
+          <input
+            type="text"
+            name="subject"
+            value={editableContent.subject}
+            onChange={handleContentChange}
+            autoComplete="off"
+            className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-slate-900 dark:text-slate-100 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+            Cuerpo del mensaje
+          </label>
+          <textarea
+            name="body"
+            rows="10"
+            value={editableContent.body}
+            onChange={handleContentChange}
+            autoComplete="off"
+            className="mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-slate-900 dark:text-slate-100 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
       </div>
 
-      {/* Campo Cuerpo del mensaje */}
-      <div>
-        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-          Cuerpo del mensaje
-        </label>
-        <textarea
-          name="body"
-          rows="20"
-          value={editableContent.body}
-          onChange={handleContentChange}
-          className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-700 dark:text-white focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
-    </div>
-
-    {/* Botones alineados al mismo ancho */}
-    <div className="flex justify-between items-center mt-6 max-w-4xl mx-auto">
-      <button
-        onClick={() => setShowHtmlPreview(true)}
-        className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
-      >
-        Previsualizar
-      </button>
-
-      <div className="flex gap-3">
+      <div className="flex justify-between items-center mt-6">
         <button
-          onClick={handleCancelClick}
-          className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+          onClick={() => setShowHtmlPreview(true)}
+          className="px-4 py-2 text-sm border border-slate-300 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
         >
-          Cancelar
+          Previsualizar
         </button>
-        <button
-          onClick={() => onConfirmAndSend(editableContent)}
-          disabled={isSending}
-          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium disabled:opacity-50"
-        >
-          {isSending ? "Enviando..." : "Confirmar y Enviar"}
-        </button>
-      </div>
-    </div>
-  </>
-);
 
+        <div className="flex gap-3">
+          <button
+            onClick={handleCancelClick}
+            disabled={isSending}
+            className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={() => onConfirmAndSend(editableContent)}
+            disabled={isSending}
+            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg disabled:opacity-60"
+          >
+            {isSending ? 'Enviando...' : 'Confirmar y Enviar'}
+          </button>
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-4xl w-full max-h-[85vh] mx-6 overflow-y-auto shadow-2xl border border-slate-200 dark:border-slate-700 transition-all scrollbar-thin scrollbar-thumb-slate-400 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
+        <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 w-full max-w-[85vw] max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-700 shadow-2xl animate-scaleIn">
            {emailPreview ? renderPreviewView() : renderInitialView()}
         </div>
       </div>
