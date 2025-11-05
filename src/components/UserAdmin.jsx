@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
 import apiClient from '../api/apiClient';
-import { UserPlus, Eye, EyeOff, KeyRound } from 'lucide-react'; // 🆕 Agregamos el ícono KeyRound
+import { UserPlus, Eye, EyeOff, KeyRound } from 'lucide-react';
 
-const UserAdmin = ({ currentUser, setNotification }) => {
+const UserAdmin = ({ currentUser, setNotification, setConfirmProps, closeConfirm }) => {
   const [usuario, setUsuario] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('user');
+  const [rol, setRol] = useState('user');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const adminToken = currentUser?.adminToken;
+  const adminToken = currentUser?.token;
 
-  // 🧠 Función para generar contraseña segura
   const generateSecurePassword = () => {
     const charset =
       'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_-+=<>?';
@@ -20,11 +19,10 @@ const UserAdmin = ({ currentUser, setNotification }) => {
       newPass += charset.charAt(Math.floor(Math.random() * charset.length));
     }
     setPassword(newPass);
-    setShowPassword(true); // mostrarla automáticamente
+    setShowPassword(true);
   };
 
-  const handleCreateUser = async (e) => {
-    e.preventDefault();
+  const _executeCreateUser = async () => {
     setIsLoading(true);
 
     if (!adminToken) {
@@ -38,8 +36,7 @@ const UserAdmin = ({ currentUser, setNotification }) => {
     }
 
     try {
-      const response = await apiClient.createUser(usuario, password, role, adminToken);
-
+      const response = await apiClient.createUser(usuario, password, rol, adminToken);
       if (response.data && response.data.status === 'success') {
         setNotification({
           type: 'success',
@@ -48,7 +45,7 @@ const UserAdmin = ({ currentUser, setNotification }) => {
         });
         setUsuario('');
         setPassword('');
-        setRole('user');
+        setRol('user');
       } else {
         throw new Error(response.data.message || 'Respuesta inesperada del servidor');
       }
@@ -60,130 +57,146 @@ const UserAdmin = ({ currentUser, setNotification }) => {
       } else if (err.code === 'ERR_NETWORK') {
         message = 'Error de red. No se pudo conectar al servidor.';
       }
-      setNotification({ type: 'error', title: 'Error al Crear Usuario', message });
+      setNotification({
+        type: 'error',
+        title: 'Error al Crear Usuario',
+        message,
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleCreateUser = (e) => {
+    e.preventDefault();
+    setConfirmProps({
+      show: true,
+      title: 'Confirmar Creación',
+      message: `¿Estás seguro de que quieres crear el usuario "${usuario}" con el rol "${rol}"?`,
+      confirmText: 'Sí, crear usuario',
+      cancelText: 'Cancelar',
+      type: 'info',
+      onConfirm: () => {
+        _executeCreateUser();
+        closeConfirm();
+      },
+    });
+  };
+
   return (
-    <div className="w-full max-w-xl mx-auto">
-      <form
-        onSubmit={handleCreateUser}
-        autoComplete="off"
-        className="bg-white dark:bg-slate-900 shadow-2xl rounded-2xl border border-slate-200 dark:border-slate-700 p-8 transition-all duration-300"
-      >
-        {/* Encabezado */}
+    <div className="flex justify-center items-center min-h-[80vh]">
+      <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-8">
         <div className="flex flex-col items-center mb-8">
           <div className="p-3 bg-blue-600 rounded-full text-white shadow-md mb-4">
             <UserPlus size={26} />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white text-center">
             Crear Nuevo Usuario
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Añade credenciales seguras para nuevos usuarios.
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 text-center">
+            Añade credenciales seguras para nuevos usuarios del sistema.
           </p>
         </div>
 
-        {/* Campo Usuario */}
-        <div className="mb-5">
-          <label
-            htmlFor="new-usuario"
-            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"
-          >
-            Nuevo Usuario (ID)
-          </label>
-          <input
-            id="new-usuario"
-            name="nuevoUsuario"
-            type="text"
-            required
-            autoComplete="new-username"
-            value={usuario}
-            onChange={(e) => setUsuario(e.target.value)}
-            placeholder="ej. juan.perez"
-            className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-slate-400 dark:placeholder-slate-500"
-          />
-        </div>
-
-        {/* Campo Contraseña con botón de generar */}
-        <div className="mb-5">
-          <label
-            htmlFor="new-password"
-            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"
-          >
-            Nueva Contraseña
-          </label>
-
-          <div className="relative flex items-center">
+        {/* 🔒 Autocompletado desactivado */}
+        <form
+          onSubmit={handleCreateUser}
+          autoComplete="off"
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck="false"
+          className="space-y-6"
+        >
+          {/* Usuario */}
+          <div>
+            <label
+              htmlFor="new-usuario"
+              className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
+            >
+              Nombre de Usuario
+            </label>
             <input
-              id="new-password"
-              name="nuevaPassword"
-              type={showPassword ? 'text' : 'password'}
+              id="new-usuario"
+              name="new-usuario"
+              type="text"
               required
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-slate-400 dark:placeholder-slate-500 pr-20"
+              value={usuario}
+              onChange={(e) => setUsuario(e.target.value)}
+              placeholder="ej. juan.perez"
+              autoComplete="off"
+              className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-slate-400 dark:placeholder-slate-500"
             />
-
-            {/* Toggle de visibilidad */}
-            <button
-              type="button"
-              className="absolute inset-y-0 right-10 flex items-center text-slate-400 hover:text-blue-500 transition-colors"
-              onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-
-            {/* Botón generar */}
-            <button
-              type="button"
-              onClick={generateSecurePassword}
-              title="Generar contraseña segura"
-              className="absolute inset-y-0 right-0 px-3 flex items-center justify-center text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-            >
-              <KeyRound size={18} />
-            </button>
           </div>
 
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            <span className="font-medium">Tip:</span> puedes generar una contraseña aleatoria segura.
-          </p>
-        </div>
+          {/* Contraseña */}
+          <div>
+            <label
+              htmlFor="new-password"
+              className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
+            >
+              Contraseña
+            </label>
+            <div className="relative">
+              <input
+                id="new-password"
+                name="new-password"
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••••"
+                autoComplete="new-password"
+                className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-20"
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-10 flex items-center text-slate-400 hover:text-blue-500 transition-colors"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+              <button
+                type="button"
+                onClick={generateSecurePassword}
+                title="Generar contraseña segura"
+                className="absolute inset-y-0 right-0 px-3 flex items-center justify-center text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+              >
+                <KeyRound size={18} />
+              </button>
+            </div>
+          </div>
 
-        {/* Campo Rol */}
-        <div className="mb-7">
-          <label
-            htmlFor="new-role"
-            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2"
-          >
-            Rol del Usuario
-          </label>
-          <select
-            id="new-role"
-            name="nuevoRol"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="user">Usuario (user)</option>
-            <option value="admin">Administrador (admin)</option>
-          </select>
-        </div>
+          {/* Rol */}
+          <div>
+            <label
+              htmlFor="new-role"
+              className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2"
+            >
+              Rol del Usuario
+            </label>
+            <select
+              id="new-role"
+              name="new-role"
+              value={rol}
+              onChange={(e) => setRol(e.target.value)}
+              autoComplete="off"
+              className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="user">Usuario (user)</option>
+              <option value="admin">Administrador (admin)</option>
+            </select>
+          </div>
 
-        {/* Botón de Envío */}
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:ring-4 focus:ring-blue-400/30 focus:outline-none transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {isLoading ? 'Creando...' : 'Crear Usuario'}
-        </button>
-      </form>
+          {/* Botón */}
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg focus:ring-4 focus:ring-blue-400/30 focus:outline-none transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Creando usuario...' : 'Crear Usuario'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

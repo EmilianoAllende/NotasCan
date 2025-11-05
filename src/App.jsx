@@ -472,6 +472,8 @@ const App = () => {
   	 	 	campaignTemplates={campaignTemplates}
   	 	 	onTemplatesChange={handleTemplatesChange}
   	 	 	onSelectTemplateForSend={(id) => setSelectedCampaignId(id)}
+    setConfirmProps={setConfirmProps}
+            closeConfirm={closeConfirm}
  	 	  />
   	 	);
       // --- ¡NUEVO! Vista de Admin ---
