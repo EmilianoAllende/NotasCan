@@ -102,7 +102,10 @@ const OrganizationList = ({
   currentPage,
   setCurrentPage,
   onRefresh,
-  startCallCenterMode,
+  startCallCenterMode,  // --- NUEVAS PROPS ---
+  campaignTemplates,
+  selectedCampaignId,
+  setSelectedCampaignId
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrg, setSelectedOrg] = useState(null);
@@ -127,7 +130,8 @@ const OrganizationList = ({
     setFilterIsla('todos');
     setFilterSuscripcion('todos');
     setCurrentPage(1);
-    setSelectedOrgIds(new Set()); // --- NUEVO ---
+    setSelectedOrgIds(new Set());
+    setSelectedCampaignId(null); // <-- LIMPIAR CAMPAÑA
   };
 
   const isClean =
@@ -135,7 +139,8 @@ const OrganizationList = ({
     filterStatus === 'todos' &&
     filterType === 'todos' &&
     filterIsla === 'todos' &&
-    filterSuscripcion === 'todos';
+    filterSuscripcion === 'todos' &&
+    selectedCampaignId === null; // <-- AÑADIR A LA CONDICIÓN
 
   // Lista de islas para el selector del filtro
   const islasCanarias = [
@@ -303,12 +308,28 @@ const OrganizationList = ({
               )}
             </div>
 
+            {/* --- INICIO DEL NUEVO SELECTOR DE CAMPAÑA --- */}
+            <div className="ml-4 w-64">
+              <select
+                value={selectedCampaignId || ''}
+                onChange={(e) => setSelectedCampaignId(e.target.value || null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-pink-500 dark:bg-pink-900 dark:border-gray-600 text-gray-200"
+              >
+                <option value="">Seleccionar Campaña</option>
+                {campaignTemplates.map((campaign) => (
+                  <option key={campaign.id} value={campaign.id}>
+                    {campaign.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {/* --- FIN DEL NUEVO SELECTOR DE CAMPAÑA --- */}
+
             <div className="ml-4 flex space-x-2">
               {startCallCenterMode && ( 
                 <button
                   onClick={() => startCallCenterMode(getSelectedOrgs())}
-                  // --- LÓGICA DE DESHABILITADO ACTUALIZADA ---
-                  disabled={isCallCenterDisabled}
+                  disabled={isCallCenterDisabled || !selectedCampaignId} // <-- DESHABILITADO SI NO HAY CAMPAÑA
                   className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   title={
                     isCallCenterDisabled 
@@ -543,4 +564,3 @@ const OrganizationList = ({
 };
 
 export default OrganizationList;
-

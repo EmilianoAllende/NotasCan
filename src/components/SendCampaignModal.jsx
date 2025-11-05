@@ -55,6 +55,8 @@ const SendCampaignModal = ({
   isTaskLoading,
   setConfirmProps,
   closeConfirm,
+  isCallCenterMode, // <-- NUEVA PROP
+  onExecuteCallCenterStart // <-- NUEVA PROP
 }) => {
   const [showHtmlPreview, setShowHtmlPreview] = useState(false);
   const [editableContent, setEditableContent] = useState({ subject: '', body: '' });
@@ -63,6 +65,16 @@ const SendCampaignModal = ({
     if (emailPreview) setEditableContent(emailPreview);
     else setEditableContent({ subject: '', body: '' });
   }, [emailPreview]);
+
+  // --- NUEVO EFECTO: AUTO-GENERAR BORRADOR ---
+  React.useEffect(() => {
+    // Si el modal se abre, no estamos en modo Call Center,
+    // ya hay una campaña seleccionada Y aún no hay borrador:
+    if (show && !isCallCenterMode && selectedCampaignId && !emailPreview && !isPreviewLoading) {
+      onGeneratePreview(); // Generar el borrador automáticamente
+    }
+  }, [show, isCallCenterMode, selectedCampaignId, emailPreview, onGeneratePreview, isPreviewLoading]);
+  // ------------------------------------------
 
   if (!show || !selectedOrg) return null;
 
@@ -163,60 +175,85 @@ const SendCampaignModal = ({
 
   const renderInitialView = () => (
     <>
-      <h2 className="text-3xl font-semibold mb-6 text-slate-900 dark:text-white">
-        Generar campaña para{' '}
-        <span className="text-blue-600 dark:text-blue-400">{selectedOrg.nombre}</span>
-      </h2>
-
-      <div className="grid sm:grid-cols-2 gap-6 max-h-[65vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-400 dark:scrollbar-thumb-slate-700">
-        {campaignTemplates.map((tpl) => (
-          <div
-            key={tpl.id}
-            onClick={() => setSelectedCampaignId(tpl.id)}
-            className={`group p-5 rounded-xl border shadow-sm transition-all cursor-pointer hover:shadow-md ${
-              selectedCampaignId === tpl.id
-                ? 'bg-blue-50 dark:bg-blue-900/40 border-blue-500 ring-2 ring-blue-500/50'
-                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
-            }`}
-          >
-            <div className="flex justify-between items-center mb-2">
-              <h4 className="font-semibold text-slate-800 dark:text-slate-100 text-lg">
-                {tpl.title}
-              </h4>
-              <span
-                className={`text-xs font-semibold px-3 py-1 rounded-md uppercase ${
-                  tpl.mode === 'raw'
-                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-700 dark:text-purple-100'
-                    : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-700 dark:text-emerald-100'
-                }`}
-              >
-                {tpl.mode === 'raw' ? 'RAW' : 'Builder'}
-              </span>
+        {/* Si el modo Call Center está activo O 
+          ya hay una campaña seleccionada (y el borrador está cargando), 
+          no mostramos la selección.
+        */}
+        {(isCallCenterMode || (selectedCampaignId && !emailPreview)) && (
+            <div className="text-center p-8">
+              <h2 className="text-xl font-semibold mb-3 dark:text-white">
+                Cargando...
+              </h2>
+              <p className="text-slate-600 dark:text-slate-300">
+                Generando borrador para la campaña seleccionada.
+              </p>
             </div>
-            <p className="text-slate-600 dark:text-slate-300">{tpl.description}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex justify-end gap-3 mt-8">
-        <button
-          onClick={handleCancelClick}
-          className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={handleGenerateClick}
-          disabled={!selectedCampaignId || isPreviewLoading}
-          className={`px-5 py-2 rounded-lg font-medium shadow-sm ${
-            !selectedCampaignId || isPreviewLoading
-              ? 'bg-blue-400 cursor-not-allowed opacity-70 text-white'
-              : 'bg-blue-600 hover:bg-blue-700 text-white'
-          }`}
-        >
-          {isPreviewLoading ? 'Generando...' : 'Generar Borrador'}
-        </button>
-      </div>
+        )}
+  
+        {/* Solo mostrar selección si NO es Call Center Y NO hay campaña seleccionada */}
+        {!isCallCenterMode && !selectedCampaignId && (
+          <>
+            <h2 className="text-2xl font-semibold mb-5 text-center text-slate-900 dark:text-white">
+              Selecciona una plantilla para{" "}
+              <span className="text-blue-600 dark:text-blue-400">
+                {selectedOrg.nombre}
+              </span>
+            </h2>
+            <div className="grid sm:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-2 pl-1 scrollbar-thin scrollbar-thumb-slate-400 dark:scrollbar-thumb-slate-700 scrollbar-track-transparent">
+              {campaignTemplates.map((tpl) => (
+                <div
+                  key={tpl.id}
+                  onClick={() => setSelectedCampaignId(tpl.id)}
+                  className={`p-4 rounded-lg cursor-pointer transition-all border ${
+                    selectedCampaignId === tpl.id
+                      ? "bg-blue-50 dark:bg-blue-900/30 border-blue-500 ring-2 ring-blue-500/50 shadow-md"
+                      : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-semibold text-slate-800 dark:text-slate-100 text-base">
+                      {tpl.title}
+                    </h4>
+                    <span
+                      className={`text-xs font-semibold px-2 py-1 rounded ${
+                        tpl.mode === "raw"
+                          ? "bg-purple-100 text-purple-700 dark:bg-purple-700 dark:text-purple-100"
+                          : "bg-emerald-100 text-emerald-700 dark:bg-emerald-700 dark:text-emerald-100"
+                      }`}
+                    >
+                      {tpl.mode === "raw" ? "RAW" : "Builder"}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    {tpl.description}
+                  </p>
+                </div>
+              ))}
+      
+              {campaignTemplates.length === 0 && (
+                <p className="col-span-2 text-sm text-slate-500 italic text-center">
+                  No hay plantillas disponibles.
+                </p>
+              )}
+            </div>
+      
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={handleCancelClick}
+                className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleGenerateClick}
+                disabled={!selectedCampaignId || isPreviewLoading}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+              >
+                {isPreviewLoading ? 'Generando...' : 'Generar Borrador'}
+              </button>
+            </div>
+          </>
+        )}
     </>
   );
 
@@ -287,7 +324,7 @@ const SendCampaignModal = ({
     <>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
         <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 w-full max-w-[85vw] max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-700 shadow-2xl animate-scaleIn">
-          {emailPreview ? renderPreviewView() : renderInitialView()}
+           {emailPreview ? renderPreviewView() : renderInitialView()}
         </div>
       </div>
 
