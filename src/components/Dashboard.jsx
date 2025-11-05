@@ -15,7 +15,7 @@ const Dashboard = ({ metricas, estadosData, islasData, sectoresData }) => {
         <MetricCard icon={Brain} title="Precisión IA" value={`${metricas.precision_ia}%`} color="sky" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-gray-900 dark:text-gray-100">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 text-gray-900 dark:text-gray-100">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h3 className="text-lg font-bold mb-4">Estado de enriquecimiento</h3>
           <ResponsiveContainer width="100%" height={200}>

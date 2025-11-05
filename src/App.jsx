@@ -17,7 +17,7 @@ import { seedIfEmpty, saveTemplates } from './utils/campaignsStore';
 // --- NUEVOS COMPONENTES MODULARES ---
 import Sidebar from './components/Sidebar'; 
 import ConfirmModal from './components/ConfirmModal';
-import LoginScreen from './components/LoginScreen'; 
+import LoginScreen from './components/LoginScreen'; // --- ¡NUEVO! Componente de Login ---
 import UserAdmin from './components/UserAdmin'; // --- ¡NUEVO! Vista de Admin ---
 // -------------------------------------
 
@@ -40,6 +40,10 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = React.useState(() => !!currentUser);
   // ------------------------------------
 
+  // --- ¡NUEVO! Estado para la barra lateral ---
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
+  // ----------------------------------------
+
   const [activeView, setActiveView] = React.useState('listado');
   const [selectedOrg, setSelectedOrg] = React.useState(null);
   const [filterStatus, setFilterStatus] = React.useState('todos');
@@ -48,7 +52,7 @@ const App = () => {
   const [filterSuscripcion, setFilterSuscripcion] = React.useState('todos');
   const [lastRefreshTs, setLastRefreshTs] = React.useState(() => {
     try {
-      const cachedData = localStorage.getItem('organizaciones_cache');
+       const cachedData = localStorage.getItem('organizaciones_cache');
   	  if (!cachedData) return null;
   	  const { timestamp } = JSON.parse(cachedData);
   	  const isExpired = new Date().getTime() - timestamp > CACHE_EXPIRATION_MS;
@@ -87,6 +91,7 @@ const App = () => {
     title: '',
     message: '',
     onConfirm: () => {},
+    type: 'info', // Añadimos 'type' al estado inicial
   });
   // ---------------------------------------------------
 
@@ -117,7 +122,7 @@ const App = () => {
 
   // --- ¡NUEVO! Helper para cerrar el modal de confirmación ---
   const closeConfirm = () => {
-    setConfirmProps({ show: false, title: '', message: '', onConfirm: () => {} });
+    setConfirmProps({ show: false, title: '', message: '', onConfirm: () => {}, type: 'info' });
   };
 
   // --- ¡NUEVO! Función de Logout ---
@@ -125,15 +130,16 @@ const App = () => {
     localStorage.removeItem('currentUser'); // Borra el objeto de usuario
     setCurrentUser(null);
     setIsAuthenticated(false); // Cambia el estado para mostrar el Login
+    setActiveView('listado'); // --- ¡CAMBIO AQUÍ! Resetea la vista
   };
   
   // --- ¡NUEVO! Función de Login ---
   const handleLoginSuccess = (userData) => {
     // userData es el objeto { status: 'success', user: { usuario: 'alex', rol: 'admin', token: '...' } }
-    // No necesitamos el 'hardcode' porque el token ahora viene de la API
     localStorage.setItem('currentUser', JSON.stringify(userData.user)); // Guarda el objeto de usuario
     setCurrentUser(userData.user);
     setIsAuthenticated(true);
+    setActiveView('listado'); // --- ¡CAMBIO AQUÍ! Resetea la vista
   };
 
   const handleTemplatesChange = (next) => {
@@ -234,7 +240,7 @@ const App = () => {
   	  } else {
   	 	console.warn("Respuesta inesperada del webhook:", result);
   	 	setNotification({ type: 'error', title: 'Respuesta Inesperada', message: `Estado recibido: "${result?.status || 'undefined'}". ${result?.message || 'El servidor devolvió un estado desconocido.'}` });
- 	  }
+  	  }
   	  
   	} catch (err) {
   	  console.error("Error al enviar la campaña:", err);
@@ -265,6 +271,7 @@ const App = () => {
       title: 'Confirmar Envío de Correo',
       message: `¿Estás seguro de que quieres enviar este correo a ${selectedOrg?.nombre}?`,
       confirmText: 'Enviar Correo',
+      type: 'info', // Tipo 'info' para botón azul
       onConfirm: () => {
         _executeConfirmAndSend(finalContent);
         closeConfirm();
@@ -339,6 +346,7 @@ const App = () => {
       title: 'Iniciar Modo Call Center',
       message: `¿Estás seguro de que quieres generar una cola con ${selectedOrgs.length} organizaciones?`,
       confirmText: 'Generar Cola',
+      type: 'info', // Tipo 'info' para botón azul
       onConfirm: () => {
         _executeStartCallCenterMode(selectedOrgs);
         closeConfirm();
@@ -359,7 +367,7 @@ const App = () => {
   	 	  setLastRefreshTs(cache.timestamp);
   	 	} catch (err) {
   	 	  setError(err);
-  	 	} finally {
+ 	 	} finally {
   	 	  setIsLoading(false);
   	 	}
   	  };
@@ -414,7 +422,7 @@ const App = () => {
   	}
   };
   
-  const renderView = () => {
+ const renderView = () => {
   	switch (activeView) {
   	  case 'dashboard':
   	 	return <Dashboard metricas={metricas} estadosData={estadosData} islasData={islasData} sectoresData={sectoresData} />;
@@ -431,7 +439,7 @@ const App = () => {
   	 	 	setFilterType={setFilterType}
   	 	 	filterIsla={filterIsla}
   	 	 	setFilterIsla={setFilterIsla}
- 	 	 	filterSuscripcion={filterSuscripcion}
+  	 	 	filterSuscripcion={filterSuscripcion}
   	 	 	setFilterSuscripcion={setFilterSuscripcion}
   	 	 	lastRefreshTs={lastRefreshTs}
   	 	 	currentPage={currentPage}
@@ -450,6 +458,10 @@ const App = () => {
   	 	 	onSave={saveContact}
   	 	 	onCancel={() => setActiveView('listado')}
   	 	 	isSaving={isSaving}
+            // --- ¡NUEVO! Pasamos los controladores del modal de confirmación ---
+            setConfirmProps={setConfirmProps}
+            closeConfirm={closeConfirm}
+            // -----------------------------------------------------------------
   	 	  />
   	 	);
   	  case 'campanas':
@@ -460,7 +472,7 @@ const App = () => {
   	 	 	campaignTemplates={campaignTemplates}
   	 	 	onTemplatesChange={handleTemplatesChange}
   	 	 	onSelectTemplateForSend={(id) => setSelectedCampaignId(id)}
-  	 	  />
+ 	 	  />
   	 	);
       // --- ¡NUEVO! Vista de Admin ---
       case 'admin':
@@ -475,7 +487,7 @@ const App = () => {
   	 	  <div className="flex items-center justify-center h-full">
   	 	 	<div className="p-8 text-center text-slate-500 dark:text-slate-400">
  	 	 	  <p>Por favor, selecciona una vista.</p>
-  	 	 	</div>
+	 	 	</div>
   	 	  </div>
   	 	);
   	}
@@ -502,24 +514,25 @@ const App = () => {
   	 	 	selectedOrg={selectedOrg}
             onLogout={handleLogout} // <-- Pasa la nueva función de logout
             currentUser={currentUser} // <-- Pasa el usuario para mostrar/ocultar "Admin"
+            // --- ¡NUEVO! Props para colapsar ---
+            isCollapsed={isSidebarCollapsed}
+            onToggle={() => setIsSidebarCollapsed(prev => !prev)}
   	 	  />
 
   	 	  {/* --- Contenido Principal --- */}
+          {/* --- ¡CAMBIOS DE ESTILO! Padding movido aquí y scrollbar --- */}
   	 	  <main className="flex-1 flex flex-col overflow-y-auto">
-  	 	 	{/* Contenedor del contenido con padding */}
-  	 	 	<div className="p-4 sm:p-6 lg:p-8 flex-1">
-  	 	 	  {isLoading && <p className="text-center text-slate-500 dark:text-slate-400">Cargando organizaciones...</p>}
-  	 	 	  {error && <p className="text-center text-red-500">Error al cargar los datos: {error.message}</p>}
- 	 	  {!isLoading && !error && <div className="h-auto">{renderView()}</div>}
-  	 	 	</div>
+  	 	 	{isLoading && <p className="text-center text-slate-500 dark:text-slate-400 p-8">Cargando organizaciones...</p>}
+  	 	 	{error && <p className="text-center text-red-500 p-8">Error al cargar los datos: {error.message}</p>}
+  	 	 	{!isLoading && !error && <div className="h-auto">{renderView()}</div>}
   	 	  </main>
 
   	 	  <SendCampaignModal 
   	 	 	show={showCampaignModal}
   	 	 	onClose={() => {
-  	 	 	  setShowCampaignModal(false);
-  	 	 	  setEmailPreview(null); // Limpiar al cerrar
- 	 	 	}}
+ 	 	  setShowCampaignModal(false);
+ 	 	 	  setEmailPreview(null); // Limpiar al cerrar
+  	 	 	}}
   	 	 	selectedOrg={selectedOrg}
   	 	 	campaignTemplates={campaignTemplates}
   	 	 	onGeneratePreview={handleGeneratePreview}
@@ -544,9 +557,10 @@ const App = () => {
             onConfirm={confirmProps.onConfirm}
             onCancel={closeConfirm}
             confirmText={confirmProps.confirmText}
+            type={confirmProps.type} // <-- ¡LA CORRECCIÓN ESTÁ AQUÍ!
           />
 
-  	 	  <AIindicator metricas={metricas} procesando={organizaciones.length} />
+ 	 	  <AIindicator metricas={metricas} procesando={organizaciones.length} />
   	 	  
   	 	  <Notification 
   	 	 	notification={notification}
@@ -554,7 +568,7 @@ const App = () => {
   	 	  />
         </>
       )}
- 	</div>
+  	</div>
   );
   // --- FIN DE NUEVO DISEÑO ---
 };

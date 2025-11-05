@@ -32,8 +32,8 @@ const ConfirmModal = ({
   const Icon = isDanger ? AlertTriangle : CheckCircle;
   const iconColor = isDanger ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400';
   const confirmButtonColor = isDanger 
-    ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' 
-    : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500';
+    ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500' // --- ESTILO ROJO (PELIGRO) ---
+    : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'; // --- ESTILO AZUL (NORMAL) ---
 
   return (
     // Overlay (fondo oscuro)
@@ -92,3 +92,4 @@ const ConfirmModal = ({
 };
 
 export default ConfirmModal;
+
