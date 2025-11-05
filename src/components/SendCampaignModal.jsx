@@ -174,7 +174,7 @@ const SendCampaignModal = ({
   };
 
   const renderInitialView = () => (
-      <>
+    <>
         {/* Si el modo Call Center está activo O 
           ya hay una campaña seleccionada (y el borrador está cargando), 
           no mostramos la selección.
@@ -254,7 +254,7 @@ const SendCampaignModal = ({
             </div>
           </>
         )}
-      </>
+    </>
   );
 
   const renderPreviewView = () => (

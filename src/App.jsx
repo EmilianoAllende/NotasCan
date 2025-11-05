@@ -105,7 +105,7 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
   const [isTaskLoading, setIsTaskLoading] = React.useState(false);
 
   // ESTADO NUEVO: Guarda temporalmente las organizaciones para la cola
-  const [orgsToQueue, setOrgsToQueue] = React.useState(null); 
+  const [orgsToQueue, setOrgsToQueue] = React.useState(null);
 
   // Plantilla por defecto para prompts (modo RAW), basada en el ejemplo provisto
   const DEFAULT_PROMPT = `Tu tarea es... (código de prompt omitido por brevedad)`;
@@ -168,12 +168,11 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
 
 // --- FUNCIÓN 1: Generar el borrador ---
   const handleGeneratePreview = React.useCallback(async (orgToPreview, campaignIdToPreview) => {
-    // Usar los argumentos si se pasan, o el estado si no
     const organization = orgToPreview || selectedOrg;
     const campaignId = campaignIdToPreview || selectedCampaignId;
 
   	if (!organization || !campaignId) {
-  	  setNotification({ type: 'warning', title: 'Selección Requerida', message: 'Por favor, selecciona un tipo de campaña antes de continuar.' });
+  	  setNotification({ type: 'warning', title: 'Selección Requerida', message: 'Por favor, selecciona una organización y una campaña.' });
   	  return;
   	}
   	setIsPreviewLoading(true);
@@ -222,7 +221,7 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
   	  let result = response.data;
   	  
   	  if (result === "" || result === null || result === undefined) {
-  	 	console.error("n8n devolvió respuesta vacía.");
+  	 	console.error("n8n devolvió respuesta vacía. El workflow no ejecutó ningún nodo 'Respond to Webhook'");
   	 	setNotification({ type: 'warning', title: 'Envío Cancelado', message: 'El envío fue cancelado (respuesta vacía).' });
   	 	return;
   	  }
@@ -238,7 +237,7 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
   	  if (result && result.status === 'success') {
   	 	setNotification({ type: 'success', title: 'Campaña Enviada', message: `La campaña para ${selectedOrg.nombre} se ha enviado correctamente.` });
   	 	if (isCallCenterMode) {
-  	 	  fetchNextTask();
+  	 	  fetchNextTask(currentQueueId, selectedCampaignId);
   	 	} else {
   	 	  handleRefresh();
   	 	  setShowCampaignModal(false);
@@ -294,10 +293,10 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
   const fetchNextTask = async (queueId, campaignId) => {
   	setIsTaskLoading(true);
     setShowCampaignModal(true); 
-    setEmailPreview(null); 
+    setEmailPreview(null);
     const CURRENT_USER_ID = 'user_emiliano';
   	try {
-  	  if (!currentQueueId) {
+  	  if (!queueId) {
   	 	console.error("Intento de fetch sin un queueId activo.");
   	 	setNotification({ type: 'error', title: 'Error de Cola', message: 'No hay una cola activa.' });
   	 	return;
@@ -339,25 +338,23 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
   };
 
   // --- Lógica REAL de inicio (Nombre cambiado) ---
-  const _executeStartCallCenterMode = async (selectedOrgs) => { 
+  const _executeStartCallCenterMode = async (selectedOrgs) => {
   	setIsTaskLoading(true);
   	try {
-  	  const orgIds = selectedOrgs.map(org => org.id); 
+  	  const orgIds = selectedOrgs.map(org => org.id);
   	  const response = await apiClient.createDynamicQueue(orgIds);
   	  const { queueId } = response.data;
   	  if (queueId) {
   	 	setCurrentQueueId(queueId);
   	 	setIsCallCenterMode(true);
         // selectedCampaignId ya está en el estado, no necesitamos pasarlo como parámetro
-  	 	
         // 3. Buscar la primera tarea (ahora pasamos el campaignId)
   	 	await fetchNextTask(queueId, selectedCampaignId); 
   	  } else {
   	 	throw new Error("La API no devolvió un queueId.");
   	  }
   	} catch (err) {
-  	  console.error("Error al iniciar el modo call center:", err);
-  	  setNotification({ type: 'error', title: 'Error al Crear Cola', message: 'No se pudo generar la cola de envíos.' });
+  	  console.error("Error al iniciar el modo call center:", err); setNotification({ type: 'error', title: 'Error al Crear Cola', message: 'No se pudo generar la cola de envíos.' });
   	} finally {
   	  setIsTaskLoading(false);
   	}
@@ -395,7 +392,7 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
   // ------------------------------------------------------------------------------
 
   React.useEffect(() => {
-  	if (organizaciones.length === 0 && isAuthenticated) { // <-- Solo carga si está autenticado
+  	if (organizaciones.length === 0 && isAuthenticated) {
   	  setIsLoading(true);
   	  const fetchOrganizaciones = async () => {
   	 	try {
@@ -412,7 +409,7 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
   	  };
   	  fetchOrganizaciones();
   	}
-  }, [organizaciones.length, isAuthenticated]); // <-- Añadido isAuthenticated como dependencia
+  }, [organizaciones.length, isAuthenticated]);
 
   const handleRefresh = () => {
   	localStorage.removeItem('organizaciones_cache');
@@ -493,18 +490,16 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
   	 	 	setCurrentPage={setCurrentPage}
   	 	 	onRefresh={handleRefresh}
   	 	 	startCallCenterMode={startCallCenterMode} 
-            // --- NUEVAS PROPS ---
             campaignTemplates={campaignTemplates}
             selectedCampaignId={selectedCampaignId}
             setSelectedCampaignId={setSelectedCampaignId}
  	 	  />
   	 	);
   	  case 'detalle':
-  	 	return <OrganizationDetail 
+  	 	return <OrganizationDetail
             selectedOrg={selectedOrg} 
             openEditModal={openEditor} 
             setShowCampaignModal={setShowCampaignModal} 
-            // --- NUEVAS PROPS ---
             selectedCampaignId={selectedCampaignId}
             onSelectCampaignRequired={() => {
                 setNotification({
@@ -522,10 +517,8 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
   	 	 	onSave={saveContact}
   	 	 	onCancel={() => setActiveView('listado')}
   	 	 	isSaving={isSaving}
-            // --- ¡NUEVO! Pasamos los controladores del modal de confirmación ---
             setConfirmProps={setConfirmProps}
             closeConfirm={closeConfirm}
-            // -----------------------------------------------------------------
   	 	  />
   	 	);
   	  case 'campanas':
@@ -608,11 +601,9 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
   	 	 	setSelectedCampaignId={setSelectedCampaignId} // <-- Pasar el setter
   	 	 	isTaskLoading={isTaskLoading}
         isCallCenterMode={isCallCenterMode} // <-- Pasar el estado
-        onExecuteCallCenterStart={_executeStartCallCenterMode} // <-- Pasar la función
-            // --- ¡NUEVO! Pasamos los controladores del modal de confirmación ---
-            setConfirmProps={setConfirmProps}
-            closeConfirm={closeConfirm}
-            // -----------------------------------------------------------------
+        onExecuteCallCenterStart={_executeStartCallCenterMode} // <-- Pasar la función (aunque no se use directamente aquí)
+        setConfirmProps={setConfirmProps}
+        closeConfirm={closeConfirm}
   	 	  />
   	 	  
           {/* --- ¡NUEVO! Renderiza el modal de confirmación --- */}
@@ -623,7 +614,7 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
             onConfirm={confirmProps.onConfirm}
             onCancel={closeConfirm}
             confirmText={confirmProps.confirmText}
-            type={confirmProps.type} // <-- ¡LA CORRECCIÓN ESTÁ AQUÍ!
+            type={confirmProps.type}
           />
 
  	 	  <AIindicator metricas={metricas} procesando={organizaciones.length} />
