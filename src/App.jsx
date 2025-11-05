@@ -25,6 +25,9 @@ const CACHE_EXPIRATION_MS = 3 * 60 * 60 * 1000;
 
 //! RECORDAR MODULARIZAR CORRECTAMENTE, PRINCIPALMENTE LAS NUEVAS FUNCIONES.
 
+// Plantilla por defecto para prompts (modo RAW), basada en el ejemplo provisto
+const DEFAULT_PROMPT = `Tu tarea es... (código de prompt omitido por brevedad)`;
+
 const App = () => {
   // --- ¡ESTADO DE AUTENTICACIÓN MEJORADO! ---
   // Ahora guarda el objeto de usuario completo
@@ -104,12 +107,6 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
   const [currentTask, setCurrentTask] = React.useState(null); // Contendrá { taskInfo, organization, email }
   const [isTaskLoading, setIsTaskLoading] = React.useState(false);
 
-  // ESTADO NUEVO: Guarda temporalmente las organizaciones para la cola
-  const [orgsToQueue, setOrgsToQueue] = React.useState(null);
-
-  // Plantilla por defecto para prompts (modo RAW), basada en el ejemplo provisto
-  const DEFAULT_PROMPT = `Tu tarea es... (código de prompt omitido por brevedad)`;
-
   // Inicialización de plantillas de campaña (templates) en localStorage a partir de tiposCampana
   const [campaignTemplates, setCampaignTemplates] = React.useState(() => {
   	const defaults = Object.entries(tiposCampana).map(([id, t]) => ({
@@ -153,18 +150,18 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
   	saveTemplates(next);
   };
 
-  const buildPromptFromTemplate = (template, org) => {
-  	if (!template) return DEFAULT_PROMPT;
-  	if (template.mode === 'raw' && template.rawPrompt) return template.rawPrompt;
-  	const persona = org?.nombres_org || org?.nombre || '[Contacto]';
-  	const industria = org?.sector || org?.industria || '[Industria]';
-  	const orgName = org?.organizacion || org?.nombre || '[Organización]';
-  	const header = `Genera un correo de tipo "${template?.builder?.campaignType || template.id}" para la organización "${orgName}".`;
-  	const meta = `Datos del destinatario: contacto: ${persona}; industria: ${industria}.`;
-  	const baseInstr = `El tono debe ser profesional pero cercano. El asunto corto y atractivo. El cuerpo conciso.`;
-  	const extra = template?.builder?.instructions ? `Instrucciones extra: ${template.builder.instructions}` : '';
-  	return [header, `Título de campaña: ${template.title}`, `Descripción: ${template.description}`, meta, baseInstr, extra].filter(Boolean).join('\n');
-  };
+  const buildPromptFromTemplate = React.useCallback((template, org) => {
+		if (!template) return DEFAULT_PROMPT;
+		if (template.mode === 'raw' && template.rawPrompt) return template.rawPrompt;
+		const persona = org?.nombres_org || org?.nombre || '[Contacto]';
+		const industria = org?.sector || org?.industria || '[Industria]';
+		const orgName = org?.organizacion || org?.nombre || '[Organización]';
+		const header = `Genera un correo de tipo "${template?.builder?.campaignType || template.id}" para la organización "${orgName}".`;
+		const meta = `Datos del destinatario: contacto: ${persona}; industria: ${industria}.`;
+		const baseInstr = `El tono debe ser profesional pero cercano. El asunto corto y atractivo. El cuerpo conciso.`;
+		const extra = template?.builder?.instructions ? `Instrucciones extra: ${template.builder.instructions}` : '';
+		return [header, `Título de campaña: ${template.title}`, `Descripción: ${template.description}`, meta, baseInstr, extra].filter(Boolean).join('\n');
+	}, []);
 
 // --- FUNCIÓN 1: Generar el borrador ---
   const handleGeneratePreview = React.useCallback(async (orgToPreview, campaignIdToPreview) => {
@@ -201,7 +198,7 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
   	} finally {
   	  setIsPreviewLoading(false);
   	}
-  }, [selectedOrg, selectedCampaignId, campaignTemplates]); // Dependencias
+  }, [selectedOrg, selectedCampaignId, campaignTemplates, buildPromptFromTemplate]); // Dependencias
 
 // --- FUNCIÓN 2: Lógica REAL de envío (Nombre cambiado) ---
   const _executeConfirmAndSend = async (finalContent) => {
@@ -440,7 +437,7 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
     if (selectedCampaignId) {
         handleGeneratePreview(org, selectedCampaignId);
     }
-  }, [selectedCampaignId]); // <-- Añadir dependencia
+  }, [selectedCampaignId, handleGeneratePreview]); // <-- Añadir dependencia
   const saveContact = async (updatedOrg) => {
   	setIsSaving(true);
   	setError(null);

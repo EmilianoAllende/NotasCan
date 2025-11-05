@@ -313,7 +313,7 @@ const OrganizationList = ({
               <select
                 value={selectedCampaignId || ''}
                 onChange={(e) => setSelectedCampaignId(e.target.value || null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-pink-500 dark:bg-pink-900 dark:border-gray-600 text-gray-200"
               >
                 <option value="">Seleccionar Campaña</option>
                 {campaignTemplates.map((campaign) => (
