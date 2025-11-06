@@ -425,19 +425,15 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
   	setActiveView('detalle');
   };
 
-  const handleOpenCampaignModal = React.useCallback((org) => {
-  	setSelectedOrg(org);
-  	setEmailPreview(null); 
-  	// No limpiamos el selectedCampaignId global
-  	setCurrentTask(null); 
-  	setIsCallCenterMode(false);
-  	setShowCampaignModal(true);
-
-    // Si ya hay una campaña seleccionada globalmente, generar el borrador
-    if (selectedCampaignId) {
-        handleGeneratePreview(org, selectedCampaignId);
-    }
-  }, [selectedCampaignId, handleGeneratePreview]); // <-- Añadir dependencia
+ const handleOpenCampaignModal = React.useCallback((org) => {
+  	setSelectedOrg(org);
+  	setEmailPreview(null); 
+  	// No limpiamos el selectedCampaignId global
+  	setCurrentTask(null); 
+  	setIsCallCenterMode(false);
+  	setShowCampaignModal(true);
+    // (Lógica de auto-generar eliminada)
+  }, []); // <-- Dependencias limpiadas<-- Dependencias limpiadas
   const saveContact = async (updatedOrg) => {
   	setIsSaving(true);
   	setError(null);
@@ -490,6 +486,10 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
             campaignTemplates={campaignTemplates}
             selectedCampaignId={selectedCampaignId}
             setSelectedCampaignId={setSelectedCampaignId}
+            setConfirmProps={setConfirmProps}
+            closeConfirm={closeConfirm}
+                        setNotification={setNotification}
+
  	 	  />
   	 	);
   	  case 'detalle':
@@ -526,6 +526,8 @@ const [selectedCampaignId, setSelectedCampaignId] = React.useState(null);
   	 	 	campaignTemplates={campaignTemplates}
   	 	 	onTemplatesChange={handleTemplatesChange}
   	 	 	onSelectTemplateForSend={(id) => setSelectedCampaignId(id)}
+    setConfirmProps={setConfirmProps}
+            closeConfirm={closeConfirm}
  	 	  />
   	 	);
       // --- ¡NUEVO! Vista de Admin ---

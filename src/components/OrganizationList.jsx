@@ -9,227 +9,265 @@ import { Search, Eye, Edit, Mail, Zap, RefreshCw, RotateCcw } from 'lucide-react
 // Se añaden para que el archivo se pueda previsualizar sin errores.
 
 const StatusBadge = ({ estado }) => {
-  let text = 'Pendiente';
-  let color = 'bg-gray-100 text-gray-800';
-  if (estado === 1) {
-    text = 'En revisión';
-    color = 'bg-yellow-100 text-yellow-800';
-  } else if (estado === 2) {
-    text = 'Completado';
-    color = 'bg-green-100 text-green-800';
-  }
-  return (
-    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${color}`}>
-      {text}
-    </span>
-  );
+  let text = 'Pendiente';
+  let color = 'bg-gray-100 text-gray-800';
+  if (estado === 1) {
+    text = 'En revisión';
+    color = 'bg-yellow-100 text-yellow-800';
+  } else if (estado === 2) {
+    text = 'Completado';
+    color = 'bg-green-100 text-green-800';
+  }
+  return (
+    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${color}`}>
+      {text}
+    </span>
+  );
 };
 
 const Pagination = ({ currentPage, totalPages, onPageChange }) => {
-  // --- CAMBIO: Limpiar selección al cambiar de página ---
-  const handlePageChange = (newPage) => {
-    if (newPage > 0 && newPage <= totalPages) {
-      onPageChange(newPage);
-    }
-  };
+  // --- CAMBIO: Limpiar selección al cambiar de página ---
+  const handlePageChange = (newPage) => {
+    if (newPage > 0 && newPage <= totalPages) {
+      onPageChange(newPage);
+    }
+  };
 
-  return (
-    <div className="flex items-center space-x-2">
-      <button 
-        onClick={() => handlePageChange(currentPage - 1)} 
-        disabled={currentPage === 1}
-        className="px-3 py-1 border rounded-lg disabled:opacity-50"
-      >
-        Anterior
-      </button>
-      <span className="text-sm">
-        Página {currentPage} de {totalPages}
-      </span>
-      <button 
-        onClick={() => handlePageChange(currentPage + 1)} 
-        disabled={currentPage === totalPages}
-        className="px-3 py-1 border rounded-lg disabled:opacity-50"
-      >
-        Siguiente
-      </button>
-    </div>
-  );
+  return (
+    <div className="flex items-center space-x-2">
+      <button 
+        onClick={() => handlePageChange(currentPage - 1)} 
+        disabled={currentPage === 1}
+        className="px-3 py-1 border rounded-lg disabled:opacity-50"
+      >
+        Anterior
+      </button>
+      <span className="text-sm">
+        Página {currentPage} de {totalPages}
+      </span>
+      <button 
+        onClick={() => handlePageChange(currentPage + 1)} 
+        disabled={currentPage === totalPages}
+        className="px-3 py-1 border rounded-lg disabled:opacity-50"
+      >
+        Siguiente
+      </button>
+    </div>
+  );
 };
 
 const ESTADOS_CLIENTE = {
-  PENDIENTE: 0,
-  EN_REVISION: 1,
-  COMPLETADO: 2,
+  PENDIENTE: 0,
+  EN_REVISION: 1,
+  COMPLETADO: 2,
 };
 
 const getEntityType = (org) => {
-  if (org.tipo === 'publico') return 'Administración Pública';
-  if (org.tipo === 'asociacion') return 'Asociación';
-  return 'Empresa';
+  if (org.tipo === 'publico') return 'Administración Pública';
+  if (org.tipo === 'asociacion') return 'Asociación';
+  return 'Empresa';
 };
 
 const getElapsedString = (timestamp) => {
-  const seconds = Math.floor((new Date().getTime() - timestamp) / 1000);
-  let interval = seconds / 31536000;
-  if (interval > 1) return `hace ${Math.floor(interval)} años`;
-  interval = seconds / 2592000;
-  if (interval > 1) return `hace ${Math.floor(interval)} meses`;
-  interval = seconds / 86400;
-  if (interval > 1) return `hace ${Math.floor(interval)} días`;
-  interval = seconds / 3600;
-  if (interval > 1) return `hace ${Math.floor(interval)} horas`;
-  interval = seconds / 60;
-  if (interval > 1) return `hace ${Math.floor(interval)} minutos`;
-  return `hace ${Math.floor(seconds)} segundos`;
+  const seconds = Math.floor((new Date().getTime() - timestamp) / 1000);
+  let interval = seconds / 31536000;
+  if (interval > 1) return `hace ${Math.floor(interval)} años`;
+  interval = seconds / 2592000;
+  if (interval > 1) return `hace ${Math.floor(interval)} meses`;
+  interval = seconds / 86400;
+  if (interval > 1) return `hace ${Math.floor(interval)} días`;
+  interval = seconds / 3600;
+  if (interval > 1) return `hace ${Math.floor(interval)} horas`;
+  interval = seconds / 60;
+  if (interval > 1) return `hace ${Math.floor(interval)} minutos`;
+  return `hace ${Math.floor(seconds)} segundos`;
 };
 // --- FIN DE COMPONENTES SIMULADOS ---
 
 
 const OrganizationList = ({
-  organizaciones,
-  filterStatus,
-  setFilterStatus,
-  filterType,
-  setFilterType,
-  filterIsla,
-  setFilterIsla,
-  filterSuscripcion,
-  setFilterSuscripcion,
-  lastRefreshTs,
-  openEditModal,
-  viewDetail,
-  openCampaign,
-  currentPage,
-  setCurrentPage,
-  onRefresh,
-  startCallCenterMode,  // --- NUEVAS PROPS ---
-  campaignTemplates,
-  selectedCampaignId,
-  setSelectedCampaignId
+  organizaciones,
+  filterStatus,
+  setFilterStatus,
+  filterType,
+  setFilterType,
+  filterIsla,
+  setFilterIsla,
+  filterSuscripcion,
+  setFilterSuscripcion,
+  lastRefreshTs,
+  openEditModal,
+  viewDetail,
+  openCampaign,
+  currentPage,
+  setCurrentPage,
+  onRefresh,
+  startCallCenterMode,
+  campaignTemplates,
+  selectedCampaignId,
+  setSelectedCampaignId,
+  // --- ¡NUEVO! Props para confirmación ---
+  setConfirmProps,
+  closeConfirm,
+  setNotification
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedOrg, setSelectedOrg] = useState(null);
-  const [selectedOrgIds, setSelectedOrgIds] = useState(new Set()); // --- NUEVO ESTADO ---
-  const ITEMS_PER_PAGE = 25;
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedOrg, setSelectedOrg] = useState(null);
+  const [selectedOrgIds, setSelectedOrgIds] = useState(new Set()); // --- NUEVO ESTADO ---
+  const ITEMS_PER_PAGE = 25;
 
-  // Etiqueta dinámica para el tiempo transcurrido desde la última actualización
-  const [lastRefreshLabel, setLastRefreshLabel] = useState('');
+  // Etiqueta dinámica para el tiempo transcurrido desde la última actualización
+  const [lastRefreshLabel, setLastRefreshLabel] = useState('');
 
-  useEffect(() => {
-    if (!lastRefreshTs) { setLastRefreshLabel(''); return; }
-    const update = () => setLastRefreshLabel(getElapsedString(lastRefreshTs));
-    update();
-    const id = setInterval(update, 60000); // Actualiza cada minuto
-    return () => clearInterval(id);
-  }, [lastRefreshTs]);
+  useEffect(() => {
+    if (!lastRefreshTs) { setLastRefreshLabel(''); return; }
+    const update = () => setLastRefreshLabel(getElapsedString(lastRefreshTs));
+    update();
+    const id = setInterval(update, 60000); // Actualiza cada minuto
+    return () => clearInterval(id);
+  }, [lastRefreshTs]);
 
-  const handleClearFilters = () => {
-    setSearchTerm('');
-    setFilterStatus('todos');
-    setFilterType('todos');
-    setFilterIsla('todos');
-    setFilterSuscripcion('todos');
-    setCurrentPage(1);
-    setSelectedOrgIds(new Set());
-    setSelectedCampaignId(null); // <-- LIMPIAR CAMPAÑA
-  };
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setFilterStatus('todos');
+    setFilterType('todos');
+    setFilterIsla('todos');
+    setFilterSuscripcion('todos');
+    setCurrentPage(1);
+    setSelectedOrgIds(new Set());
+    setSelectedCampaignId(null); // <-- LIMPIAR CAMPAÑA
+  };
 
-  const isClean =
-    searchTerm === '' &&
-    filterStatus === 'todos' &&
-    filterType === 'todos' &&
-    filterIsla === 'todos' &&
-    filterSuscripcion === 'todos' &&
-    selectedCampaignId === null; // <-- AÑADIR A LA CONDICIÓN
+  const isClean =
+    searchTerm === '' &&
+    filterStatus === 'todos' &&
+    filterType === 'todos' &&
+    filterIsla === 'todos' &&
+    filterSuscripcion === 'todos' &&
+    (selectedCampaignId === null || selectedCampaignId === ''); // <-- AÑADIR A LA CONDICIÓN
 
-  // Lista de islas para el selector del filtro
-  const islasCanarias = [
-    'Gran Canaria', 'Tenerife', 'Lanzarote', 'Fuerteventura',
-    'La Palma', 'La Gomera', 'El Hierro', 'Canarias'
-  ];
+  // Lista de islas para el selector del filtro
+  const islasCanarias = [
+    'Gran Canaria', 'Tenerife', 'Lanzarote', 'Fuerteventura',
+    'La Palma', 'La Gomera', 'El Hierro', 'Canarias'
+  ];
 
-  const filteredOrgs = useMemo(() => {
-    const lowercasedSearchTerm = searchTerm.toLowerCase();
+  const filteredOrgs = useMemo(() => {
+    const lowercasedSearchTerm = searchTerm.toLowerCase();
 
-    return organizaciones.filter(org => {
-      const matchesSearch = lowercasedSearchTerm === '' ? true : (
-        (org.organizacion || '').toLowerCase().includes(lowercasedSearchTerm) ||
-        (org.nombre || '').toLowerCase().includes(lowercasedSearchTerm) ||
-        (org.id || '').toLowerCase().includes(lowercasedSearchTerm) ||
-        (org.nombres_org || '').toLowerCase().includes(lowercasedSearchTerm)
-      );
-      
-      const matchesStatus = filterStatus === 'todos' ? true : org.estado_cliente === filterStatus;
+    return organizaciones.filter(org => {
+      const matchesSearch = lowercasedSearchTerm === '' ? true : (
+        (org.organizacion || '').toLowerCase().includes(lowercasedSearchTerm) ||
+        (org.nombre || '').toLowerCase().includes(lowercasedSearchTerm) ||
+        (org.id || '').toLowerCase().includes(lowercasedSearchTerm) ||
+        (org.nombres_org || '').toLowerCase().includes(lowercasedSearchTerm)
+      );
+      
+      const matchesStatus = filterStatus === 'todos' ? true : org.estado_cliente === filterStatus;
 
-      const tipoEntidad = getEntityType(org);
-      const matchesType = filterType === 'todos' ? true : tipoEntidad === filterType;
-      const matchesIsla = filterIsla === 'todos' ? true : org.isla === filterIsla;
-      const matchesSuscripcion = filterSuscripcion === 'todos' ? true : org.suscripcion === filterSuscripcion;
+      const tipoEntidad = getEntityType(org);
+      const matchesType = filterType === 'todos' ? true : tipoEntidad === filterType;
+      const matchesIsla = filterIsla === 'todos' ? true : org.isla === filterIsla;
+      const matchesSuscripcion = filterSuscripcion === 'todos' ? true : org.suscripcion === filterSuscripcion;
 
-      return matchesSearch && matchesStatus && matchesType && matchesIsla && matchesSuscripcion;
-    });
-  }, [organizaciones, searchTerm, filterStatus, filterType, filterIsla, filterSuscripcion]);
+      return matchesSearch && matchesStatus && matchesType && matchesIsla && matchesSuscripcion;
+    });
+  }, [organizaciones, searchTerm, filterStatus, filterType, filterIsla, filterSuscripcion]);
 
-  const totalPages = Math.ceil(filteredOrgs.length / ITEMS_PER_PAGE);
-  
-  const paginatedOrgs = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    return filteredOrgs.slice(startIndex, endIndex);
-  }, [filteredOrgs, currentPage, ITEMS_PER_PAGE]);
+  const totalPages = Math.ceil(filteredOrgs.length / ITEMS_PER_PAGE);
+  
+  const paginatedOrgs = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    return filteredOrgs.slice(startIndex, endIndex);
+  }, [filteredOrgs, currentPage, ITEMS_PER_PAGE]);
 
-  // --- LÓGICA DE SELECCIÓN ---
-  const paginatedOrgIds = useMemo(() => new Set(paginatedOrgs.map(org => org.id)), [paginatedOrgs]);
-  const areAllOnPageSelected = paginatedOrgs.length > 0 && [...paginatedOrgIds].every(id => selectedOrgIds.has(id));
+  // --- LÓGICA DE SELECCIÓN ---
+  const paginatedOrgIds = useMemo(() => new Set(paginatedOrgs.map(org => org.id)), [paginatedOrgs]);
+  const areAllOnPageSelected = paginatedOrgs.length > 0 && [...paginatedOrgIds].every(id => selectedOrgIds.has(id));
 
-  const handleSelectAll = () => {
-    setSelectedOrgIds(prevSelected => {
-      const newSelected = new Set(prevSelected);
-      if (areAllOnPageSelected) {
-        // Deseleccionar todos en esta página
-        paginatedOrgIds.forEach(id => newSelected.delete(id));
-      } else {
-        // Seleccionar todos en esta página
-        paginatedOrgIds.forEach(id => newSelected.add(id));
+  const handleSelectAll = () => {
+    setSelectedOrgIds(prevSelected => {
+      const newSelected = new Set(prevSelected);
+      if (areAllOnPageSelected) {
+        // Deseleccionar todos en esta página
+        paginatedOrgIds.forEach(id => newSelected.delete(id));
+      } else {
+        // Seleccionar todos en esta página
+        paginatedOrgIds.forEach(id => newSelected.add(id));
+      }
+      return newSelected;
+    });
+  };
+
+  const handleSelectOrg = (orgId) => {
+    setSelectedOrgIds(prevSelected => {
+      const newSelected = new Set(prevSelected);
+      if (newSelected.has(orgId)) {
+        newSelected.delete(orgId);
+      } else {
+        newSelected.add(orgId);
+      }
+      return newSelected;
+    });
+  };
+
+  // Helper para pasar las orgs seleccionadas al modo call center
+ const getSelectedOrgs = () => {
+    return organizaciones.filter(org => selectedOrgIds.has(org.id));
+  };
+  
+  const isCallCenterDisabled = selectedOrgIds.size < 2;
+
+  // --- ¡LÓGICA CORREGIDA! ---
+  const handleCampaignClick = (org) => {
+    
+    let title = '';
+    let message = '';
+    let confirmText = '';
+
+    // Comprueba si ya hay una campaña seleccionada en el filtro
+    if (selectedCampaignId) {
+      // --- Caso 1: SÍ hay campaña (se genera borrador) ---
+      const templateName = campaignTemplates.find(t => t.id === selectedCampaignId)?.title || 'la campaña seleccionada';
+      title = 'Confirmar Envío Individual';
+      message = `¿Quieres generar un borrador para "${org.organizacion || org.id}" usando la plantilla "${templateName}"?`;
+      confirmText = 'Sí, generar';
+    } else {
+      // --- Caso 2: NO hay campaña (se abre el selector) ---
+      title = 'Iniciar Envío';
+      message = `¿Seguro que quieres iniciar un envío de campaña para "${org.organizacion || org.id}"? (Deberás seleccionar una plantilla)`;
+      confirmText = 'Sí, continuar';
+    }
+
+    // 3. Mostrar el modal de confirmación
+    setConfirmProps({
+      show: true,
+      title: title,
+      message: message,
+      confirmText: confirmText,
+      cancelText: 'No, volver',
+      type: 'info', // Botón azul
+      onConfirm: () => {
+        openCampaign(org); // Esta es la prop 'handleOpenCampaignModal' de app.jsx
+        closeConfirm();
       }
-      return newSelected;
     });
   };
 
-  const handleSelectOrg = (orgId) => {
-    setSelectedOrgIds(prevSelected => {
-      const newSelected = new Set(prevSelected);
-      if (newSelected.has(orgId)) {
-        newSelected.delete(orgId);
-      } else {
-        newSelected.add(orgId);
-      }
-      return newSelected;
-    });
-  };
+  // Reset to page 1 and clear selection when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedOrgIds(new Set());
+  }, [searchTerm, filterStatus, filterType, filterIsla, filterSuscripcion, setCurrentPage]);
 
-  // Helper para pasar las orgs seleccionadas al modo call center
-  const getSelectedOrgs = () => {
-    return organizaciones.filter(org => selectedOrgIds.has(org.id));
-  };
-  
-  // --- CAMBIO DE LÓGICA: Mínimo 2 organizaciones ---
-  const isCallCenterDisabled = selectedOrgIds.size < 2;
-
-  // Reset to page 1 and clear selection when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-    setSelectedOrgIds(new Set()); // --- NUEVO ---
-  }, [searchTerm, filterStatus, filterType, filterIsla, filterSuscripcion, setCurrentPage]);
-
-  // Clear selection when page changes
-  useEffect(() => {
-    setSelectedOrgIds(new Set());
-  }, [currentPage]);
+  // Clear selection when page changes
+  useEffect(() => {
+    setSelectedOrgIds(new Set());
+  }, [currentPage]);
 
 
-  const isLoading = organizaciones.length === 0;
-
+  const isLoading = organizaciones.length === 0;
   return (
   <div className="max-w-9x2 mx-auto px-1 sm:px-4 lg:px-1 py-1">
   <div className="p-4 sm:p-5 bg-white rounded-xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
@@ -313,7 +351,7 @@ const OrganizationList = ({
               <select
                 value={selectedCampaignId || ''}
                 onChange={(e) => setSelectedCampaignId(e.target.value || null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-pink-500 dark:bg-pink-900 dark:border-gray-600 text-gray-200"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-purple-600 dark:bg-purple-700 dark:border-gray-600 text-gray-200"
               >
                 <option value="">Seleccionar Campaña</option>
                 {campaignTemplates.map((campaign) => (
@@ -510,16 +548,14 @@ const OrganizationList = ({
                           >
                             <Edit className="h-4 w-4" />
                           </button>
-                          <button
-                            onClick={() => {
-                              setSelectedOrg(org);
-                              openCampaign(org);
-                            }}
-                            className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
-                            title="Enviar campaña"
-                          >
-                            <Mail className="h-4 w-4" />
-                          </button>
+  	 	 			<button
+                      // --- ¡CAMBIO! Llamando al nuevo manejador ---
+  	 	 			  onClick={() => handleCampaignClick(org)}
+  	 	 			  className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+  	 	 			  title="Enviar campaña"
+  	 	 			>
+  	 	 			  <Mail className="h-4 w-4" />
+  	 	 			</button>
                         </div>
                       </td>
                     </tr>

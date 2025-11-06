@@ -33,7 +33,7 @@ const OrganizationDetail = ({
     const orgInfo = metadata.organizacion || {};
 
     return (
-        <div className="space-y-6 max-h-[calc(100vh-220px)] overflow-y-auto pr-2">
+        <div className="space-y-6 max-h-auto overflow-y-auto pr-2">
             {/* --- Encabezado de la Organización --- */}
             <div className="p-6 bg-white rounded-lg shadow dark:bg-gray-800">
                 <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
