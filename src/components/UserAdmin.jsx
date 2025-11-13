@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import apiClient from '../api/apiClient';
-import { UserPlus, Eye, EyeOff, KeyRound } from 'lucide-react';
+import { UserPlus, Eye, EyeOff, KeyRound } from 'lucide-react'; // Importamos setNotification
 
 const UserAdmin = ({ currentUser, setNotification, setConfirmProps, closeConfirm }) => {
   const [usuario, setUsuario] = useState('');

@@ -231,7 +231,7 @@ const OrganizationList = ({
       // --- Caso 1: SÍ hay campaña (se genera borrador) ---
       const templateName = campaignTemplates.find(t => t.id === selectedCampaignId)?.title || 'la campaña seleccionada';
       title = 'Confirmar Envío Individual';
-      message = `¿Quieres generar un borrador para "${org.organizacion || org.id}" usando la plantilla "${templateName}"?`;
+      message = `¿Quieres generar un borrador para "${org.organizacion || org.nombre || org.id}" usando la plantilla "${templateName}"?`;
       confirmText = 'Sí, generar';
     } else {
       // --- Caso 2: NO hay campaña (se abre el selector) ---

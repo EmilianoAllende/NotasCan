@@ -6,7 +6,8 @@ const OrganizationDetail = ({
     selectedOrg, 
     openEditModal, 
     setShowCampaignModal,
-    // --- NUEVAS PROPS ---
+    // --- NUEVAS PROPS de App.jsx ---
+    setNotification,
     selectedCampaignId,
     onSelectCampaignRequired 
 }) => {
@@ -189,7 +190,13 @@ const OrganizationDetail = ({
                             if (selectedCampaignId) {
                                 setShowCampaignModal(true);
                             } else {
-                                onSelectCampaignRequired(); // Muestra notificación de error
+                                setNotification({
+                                    type: 'warning',
+                                    title: 'Campaña Requerida',
+                                    message: 'Por favor, selecciona una campaña en el listado antes de enviar un email.'
+                                });
+                                // onSelectCampaignRequired(); // Muestra notificación de error
+
                             }
                         }}
                         className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700"

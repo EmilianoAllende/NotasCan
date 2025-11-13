@@ -1,16 +1,19 @@
 import React from 'react';
 import { ChevronDown, ChevronRight, Plus, Trash2, Save, Mail } from 'lucide-react';
-import apiClient from '../api/apiClient';
+import apiClient from '../api/apiClient'; // (apiClient ahora solo se usa para getCampaignsHistory)
 
 const Campaigns = ({ 
   campanasActivas = [], 
   organizaciones = [], 
   campaignTemplates = [], 
-  onTemplatesChange, 
   onSelectTemplateForSend,
   // --- ¡NUEVO! Props recibidos de app.jsx ---
-  setConfirmProps, 
-  closeConfirm 
+  setConfirmProps,
+  closeConfirm,
+  isLoadingTemplates, // (Opcional, para mostrar un spinner)
+  onSaveTemplate,     // Función async para guardar/actualizar
+  onDeleteTemplate,   // Función async para borrar
+  onAddTemplate       // Función async para añadir (usa la misma que onSaveTemplate)
 }) => {
   // Historial de campañas (por tipo -> fechas -> organizaciones)
   const [history, setHistory] = React.useState({ types: [], summary: { hace_dias_ultima_campana: null } });
@@ -25,6 +28,20 @@ const Campaigns = ({
   const [selectedTplId, setSelectedTplId] = React.useState(campaignTemplates[0]?.id || '');
   const selectedTpl = React.useMemo(() => campaignTemplates.find(t => t.id === selectedTplId) || null, [campaignTemplates, selectedTplId]);
   const [editingTpl, setEditingTpl] = React.useState(() => selectedTpl ? JSON.parse(JSON.stringify(selectedTpl)) : null);
+
+  React.useEffect(() => {
+    // Sincroniza el editor cuando la plantilla seleccionada cambia (o se refresca la lista)
+    setEditingTpl(selectedTpl ? JSON.parse(JSON.stringify(selectedTpl)) : null);
+  }, [selectedTpl]);
+
+  // Sincroniza el ID seleccionado si la lista cambia (ej: después de borrar)
+  React.useEffect(() => {
+    if (!selectedTplId && campaignTemplates.length > 0) {
+      setSelectedTplId(campaignTemplates[0].id);
+    } else if (campaignTemplates.length === 0) {
+      setSelectedTplId('');
+    }
+  }, [campaignTemplates, selectedTplId]);
 
   React.useEffect(() => {
     setEditingTpl(selectedTpl ? JSON.parse(JSON.stringify(selectedTpl)) : null);
@@ -80,18 +97,21 @@ const Campaigns = ({
   };
 
   // --- LÓGICA DE ACCIÓN ORIGINAL ---
+  // Estas funciones ahora llaman a las props de App.jsx (que llaman a la API)
   const saveTemplate = () => {
     if (!editingTpl) return;
     if (!editingTpl.title || !editingTpl.id) return;
-    const next = campaignTemplates.map(t => t.id === editingTpl.id ? editingTpl : t);
-    onTemplatesChange?.(next);
+    // Llama a la función del padre (App.jsx) que llama al APIClient
+    onSaveTemplate?.(editingTpl); 
   };
 
   const deleteTemplate = () => {
     if (!editingTpl) return;
-    const next = campaignTemplates.filter(t => t.id !== editingTpl.id);
-    onTemplatesChange?.(next);
-    setSelectedTplId(next[0]?.id || '');
+    // Llama a la función del padre (App.jsx) que llama al APIClient
+    onDeleteTemplate?.(editingTpl.id);
+    // Limpia la selección (App.jsx refrescará la lista)
+    setSelectedTplId(''); 
+    setEditingTpl(null);
   };
 
   const addTemplate = () => {
@@ -104,8 +124,9 @@ const Campaigns = ({
       rawPrompt: '',
       builder: { campaignType: 'personalizada', instructions: '', examplesGood: '', examplesBad: '', useMetadata: true }
     };
-    const next = [...campaignTemplates, draft];
-    onTemplatesChange?.(next);
+    
+    // Llama a la función del padre (App.jsx) que llama al APIClient
+    onAddTemplate?.(draft); 
     setSelectedTplId(baseId);
   };
 
@@ -117,7 +138,7 @@ const Campaigns = ({
       title: 'Guardar Cambios',
       message: `¿Seguro que quieres guardar los cambios en la plantilla "${editingTpl.title}"?`,
       confirmText: 'Sí, guardar',
-      cancelText: 'No, volver',
+      cancelText: 'No, volver', // Botón de cancelar
       type: 'info',
       onConfirm: () => {
         saveTemplate();
@@ -132,7 +153,7 @@ const Campaigns = ({
       show: true,
       title: 'Eliminar Plantilla',
       message: `¿Seguro que quieres eliminar la plantilla "${editingTpl.title}"? Esta acción no se puede deshacer.`,
-      confirmText: 'Sí, eliminar',
+      confirmText: 'Sí, eliminar', // Botón de confirmar
       cancelText: 'No, volver',
       type: 'danger',
       onConfirm: () => {
@@ -148,7 +169,7 @@ const Campaigns = ({
       show: true,
       title: 'Seleccionar Plantilla',
       message: `¿Quieres seleccionar "${editingTpl.title}" para tu próximo envío?`,
-      confirmText: 'Sí, seleccionar',
+      confirmText: 'Sí, seleccionar', // Botón de confirmar
       cancelText: 'No, volver',
       type: 'info',
       onConfirm: () => {
@@ -299,6 +320,18 @@ const Campaigns = ({
         {/* Lista de plantillas */}
         <div className="md:col-span-1 border-r border-slate-200 dark:border-slate-700 bg-slate-50/40 dark:bg-slate-900/20">
           <div className="p-3 space-y-1 max-h-96 overflow-y-auto scrollbar-thin">
+            {/* --- ¡NUEVO! Estado de Carga --- */}
+            {isLoadingTemplates && (
+              <div className="p-3 text-sm text-slate-600 dark:text-slate-300 text-center animate-pulse">
+                Cargando plantillas...
+              </div>
+            )}
+            
+            {!isLoadingTemplates && campaignTemplates.length === 0 && (
+               <div className="p-3 text-sm text-slate-600 dark:text-slate-300 text-center">
+                 No hay plantillas.
+               </div>
+            )}
             {campaignTemplates.length > 0 ? (
               campaignTemplates.map((tpl) => (
                 <button
@@ -324,10 +357,8 @@ const Campaigns = ({
                 </button>
               ))
             ) : (
-              <div className="p-3 text-sm text-slate-600 dark:text-slate-300 text-center">
-                No hay plantillas aún.
-              </div>
-            )}
+              !isLoadingTemplates && <div className="p-3 text-sm text-slate-600 dark:text-slate-300 text-center">No hay plantillas aún.</div>
+            )} 
           </div>
         </div>
 
@@ -335,7 +366,7 @@ const Campaigns = ({
         <div className="md:col-span-2 bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700">
           {!editingTpl ? (
             <div className="p-8 text-center text-sm text-slate-600 dark:text-slate-300 italic">
-              Selecciona o crea una plantilla para comenzar a editar.
+              {isLoadingTemplates ? 'Cargando...' : 'Selecciona o crea una plantilla para comenzar a editar.'}
             </div>
           ) : (
             <div className="p-6 space-y-6">
