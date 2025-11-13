@@ -1,24 +1,22 @@
 import React from 'react';
-// Los iconos de navegación ahora se usan en Sidebar.jsx
-// import { Users, Eye, Mail, Building, FilePenLine } from 'lucide-react';
 import { tiposCampana, campanasActivas } from './data/data';
 import apiClient from './api/apiClient';
 import { useDashboardData } from './hooks/useDashboardData';
-import Dashboard from './components/Dashboard';
-import OrganizationList from './components/OrganizationList';
-import OrganizationDetail from './components/OrganizationDetail';
-import Campaigns from './components/Campaigns';
-import ContactEditor from './components/ContactEditor';
-import SendCampaignModal from './components/SendCampaignModal';
-import AIindicator from './components/AIindicator';
-import Notification from './components/Notification';
+import Dashboard from './components/layout/Dashboard';
+import OrganizationList from './components/organization/OrganizationList'; // <-- Importación correcta
+import OrganizationDetail from './components/organization/OrganizationDetail';
+import Campaigns from './components/campaigns/Campaigns';
+import ContactEditor from './components/editor-tabs/ContactEditor';
+import SendCampaignModal from './components/campaigns/SendCampaignModal';
+import AIindicator from './components/preview/AIindicator';
+import Notification from './components/common/Notification';
 import { seedIfEmpty, saveTemplates } from './utils/campaignsStore';
 
 // --- NUEVOS COMPONENTES MODULARES ---
-import Sidebar from './components/Sidebar'; 
-import ConfirmModal from './components/ConfirmModal';
-import LoginScreen from './components/LoginScreen'; // --- ¡NUEVO! Componente de Login ---
-import UserAdmin from './components/UserAdmin'; // --- ¡NUEVO! Vista de Admin ---
+import Sidebar from './components/common/Sidebar'; 
+import ConfirmModal from './components/common/ConfirmModal';
+import LoginScreen from './components/auth/LoginScreen'; 
+import UserAdmin from './components/users/UserAdmin';
 // -------------------------------------
 
 const CACHE_EXPIRATION_MS = 3 * 60 * 60 * 1000;

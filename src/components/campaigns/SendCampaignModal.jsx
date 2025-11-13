@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 // --- ¡NUEVO! Importamos el componente modularizado ---
-import HtmlPreviewModal from './preview/HtmlPreviewModal'; 
+import HtmlPreviewModal from '../preview/HtmlPreviewModal'; 
 // --- ¡NUEVO! Importamos la función de utilidad ---
-import { generatePreviewHtml } from './preview/GeneratePreviewHtml';
+import { generatePreviewHtml } from '../preview/GeneratePreviewHtml';
 
 const SendCampaignModal = ({
   show,

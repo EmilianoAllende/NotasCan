@@ -1,5 +1,5 @@
 import React from 'react';
-import ThemeSwitcher from './ThemeSwitcher'; // Asegúrate que la ruta sea correcta
+import ThemeSwitcher from '../common/ThemeSwitcher'; // Asegúrate que la ruta sea correcta
 
 const Header = ({ metricas }) => {
   return (
