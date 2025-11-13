@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import InformacionBasicaTab from './editor-tabs/InformacionBasicaTab';
-import ContactosTab from './editor-tabs/ContactosTab';
-import EstadoComercialTab from './editor-tabs/EstadoComercialTab';
+import InformacionBasicaTab from './InformacionBasicaTab';
+import ContactosTab from './ContactosTab';
+import EstadoComercialTab from './EstadoComercialTab';
 
 // Función auxiliar: detecta cambios entre el original y el modificado
 const getChangedFields = (originalData, currentData) => {

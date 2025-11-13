@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronDown, ChevronRight, Plus, Trash2, Save, Mail } from 'lucide-react';
-import apiClient from '../../api/apiClient'; // (apiClient ahora solo se usa para getCampaignsHistory)
+import apiClient from '../../api/apiClient';
 
 const Campaigns = ({ 
   campanasActivas = [], 
