@@ -192,7 +192,7 @@ const OrganizationList = (props) => {
 		(selectedCampaignId === null || selectedCampaignId === "");
 	const isLoading = organizaciones.length === 0;
 	return (
-		<div className="max-w-full mx-auto p-4 sm:px-6 lg:px-8 transition-colors duration-300">
+		<div className="max-w-full mx-auto  sm:px-6 lg:px-8 transition-colors duration-300">
 			<div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl ring-1 ring-gray-900/5 dark:ring-white/10 overflow-hidden">
 				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-6 py-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-900/60 backdrop-blur-md">
 					<div>
