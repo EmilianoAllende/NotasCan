@@ -114,21 +114,63 @@ const Campaigns = ({
     setEditingTpl(null);
   };
 
-  const addTemplate = () => {
-    const baseId = 'custom_' + Date.now();
-    const draft = {
-      id: baseId,
-      title: 'Nueva campaña',
-      description: 'Descripción breve...',
-      mode: 'builder',
-      rawPrompt: '',
-      builder: { campaignType: 'personalizada', instructions: '', examplesGood: '', examplesBad: '', useMetadata: true }
-    };
-    
-    // Llama a la función del padre (App.jsx) que llama al APIClient
-    onAddTemplate?.(draft); 
-    setSelectedTplId(baseId);
-  };
+// const addTemplate = async () => { // <-- 1. Convertir a async
+// 		const baseId = "custom_" + Date.now();
+// 		const draft = {
+// 			id: baseId,
+// 			title: "Nueva campaña",
+// 			description: "Descripción breve...",
+// 			mode: "builder",
+// 			rawPrompt: "",
+// 			builder: {
+// 				campaignType: "personalizada",
+// 				instructions: "",
+// 				examplesGood: "",
+// 				examplesBad: "",
+// 				useMetadata: true,
+// 			},
+// 		};
+
+// 		// 2. Esperar (await) a que la plantilla se guarde
+// 		//    y la lista se refresque.
+// 		if (onAddTemplate) {
+// 			await onAddTemplate(draft);
+// 		}
+
+// 		// 3. Ahora que la lista está actualizada,
+// 		//    seleccionar el ID.
+// 		setSelectedTplId(baseId);
+// 	};
+
+
+const addTemplate = () => { // <-- 1. Quitamos 'async'
+		const baseId = "custom_" + Date.now();
+		const draft = {
+			id: baseId,
+			title: "Nueva campaña",
+			description: "Descripción breve...",
+			mode: "builder",
+			rawPrompt: "",
+			builder: {
+				campaignType: "personalizada",
+				instructions: "",
+				examplesGood: "",
+				examplesBad: "",
+				useMetadata: true,
+			},
+		};
+
+		// 2. Llamamos a la API, PERO SIN 'await'.
+		//    Esto guarda la plantilla en segundo plano.
+		if (onAddTemplate) {
+			onAddTemplate(draft);
+		}
+
+		// 3. ¡LA CLAVE! Actualizamos el estado del editor
+		//    localmente y al instante.
+		setEditingTpl(draft);
+		setSelectedTplId(baseId);
+	};
 
   // --- ¡NUEVO! MANEJADORES CON CONFIRMACIÓN ---
   const handleSaveClick = () => {
