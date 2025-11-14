@@ -1,4 +1,5 @@
 // src/hooks/useAppState.js
+// eslint-disable-next-line no-unused-vars
 import React, { useMemo } from "react";
 // Hooks Modulares
 import { useAuth } from "./useAuth";
@@ -16,17 +17,14 @@ export const useAppState = () => {
 	const ui = useUI();
 
 	// 2. Dependencias Encadenadas
-	// Lógica de plantillas depende de las notificaciones de UI
 	const campaigns = useCampaignsAndTemplates(ui.setNotification);
 
-	// Lógica de datos de organizaciones depende de la autenticación y coordina la actualización de plantillas
 	const orgData = useOrganizationData(
 		auth.isAuthenticated,
 		ui.setNotification,
 		campaigns.fetchTemplates
 	);
 
-	// Lógica de flujo de negocio (el más complejo) depende de muchos estados cruzados
 	const workflow = useCallCenterAndCampaignFlow(
 		auth.currentUser,
 		ui.selectedOrg,
@@ -41,12 +39,10 @@ export const useAppState = () => {
 
 	// --- Lógica de Coordinación/Combinación ---
 
-	// Dashboard Data (Depende directamente de las organizaciones)
 	const { metricas, estadosData, islasData, sectoresData } = useDashboardData(
 		orgData.organizaciones
 	);
 
-	// Data Handlers (Mantenidos y actualizados para usar el setter de orgData)
 	const { saveContact } = useDataHandlers(
 		auth.isAuthenticated,
 		orgData.organizaciones,
@@ -59,7 +55,6 @@ export const useAppState = () => {
 		ui.setNotification
 	);
 
-	// Handlers de Navegación que usan el helper setViewAndOrg de useUI
 	const { openEditor, viewDetail } = useMemo(
 		() => ({
 			openEditor: (org) => {
@@ -69,10 +64,9 @@ export const useAppState = () => {
 				ui.setViewAndOrg("detalle", org);
 			},
 		}),
-		[ui.setViewAndOrg]
+		[ui]
 	);
 
-	// Auth Handlers coordinados con la UI (para cambiar la vista después del login/logout)
 	const handleLoginSuccess = (userData) => {
 		auth.handleLoginSuccess(userData);
 		ui.setActiveView("listado");
@@ -82,7 +76,6 @@ export const useAppState = () => {
 		ui.setActiveView("listado");
 	};
 
-	// Handler para abrir el modal de campaña que limpia estados específicos del flujo
 	const handleOpenCampaignModal = (org) => {
 		workflow.handleOpenCampaignModal(org);
 	};
@@ -138,6 +131,7 @@ export const useAppState = () => {
 
 		// Campaign Workflow & Call Center (useCallCenterAndCampaignFlow)
 		emailPreview: workflow.emailPreview,
+		setEmailPreview: workflow.setEmailPreview, // <--- ¡CORRECCIÓN APLICADA AQUÍ!
 		isPreviewLoading: workflow.isPreviewLoading,
 		isSendingCampaign: workflow.isSendingCampaign,
 		isCallCenterMode: workflow.isCallCenterMode,
@@ -147,7 +141,7 @@ export const useAppState = () => {
 		handleConfirmAndSend: workflow.handleConfirmAndSend,
 		startCallCenterMode: workflow.startCallCenterMode,
 		_executeStartCallCenterMode: workflow._executeStartCallCenterMode,
-		handleOpenCampaignModal, // El handler coordinado
+		handleOpenCampaignModal,
 
 		// Modular Data & Navigation Handlers (Existentes)
 		saveContact,
