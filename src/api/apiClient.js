@@ -11,9 +11,41 @@ const apiClient = axios.create({
 // ------------------------------------
 
 // --- LISTADO DE ORGANIZACIONES DESDE DYNAMO ---
-const GET_ORGANIZACIONES_PATH = "/webhook/573b9827-ad59-425f-9526-e2d16a7e2198";
+const GET_ORGANIZACIONES_PATH = "/webhook/573b9827-ad59-425f-9526-e2d16a7e2198"; // Endpoint de DynamoDB
 // --- EDICIÓN DE ORGANIZACIONES EN DYNAMO ---
 const UPDATE_ORGANIZACION_PATH = "/webhook/organizaciones";
+
+// --- ENDPOINTS DE PLANTILLAS (NUEVOS) ---
+const TEMPLATES_PATH = "/webhook/templates"; // Endpoint del flujo TemplateManager
+const GENERATE_PREVIEW_PATH = "/webhook/generate-preview"; // Endpoint del flujo MailWriter
+const CONFIRM_SEND_PATH = "/webhook/confirm-and-send";
+
+// === FUNCIONES DE PLANTILLAS (NUEVO) ===
+
+/**
+ * Obtiene TODAS las plantillas de prompts desde Supabase.
+ */
+apiClient.getTemplates = () => {
+	return apiClient.get(TEMPLATES_PATH);
+};
+
+/**
+ * Guarda o actualiza una plantilla en Supabase (Usa el Upsert).
+ * @param {object} templateData - El objeto completo de la plantilla.
+ */
+apiClient.saveTemplate = (templateData) => {
+	// El flujo n8n TemplateManager espera el payload en el body
+	return apiClient.post(TEMPLATES_PATH, templateData);
+};
+
+/**
+ * Borra una plantilla de Supabase usando su ID.
+ * @param {string} templateId - El ID de la plantilla (ej: "mmi_analytics").
+ */
+apiClient.deleteTemplate = (templateId) => {
+	// El flujo n8n TemplateManager espera el ID en los query params
+	return apiClient.delete(`${TEMPLATES_PATH}?id=${templateId}`);
+};
 
 // Función para OBTENER toda la lista de organizaciones.
 apiClient.getOrganizaciones = () => {
@@ -28,21 +60,23 @@ apiClient.updateOrganization = (formData) => {
 	});
 };
 
-// NUEVA FUNCIÓN para generar el borrador del email
+// === FUNCIONES DE CAMPAÑAS (MODIFICADO) ===
+
+/**
+ * Genera el borrador del email.
+ * Llama al flujo MailWriter, que ahora construye el prompt.
+ * @param {object} payload - Espera { organization, campaignId }
+ */
 apiClient.generatePreview = (payload) => {
-	// payload esperado: { organization, campaign: { title, description, prompt, mode, id? } }
-	// Llama al Workflow #1
-	return apiClient.post("/webhook/generate-preview", payload).catch((error) => {
+	return apiClient.post(GENERATE_PREVIEW_PATH, payload).catch((error) => {
 		console.error("Error al generar la previsualización:", error);
 		throw error;
 	});
 };
 
-// NUEVA FUNCIÓN para enviar el email ya aprobado
+// Confirma y envía el email ya aprobado
 apiClient.confirmAndSend = (payload) => {
-	// Payload esperado: { ... }
-	// Llama al Workflow #2
-	return apiClient.post("/webhook/confirm-and-send", payload).catch((error) => {
+	return apiClient.post(CONFIRM_SEND_PATH, payload).catch((error) => {
 		console.error("Error al confirmar y enviar la campaña:", error);
 		throw error;
 	});

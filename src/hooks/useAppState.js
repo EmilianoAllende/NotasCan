@@ -1,245 +1,159 @@
 // src/hooks/useAppState.js
-// eslint-disable-next-line no-unused-vars
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useMemo } from "react";
+// Hooks Modulares
+import { useAuth } from "./useAuth";
+import { useUI } from "./useUI";
+import { useCampaignsAndTemplates } from "./useCampaignsAndTemplates";
+import { useOrganizationData } from "./useOrganizationData";
+import { useCallCenterAndCampaignFlow } from "./useCallCenterAndCampaignFlow";
+// Otros hooks ya existentes (asumidos)
 import { useDashboardData } from "./useDashboardData";
-import { tiposCampana } from "../data/data";
-import { seedIfEmpty, saveTemplates } from "../utils/campaignsStore";
-import DEFAULT_PROMPT from "../utils/defaultPrompt";
-// Importación de los nuevos hooks de lógica/handlers
-import { useAuthHandlers } from "./useAuthHandlers";
 import { useDataHandlers } from "./useDataHandlers";
-import { useNavigationHandlers } from "./useNavigationHandlers";
-import { useCampaignLogic } from "./useCampaignLogic";
 
 export const useAppState = () => {
-	// --- 1. DECLARACIONES DE ESTADO (STATE) ---
+	// 1. Inicializar Hooks Modulares
+	const auth = useAuth();
+	const ui = useUI();
 
-	// Auth
-	const [currentUser, setCurrentUser] = useState(() => {
-		try {
-			const item = localStorage.getItem("currentUser");
-			return item ? JSON.parse(item) : null;
-		} catch (e) {
-			return null;
-		}
-	});
-	const [isAuthenticated, setIsAuthenticated] = useState(() => !!currentUser);
+	// 2. Dependencias Encadenadas
+	// Lógica de plantillas depende de las notificaciones de UI
+	const campaigns = useCampaignsAndTemplates(ui.setNotification);
 
-	// UI
-	const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-	const [activeView, setActiveView] = useState("listado");
-	const [selectedOrg, setSelectedOrg] = useState(null);
+	// Lógica de datos de organizaciones depende de la autenticación y coordina la actualización de plantillas
+	const orgData = useOrganizationData(
+		auth.isAuthenticated,
+		ui.setNotification,
+		campaigns.fetchTemplates
+	);
 
-	// Modals & Notifications
-	const [showCampaignModal, setShowCampaignModal] = useState(false);
-	const [notification, setNotification] = useState(null);
-	const [confirmProps, setConfirmProps] = useState({
-		show: false,
-		title: "",
-		message: "",
-		onConfirm: () => {},
-		type: "info",
-	});
+	// Lógica de flujo de negocio (el más complejo) depende de muchos estados cruzados
+	const workflow = useCallCenterAndCampaignFlow(
+		auth.currentUser,
+		ui.selectedOrg,
+		campaigns.selectedCampaignId,
+		ui.setNotification,
+		ui.setConfirmProps,
+		ui.closeConfirm,
+		ui.setShowCampaignModal,
+		ui.setSelectedOrg,
+		orgData.handleRefresh
+	);
 
-	// Filters
-	const [filterStatus, setFilterStatus] = useState("todos");
-	const [filterType, setFilterType] = useState("todos");
-	const [filterIsla, setFilterIsla] = useState("todos");
-	const [filterSuscripcion, setFilterSuscripcion] = useState("todos");
-	const [currentPage, setCurrentPage] = useState(1);
+	// --- Lógica de Coordinación/Combinación ---
 
-	// Data
-	const [organizaciones, setOrganizaciones] = useState(() => {
-		// ... (lógica de caché) ...
-		try {
-			const cachedData = localStorage.getItem("organizaciones_cache");
-			if (!cachedData) return [];
-			const { data, timestamp } = JSON.parse(cachedData);
-			const isExpired = new Date().getTime() - 3 * 60 * 60 * 1000 > timestamp;
-			return isExpired ? [] : data;
-		} catch (error) {
-			return [];
-		}
-	});
-	const [lastRefreshTs, setLastRefreshTs] = useState(() => {
-		// ... (lógica de caché) ...
-		try {
-			const cachedData = localStorage.getItem("organizaciones_cache");
-			if (!cachedData) return null;
-			const { timestamp } = JSON.parse(cachedData);
-			const isExpired = new Date().getTime() - 3 * 60 * 60 * 1000 > timestamp;
-			return isExpired ? null : timestamp;
-		} catch (e) {
-			return null;
-		}
-	});
+	// Dashboard Data (Depende directamente de las organizaciones)
+	const { metricas, estadosData, islasData, sectoresData } = useDashboardData(
+		orgData.organizaciones
+	);
 
-	// Loading
-	const [isLoading, setIsLoading] = useState(organizaciones.length === 0);
-	const [error, setError] = useState(null);
-	const [isSaving, setIsSaving] = useState(false);
-	const [isSendingCampaign, setIsSendingCampaign] = useState(false);
-	const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-	const [isTaskLoading, setIsTaskLoading] = useState(false);
+	// Data Handlers (Mantenidos y actualizados para usar el setter de orgData)
+	const { saveContact } = useDataHandlers(
+		auth.isAuthenticated,
+		orgData.organizaciones,
+		orgData.setOrganizaciones,
+		orgData.setLastRefreshTs,
+		orgData.setIsLoading,
+		orgData.setError,
+		orgData.setIsSaving,
+		ui.setActiveView,
+		ui.setNotification
+	);
 
-	// Campaign & Call Center
-	const [selectedCampaignId, setSelectedCampaignId] = useState(null);
-	const [emailPreview, setEmailPreview] = useState(null);
-	const [isCallCenterMode, setIsCallCenterMode] = useState(false);
-	const [currentQueueId, setCurrentQueueId] = useState(null);
-	const [currentTask, setCurrentTask] = useState(null);
-	const [campaignTemplates, setCampaignTemplates] = useState(() => {
-		const defaults = Object.entries(tiposCampana).map(([id, t]) => ({
-			id,
-			title: t.nombre,
-			description: t.descripcion,
-			mode: "builder",
-			rawPrompt: DEFAULT_PROMPT,
-			builder: {
-				campaignType: id,
-				instructions: "",
-				examplesGood: "",
-				examplesBad: "",
-				useMetadata: true,
+	// Handlers de Navegación que usan el helper setViewAndOrg de useUI
+	const { openEditor, viewDetail } = useMemo(
+		() => ({
+			openEditor: (org) => {
+				ui.setViewAndOrg("editor", org);
 			},
-		}));
-		return seedIfEmpty(defaults);
-	});
-	// --- 2. SETTERS Y HANDLERS SIMPLES ---
-	const closeConfirm = useCallback(() => {
-		setConfirmProps({
-			show: false,
-			title: "",
-			message: "",
-			onConfirm: () => {},
-			type: "info",
-		});
-	}, []);
-
-	const handleTemplatesChange = useCallback((next) => {
-		setCampaignTemplates(next);
-		saveTemplates(next);
-	}, []);
-
-	// --- 3. DATA DERIVADA (HOOKS MEMORIZADOS) ---
-
-	const { metricas, estadosData, islasData, sectoresData } =
-		useDashboardData(organizaciones);
-
-	// --- 4. HANDLERS COMPLEJOS (HOOKS MODULARIZADOS) ---
-
-	const { handleLoginSuccess, handleLogout } = useAuthHandlers(
-		setCurrentUser,
-		setIsAuthenticated,
-		setActiveView
+			viewDetail: (org) => {
+				ui.setViewAndOrg("detalle", org);
+			},
+		}),
+		[ui.setViewAndOrg]
 	);
 
-	const { handleRefresh, saveContact } = useDataHandlers(
-		isAuthenticated,
-		organizaciones,
-		setOrganizaciones,
-		setLastRefreshTs,
-		setIsLoading,
-		setError,
-		setIsSaving,
-		setActiveView,
-		setNotification
-	);
-
-	const { openEditor, viewDetail, handleOpenCampaignModal } =
-		useNavigationHandlers(
-			setActiveView,
-			setSelectedOrg,
-			setEmailPreview,
-			setCurrentTask,
-			setIsCallCenterMode,
-			setShowCampaignModal
-		);
-
-	const campaignLogicProps = {
-		currentUser,
-		selectedOrg,
-		selectedCampaignId,
-		campaignTemplates,
-		isCallCenterMode,
-		currentQueueId,
-		currentTask,
-		setIsPreviewLoading,
-		setEmailPreview,
-		setNotification,
-		setIsSendingCampaign,
-		setShowCampaignModal,
-		setSelectedCampaignId,
-		setIsCallCenterMode,
-		setCurrentQueueId,
-		setCurrentTask,
-		setSelectedOrg,
-		setIsTaskLoading,
-		setConfirmProps,
-		closeConfirm,
-		handleRefresh,
+	// Auth Handlers coordinados con la UI (para cambiar la vista después del login/logout)
+	const handleLoginSuccess = (userData) => {
+		auth.handleLoginSuccess(userData);
+		ui.setActiveView("listado");
 	};
-	const campaignHandlers = useCampaignLogic(campaignLogicProps);
+	const handleLogout = () => {
+		auth.handleLogout();
+		ui.setActiveView("listado");
+	};
 
-	// --- 5. RETORNO DE TODO EL ESTADO Y HANDLERS ---
+	// Handler para abrir el modal de campaña que limpia estados específicos del flujo
+	const handleOpenCampaignModal = (org) => {
+		workflow.handleOpenCampaignModal(org);
+	};
+
+	// --- Retorno Consolidado de Todos los Estados y Acciones ---
 	return {
-		// Auth
-		currentUser,
-		isAuthenticated,
+		// Auth (useAuth)
+		currentUser: auth.currentUser,
+		isAuthenticated: auth.isAuthenticated,
 		handleLoginSuccess,
 		handleLogout,
-		// UI
-		isSidebarCollapsed,
-		setIsSidebarCollapsed,
-		activeView,
-		setActiveView,
-		selectedOrg,
-		setSelectedOrg,
-		// Modals
-		showCampaignModal,
-		setShowCampaignModal,
-		notification,
-		setNotification,
-		confirmProps,
-		setConfirmProps,
-		closeConfirm,
-		// Data
-		organizaciones,
-		lastRefreshTs,
-		// Filters
-		filterStatus,
-		setFilterStatus,
-		filterType,
-		setFilterType,
-		filterIsla,
-		setFilterIsla,
-		filterSuscripcion,
-		setFilterSuscripcion,
-		currentPage,
-		setCurrentPage,
-		// Loaders
-		isLoading,
-		error,
-		isSaving,
-		isSendingCampaign,
-		isPreviewLoading,
-		isTaskLoading,
-		// Campaigns
-		campaignTemplates,
-		handleTemplatesChange,
-		selectedCampaignId,
-		setSelectedCampaignId,
-		emailPreview,
-		setEmailPreview, // Pasamos el setter
-		// Call Center
-		isCallCenterMode,
-		// Handlers
-		handleRefresh,
+
+		// UI & Filtros (useUI)
+		isSidebarCollapsed: ui.isSidebarCollapsed,
+		setIsSidebarCollapsed: ui.setIsSidebarCollapsed,
+		activeView: ui.activeView,
+		setActiveView: ui.setActiveView,
+		selectedOrg: ui.selectedOrg,
+		setSelectedOrg: ui.setSelectedOrg,
+		showCampaignModal: ui.showCampaignModal,
+		setShowCampaignModal: ui.setShowCampaignModal,
+		notification: ui.notification,
+		setNotification: ui.setNotification,
+		confirmProps: ui.confirmProps,
+		setConfirmProps: ui.setConfirmProps,
+		closeConfirm: ui.closeConfirm,
+		filterStatus: ui.filterStatus,
+		setFilterStatus: ui.setFilterStatus,
+		filterType: ui.filterType,
+		setFilterType: ui.setFilterType,
+		filterIsla: ui.filterIsla,
+		setFilterIsla: ui.setFilterIsla,
+		filterSuscripcion: ui.filterSuscripcion,
+		setFilterSuscripcion: ui.setFilterSuscripcion,
+		currentPage: ui.currentPage,
+		setCurrentPage: ui.setCurrentPage,
+
+		// Data (useOrganizationData)
+		organizaciones: orgData.organizaciones,
+		lastRefreshTs: orgData.lastRefreshTs,
+		isLoading: orgData.isLoading,
+		error: orgData.error,
+		isSaving: orgData.isSaving,
+		handleRefresh: orgData.handleRefresh,
+
+		// Campaigns & Templates (useCampaignsAndTemplates)
+		campaignTemplates: campaigns.campaignTemplates,
+		isLoadingTemplates: campaigns.isLoadingTemplates,
+		handleSaveTemplate: campaigns.handleSaveTemplate,
+		handleDeleteTemplate: campaigns.handleDeleteTemplate,
+		selectedCampaignId: campaigns.selectedCampaignId,
+		setSelectedCampaignId: campaigns.setSelectedCampaignId,
+
+		// Campaign Workflow & Call Center (useCallCenterAndCampaignFlow)
+		emailPreview: workflow.emailPreview,
+		isPreviewLoading: workflow.isPreviewLoading,
+		isSendingCampaign: workflow.isSendingCampaign,
+		isCallCenterMode: workflow.isCallCenterMode,
+		isTaskLoading: workflow.isTaskLoading,
+		currentTask: workflow.currentTask,
+		handleGeneratePreview: workflow.handleGeneratePreview,
+		handleConfirmAndSend: workflow.handleConfirmAndSend,
+		startCallCenterMode: workflow.startCallCenterMode,
+		_executeStartCallCenterMode: workflow._executeStartCallCenterMode,
+		handleOpenCampaignModal, // El handler coordinado
+
+		// Modular Data & Navigation Handlers (Existentes)
 		saveContact,
 		openEditor,
 		viewDetail,
-		handleOpenCampaignModal,
-		...campaignHandlers,
+
 		// Dashboard
 		metricas,
 		estadosData,

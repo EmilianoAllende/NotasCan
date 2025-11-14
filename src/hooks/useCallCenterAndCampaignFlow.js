@@ -1,118 +1,46 @@
-// src/hooks/useCampaignLogic.js
-import { useCallback } from "react";
-import apiClient from "../api/apiClient";
+// src/hooks/useCallCenterAndCampaignFlow.js
+import { useState, useCallback } from "react";
+import apiClient from "../api/apiClient"; // Asegúrate de que este archivo exista
 
-const DEFAULT_PROMPT = `Tu tarea es... (código de prompt omitido por brevedad)`;
+export const useCallCenterAndCampaignFlow = (
+	currentUser,
+	selectedOrg,
+	selectedCampaignId,
+	setNotification,
+	setConfirmProps,
+	closeConfirm,
+	setShowCampaignModal,
+	setSelectedOrg,
+	handleRefresh // Refresh global de datos de organizaciones
+) => {
+	// State
+	const [emailPreview, setEmailPreview] = useState(null);
+	const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+	const [isSendingCampaign, setIsSendingCampaign] = useState(false);
+	const [isCallCenterMode, setIsCallCenterMode] = useState(false);
+	const [isTaskLoading, setIsTaskLoading] = useState(false);
+	const [currentQueueId, setCurrentQueueId] = useState(null);
+	const [currentTask, setCurrentTask] = useState(null); // Contendrá { taskInfo, organization, email }
 
-export const useCampaignLogic = (props) => {
-	const {
-		// State
-		currentUser,
-		selectedOrg,
-		selectedCampaignId,
-		campaignTemplates,
-		isCallCenterMode,
-		currentQueueId,
-		currentTask,
-		// Setters
-		setIsPreviewLoading,
-		setEmailPreview,
-		setNotification,
-		setIsSendingCampaign,
-		setShowCampaignModal,
-		setSelectedCampaignId,
-		setIsCallCenterMode,
-		setCurrentQueueId,
-		setCurrentTask,
-		setSelectedOrg,
-		setIsTaskLoading,
-		setConfirmProps,
-		closeConfirm,
-		// Handlers (de otros hooks)
-		handleRefresh,
-	} = props;
-
-	const buildPromptFromTemplate = useCallback((template, org) => {
-		if (!template) return DEFAULT_PROMPT;
-		if (template.mode === "raw" && template.rawPrompt)
-			return template.rawPrompt;
-		const persona = org?.nombres_org || org?.nombre || "[Contacto]";
-		const industria = org?.sector || org?.industria || "[Industria]";
-		const orgName = org?.organizacion || org?.nombre || "[Organización]";
-		const header = `Genera un correo de tipo "${
-			template?.builder?.campaignType || template.id
-		}" para la organización "${orgName}".`;
-		const meta = `Datos del destinatario: contacto: ${persona}; industria: ${industria}.`;
-		const baseInstr = `El tono debe ser profesional pero cercano. El asunto corto y atractivo. El cuerpo conciso.`;
-		const extra = template?.builder?.instructions
-			? `Instrucciones extra: ${template.builder.instructions}`
-			: "";
-		return [
-			header,
-			`Título de campaña: ${template.title}`,
-			`Descripción: ${template.description}`,
-			meta,
-			baseInstr,
-			extra,
-		]
-			.filter(Boolean)
-			.join("\n");
-	}, []);
-
-	const handleGeneratePreview = useCallback(
-		async (orgToPreview, campaignIdToPreview) => {
-			const organization = orgToPreview || selectedOrg;
-			const campaignId = campaignIdToPreview || selectedCampaignId;
-			if (!organization || !campaignId) {
-				setNotification({
-					type: "warning",
-					title: "Selección Requerida",
-					message: "Por favor, selecciona una organización y una campaña.",
-				});
-				return;
-			}
-			setIsPreviewLoading(true);
+	// Función auxiliar para abrir el modal y limpiar estados
+	const handleOpenCampaignModal = useCallback(
+		(org) => {
+			setSelectedOrg(org);
 			setEmailPreview(null);
-			try {
-				const template = campaignTemplates.find((t) => t.id === campaignId);
-				const prompt = buildPromptFromTemplate(template, organization);
-				const payload = {
-					data: { organization, campaign: { ...template, prompt } },
-				};
-				const response = await apiClient.generatePreview(payload);
-				setEmailPreview(response.data);
-				setNotification({
-					type: "success",
-					title: "Borrador Generado",
-					message: "Borrador de IA generado exitosamente.",
-				});
-			} catch (err) {
-				console.error("Error al generar el borrador:", err);
-				setNotification({
-					type: "error",
-					title: "Error de IA",
-					message: "No se pudo generar el borrador con la IA.",
-				});
-			} finally {
-				setIsPreviewLoading(false);
-			}
+			setCurrentTask(null);
+			setIsCallCenterMode(false);
+			setShowCampaignModal(true);
 		},
-		[
-			selectedOrg,
-			selectedCampaignId,
-			campaignTemplates,
-			buildPromptFromTemplate,
-			setNotification,
-			setIsPreviewLoading,
-			setEmailPreview,
-		]
+		[setSelectedOrg, setShowCampaignModal]
 	);
 
+	// FUNCIÓN 4.1: Call Center - Obtener siguiente tarea
 	const fetchNextTask = useCallback(
-		async (queueId, campaignId) => {
+		async (queueId) => {
 			setIsTaskLoading(true);
 			setShowCampaignModal(true);
 			setEmailPreview(null);
+			const campaignId = selectedCampaignId;
 			const CURRENT_USER_ID = currentUser?.usuario || "user_default";
 
 			try {
@@ -127,15 +55,15 @@ export const useCampaignLogic = (props) => {
 				if (taskResponse.data && taskResponse.data.organization) {
 					const taskData = taskResponse.data;
 					const organization = taskData.organization;
-					const template = campaignTemplates.find((t) => t.id === campaignId);
-					if (!template) throw new Error("Plantilla no encontrada.");
 
-					const prompt = buildPromptFromTemplate(template, organization);
-					const previewPayload = {
-						data: { organization, campaign: { ...template, prompt } },
+					// 2. Llamar a generatePreview con el payload simple
+					const payload = {
+						organization: organization,
+						campaignId: campaignId,
 					};
-					const emailResponse = await apiClient.generatePreview(previewPayload);
+					const emailResponse = await apiClient.generatePreview(payload);
 
+					// 3. Establecer estado
 					setCurrentTask(taskData);
 					setSelectedOrg(organization);
 					setEmailPreview(emailResponse.data);
@@ -164,19 +92,60 @@ export const useCampaignLogic = (props) => {
 		},
 		[
 			currentUser,
-			campaignTemplates,
-			buildPromptFromTemplate,
+			selectedCampaignId,
 			setNotification,
-			setIsTaskLoading,
 			setShowCampaignModal,
-			setEmailPreview,
-			setCurrentTask,
 			setSelectedOrg,
-			setIsCallCenterMode,
-			setCurrentQueueId,
 		]
 	);
 
+	// FUNCIÓN 1: Generar el borrador (Preview)
+	const handleGeneratePreview = useCallback(
+		async (orgToPreview, campaignIdToPreview) => {
+			const organization = orgToPreview || selectedOrg;
+			const campaignId = campaignIdToPreview || selectedCampaignId;
+
+			if (!organization || !campaignId) {
+				setNotification({
+					type: "warning",
+					title: "Selección Requerida",
+					message: "Por favor, selecciona una organización y una campaña.",
+				});
+				return;
+			}
+			setIsPreviewLoading(true);
+			setEmailPreview(null);
+			try {
+				const payload = {
+					organization: organization,
+					campaignId: campaignId,
+				};
+
+				const response = await apiClient.generatePreview(payload);
+
+				setEmailPreview(response.data);
+				setNotification({
+					type: "success",
+					title: "Borrador Generado",
+					message:
+						"El borrador de la campaña ha sido generado exitosamente por la IA.",
+				});
+			} catch (err) {
+				console.error("Error al generar el borrador:", err);
+				setNotification({
+					type: "error",
+					title: "Error al Generar Borrador",
+					message:
+						"No se pudo generar el borrador con la IA. Verifica la conexión con n8n.",
+				});
+			} finally {
+				setIsPreviewLoading(false);
+			}
+		},
+		[selectedOrg, selectedCampaignId, setNotification]
+	);
+
+	// FUNCIÓN 2.1: Lógica REAL de envío (Ejecutado después de la confirmación)
 	const _executeConfirmAndSend = useCallback(
 		async (finalContent) => {
 			setIsSendingCampaign(true);
@@ -193,6 +162,8 @@ export const useCampaignLogic = (props) => {
 
 				const response = await apiClient.confirmAndSend(payload);
 				let result = response.data;
+
+				// Lógica de parseo y manejo de respuesta
 				if (typeof result === "string") {
 					try {
 						result = JSON.parse(result);
@@ -205,23 +176,28 @@ export const useCampaignLogic = (props) => {
 					setNotification({
 						type: "success",
 						title: "Campaña Enviada",
-						message: `Correo para ${
+						message: `La campaña para ${
 							selectedOrg.organizacion || selectedOrg.nombre
-						} enviado.`,
+						} se ha enviado correctamente.`,
 					});
 					if (isCallCenterMode) {
-						fetchNextTask(currentQueueId, selectedCampaignId);
+						fetchNextTask(currentQueueId);
 					} else {
 						handleRefresh();
 						setShowCampaignModal(false);
 						setEmailPreview(null);
-						setSelectedCampaignId(null);
 					}
-				} else {
+				} else if (result && result.status === "canceled") {
 					setNotification({
 						type: "warning",
 						title: "Envío Cancelado",
-						message: result.message || "El envío fue cancelado.",
+						message: result.message || "Envío de campaña cancelado.",
+					});
+				} else {
+					setNotification({
+						type: "error",
+						title: "Respuesta Inesperada",
+						message: `Estado recibido: "${result?.status || "undefined"}".`,
 					});
 				}
 			} catch (err) {
@@ -233,10 +209,6 @@ export const useCampaignLogic = (props) => {
 				});
 			} finally {
 				setIsSendingCampaign(false);
-				if (!isCallCenterMode) {
-					setShowCampaignModal(false);
-					setEmailPreview(null);
-				}
 			}
 		},
 		[
@@ -247,14 +219,12 @@ export const useCampaignLogic = (props) => {
 			currentQueueId,
 			handleRefresh,
 			fetchNextTask,
-			setIsSendingCampaign,
 			setNotification,
 			setShowCampaignModal,
-			setEmailPreview,
-			setSelectedCampaignId,
 		]
 	);
 
+	// FUNCIÓN 2.2: Confirmación de envío
 	const handleConfirmAndSend = useCallback(
 		(finalContent) => {
 			setConfirmProps({
@@ -271,26 +241,24 @@ export const useCampaignLogic = (props) => {
 				},
 			});
 		},
-		[
-			_executeConfirmAndSend,
-			closeConfirm,
-			selectedOrg?.nombre,
-			selectedOrg?.organizacion,
-			setConfirmProps,
-		]
+		[_executeConfirmAndSend, closeConfirm, selectedOrg, setConfirmProps]
 	);
 
+	// FUNCIÓN 4.2: Call Center - Lógica REAL de inicio
 	const _executeStartCallCenterMode = useCallback(
 		async (selectedOrgs) => {
 			setIsTaskLoading(true);
 			try {
+				if (!selectedCampaignId)
+					throw new Error("Campaña no seleccionada al iniciar CC.");
+
 				const orgIds = selectedOrgs.map((org) => org.id);
 				const response = await apiClient.createDynamicQueue(orgIds);
 				const { queueId } = response.data;
 				if (queueId) {
 					setCurrentQueueId(queueId);
 					setIsCallCenterMode(true);
-					await fetchNextTask(queueId, selectedCampaignId);
+					await fetchNextTask(queueId);
 				} else {
 					throw new Error("La API no devolvió un queueId.");
 				}
@@ -305,23 +273,18 @@ export const useCampaignLogic = (props) => {
 				setIsTaskLoading(false);
 			}
 		},
-		[
-			fetchNextTask,
-			selectedCampaignId,
-			setIsTaskLoading,
-			setCurrentQueueId,
-			setIsCallCenterMode,
-			setNotification,
-		]
+		[fetchNextTask, selectedCampaignId, setNotification]
 	);
 
+	// FUNCIÓN 4.3: Call Center - Confirmación de inicio
 	const startCallCenterMode = useCallback(
 		(selectedOrgs) => {
 			if (!selectedCampaignId) {
 				setNotification({
 					type: "warning",
 					title: "Campaña no seleccionada",
-					message: "Por favor, selecciona una campaña antes de iniciar.",
+					message:
+						"Por favor, selecciona una campaña del listado antes de iniciar el Modo Call Center.",
 				});
 				return;
 			}
@@ -329,14 +292,15 @@ export const useCampaignLogic = (props) => {
 				setNotification({
 					type: "warning",
 					title: "Selección Insuficiente",
-					message: "Debes seleccionar al menos 2 organizaciones.",
+					message:
+						"Debes seleccionar al menos 2 organizaciones para iniciar el modo call center.",
 				});
 				return;
 			}
 			setConfirmProps({
 				show: true,
 				title: "Iniciar Modo Call Center",
-				message: `¿Generar una cola con ${selectedOrgs.length} organizaciones?`,
+				message: `¿Estás seguro de que quieres generar una cola con ${selectedOrgs.length} organizaciones?`,
 				confirmText: "Generar Cola",
 				type: "info",
 				onConfirm: () => {
@@ -346,20 +310,26 @@ export const useCampaignLogic = (props) => {
 			});
 		},
 		[
-			selectedCampaignId,
-			setConfirmProps,
-			setNotification,
 			_executeStartCallCenterMode,
+			selectedCampaignId,
 			closeConfirm,
+			setNotification,
+			setConfirmProps,
 		]
 	);
 
 	return {
-		buildPromptFromTemplate,
+		emailPreview,
+		setEmailPreview,
+		isPreviewLoading,
+		isSendingCampaign,
+		isCallCenterMode,
+		isTaskLoading,
+		currentTask,
 		handleGeneratePreview,
 		handleConfirmAndSend,
 		startCallCenterMode,
-		_executeStartCallCenterMode, // Necesario para el modal
-		fetchNextTask, // Necesario para el modal
+		_executeStartCallCenterMode,
+		handleOpenCampaignModal,
 	};
 };
