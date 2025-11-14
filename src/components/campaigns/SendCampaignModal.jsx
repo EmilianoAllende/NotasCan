@@ -19,8 +19,8 @@ const SendCampaignModal = ({
   isTaskLoading,
   setConfirmProps,
   closeConfirm,
-  isCallCenterMode, 
-  onExecuteCallCenterStart 
+  isCallCenterMode,
+  // onExecuteCallCenterStart // No se usa directamente aquí
 }) => {
   const [showHtmlPreview, setShowHtmlPreview] = useState(false);
   const [editableContent, setEditableContent] = useState({ subject: '', body: '' });

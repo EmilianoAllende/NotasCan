@@ -3,13 +3,11 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import apiClient from "../api/apiClient";
 import { useDashboardData } from "./useDashboardData";
-import { tiposCampana } from "../data/data"; // Necesario para inicializar plantillas
-import { seedIfEmpty, saveTemplates } from "../utils/campaignsStore"; // Necesario para plantillas
 
 const CACHE_EXPIRATION_MS = 3 * 60 * 60 * 1000;
 
-// Plantilla por defecto para prompts (modo RAW)
-const DEFAULT_PROMPT = `Tu tarea es... (código de prompt omitido por brevedad)`;
+
+
 
 export const useAppState = () => {
 	// --- ESTADO DE AUTENTICACIÓN ---
@@ -80,24 +78,9 @@ export const useAppState = () => {
 	const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 	const [emailPreview, setEmailPreview] = useState(null); // { subject, body }
 
-	// --- ESTADO DE CAMPAÑAS Y PLANTILLAS ---
-	const [campaignTemplates, setCampaignTemplates] = useState(() => {
-		const defaults = Object.entries(tiposCampana).map(([id, t]) => ({
-			id,
-			title: t.nombre,
-			description: t.descripcion,
-			mode: "builder",
-			rawPrompt: DEFAULT_PROMPT,
-			builder: {
-				campaignType: id,
-				instructions: "",
-				examplesGood: "",
-				examplesBad: "",
-				useMetadata: true,
-			},
-		}));
-		return seedIfEmpty(defaults);
-	});
+	// --- ¡MODIFICADO! ESTADO DE CAMPAÑAS Y PLANTILLAS ---
+	const [campaignTemplates, setCampaignTemplates] = useState([]); // Inicia vacío
+	const [isLoadingTemplates, setIsLoadingTemplates] = useState(true); // Nuevo estado de carga
 
 	// --- ESTADO DE CALL CENTER ---
 	const [isCallCenterMode, setIsCallCenterMode] = useState(false);
@@ -137,17 +120,32 @@ export const useAppState = () => {
 		setActiveView("listado");
 	}, []);
 
-	const handleTemplatesChange = useCallback((next) => {
-		setCampaignTemplates(next);
-		saveTemplates(next);
+	// --- ¡NUEVO! Carga de Plantillas desde Supabase (vía n8n) ---
+	const fetchTemplates = useCallback(async () => {
+		setIsLoadingTemplates(true);
+		try {
+			const response = await apiClient.getTemplates();
+			setCampaignTemplates(response.data);
+		} catch (err) {
+			console.error("Error al cargar plantillas:", err);
+			setNotification({
+				type: "error",
+				title: "Error al Cargar Plantillas",
+				message: "No se pudieron cargar las plantillas desde la base de datos.",
+			});
+		} finally {
+			setIsLoadingTemplates(false);
+		}
 	}, []);
 
+	// --- ¡MODIFICADO! handleRefresh ---
 	const handleRefresh = useCallback(() => {
 		localStorage.removeItem("organizaciones_cache");
 		setOrganizaciones([]);
 		setCurrentPage(1);
 		setLastRefreshTs(null);
-	}, []);
+		fetchTemplates(); // <-- Refresca plantillas también
+	}, [fetchTemplates]);
 
 	const openEditor = useCallback((org) => {
 		setSelectedOrg(org);
@@ -171,35 +169,52 @@ export const useAppState = () => {
 	// --- LÓGICA DE NEGOCIO (API Y IA) ---
 	// =====================================================
 
-	// Construcción del Prompt
-	const buildPromptFromTemplate = useCallback((template, org) => {
-		if (!template) return DEFAULT_PROMPT;
-		if (template.mode === "raw" && template.rawPrompt)
-			return template.rawPrompt;
-		const persona = org?.nombres_org || org?.nombre || "[Contacto]";
-		const industria = org?.sector || org?.industria || "[Industria]";
-		const orgName = org?.organizacion || org?.nombre || "[Organización]";
-		const header = `Genera un correo de tipo "${
-			template?.builder?.campaignType || template.id
-		}" para la organización "${orgName}".`;
-		const meta = `Datos del destinatario: contacto: ${persona}; industria: ${industria}.`;
-		const baseInstr = `El tono debe ser profesional pero cercano. El asunto corto y atractivo. El cuerpo conciso.`;
-		const extra = template?.builder?.instructions
-			? `Instrucciones extra: ${template.builder.instructions}`
-			: "";
-		return [
-			header,
-			`Título de campaña: ${template.title}`,
-			`Descripción: ${template.description}`,
-			meta,
-			baseInstr,
-			extra,
-		]
-			.filter(Boolean)
-			.join("\n");
-	}, []);
+	// --- Handlers para el Editor de Campañas ---
+	const handleSaveTemplate = useCallback(
+		async (templateData) => {
+			try {
+				await apiClient.saveTemplate(templateData); // Llama al POST (Upsert)
+				setNotification({
+					type: "success",
+					title: "Plantilla Guardada",
+					message: "Los cambios se guardaron en la base de datos.",
+				});
+				await fetchTemplates(); // Refresca la lista
+			} catch (err) {
+				console.error("Error al guardar plantilla:", err);
+				setNotification({
+					type: "error",
+					title: "Error al Guardar",
+					message: "No se pudo guardar la plantilla.",
+				});
+			}
+		},
+		[fetchTemplates]
+	);
 
-	// FUNCIÓN 1: Generar el borrador (Preview)
+	const handleDeleteTemplate = useCallback(
+		async (templateId) => {
+			try {
+				await apiClient.deleteTemplate(templateId); // Llama al DELETE
+				setNotification({
+					type: "success",
+					title: "Plantilla Eliminada",
+					message: "La plantilla fue eliminada.",
+				});
+				await fetchTemplates(); // Refresca la lista
+			} catch (err) {
+				console.error("Error al eliminar plantilla:", err);
+				setNotification({
+					type: "error",
+					title: "Error al Eliminar",
+					message: "No se pudo eliminar la plantilla.",
+				});
+			}
+		},
+		[fetchTemplates]
+	);
+
+	// --- FUNCIÓN 1: Generar el borrador (Preview) ---
 	const handleGeneratePreview = useCallback(
 		async (orgToPreview, campaignIdToPreview) => {
 			const organization = orgToPreview || selectedOrg;
@@ -216,21 +231,14 @@ export const useAppState = () => {
 			setIsPreviewLoading(true);
 			setEmailPreview(null);
 			try {
-				const template = campaignTemplates.find((t) => t.id === campaignId);
-				const prompt = buildPromptFromTemplate(template, organization);
+		// Ya no construimos el prompt. Solo enviamos los IDs.
 				const payload = {
-					data: {
-						organization: organization,
-						campaign: {
-							id: template.id,
-							title: template.title,
-							description: template.description,
-							mode: template.mode,
-							prompt,
-						},
-					},
+					organization: organization,
+					campaignId: campaignId,
 				};
+
 				const response = await apiClient.generatePreview(payload);
+
 				setEmailPreview(response.data);
 				setNotification({
 					type: "success",
@@ -251,10 +259,7 @@ export const useAppState = () => {
 			}
 		},
 		[
-			selectedOrg,
-			selectedCampaignId,
-			campaignTemplates,
-			buildPromptFromTemplate,
+			selectedOrg, selectedCampaignId
 		]
 	);
 
@@ -298,13 +303,13 @@ export const useAppState = () => {
 	// --- LÓGICA DE CALL CENTER Y ENVÍO ---
 	// =====================================================
 
-	// FUNCIÓN 4.1: Call Center - Obtener siguiente tarea (usado internamente y en envío)
+	// --- ¡MODIFICADO! FUNCIÓN 4.1: Call Center - Obtener siguiente tarea ---
 	const fetchNextTask = useCallback(
 		async (queueId, campaignId) => {
 			setIsTaskLoading(true);
 			setShowCampaignModal(true);
 			setEmailPreview(null);
-			const CURRENT_USER_ID = currentUser?.usuario || "user_default"; // Asegurar un ID de usuario
+			const CURRENT_USER_ID = currentUser?.usuario || "user_default";
 
 			try {
 				if (!queueId)
@@ -319,16 +324,14 @@ export const useAppState = () => {
 					const taskData = taskResponse.data;
 					const organization = taskData.organization;
 
-					const template = campaignTemplates.find((t) => t.id === campaignId);
-					if (!template) throw new Error("Plantilla no encontrada.");
-
-					const prompt = buildPromptFromTemplate(template, organization);
-
-					const previewPayload = {
-						data: { organization, campaign: { ...template, prompt } },
+					// 2. Llamar a generatePreview con el payload simple
+					const payload = {
+						organization: organization,
+						campaignId: campaignId, // campaignId viene como argumento
 					};
-					const emailResponse = await apiClient.generatePreview(previewPayload);
+					const emailResponse = await apiClient.generatePreview(payload);
 
+					// 3. Establecer estado
 					setCurrentTask(taskData);
 					setSelectedOrg(organization);
 					setEmailPreview(emailResponse.data);
@@ -355,7 +358,7 @@ export const useAppState = () => {
 				setIsTaskLoading(false);
 			}
 		},
-		[currentUser, campaignTemplates, buildPromptFromTemplate]
+		[currentUser] // Dependencias simplificadas
 	);
 
 	// FUNCIÓN 2.1: Lógica REAL de envío
@@ -502,6 +505,7 @@ export const useAppState = () => {
 				return;
 			}
 
+			// ... (resto de validaciones sin cambios)
 			if (!selectedOrgs || selectedOrgs.length < 2) {
 				setNotification({
 					type: "warning",
@@ -526,42 +530,52 @@ export const useAppState = () => {
 		[_executeStartCallCenterMode, selectedCampaignId, closeConfirm]
 	);
 
-	// =====================================================
+// =====================================================
 	// --- EFECTOS (SIDE EFFECTS) ---
 	// =====================================================
 
-	// Efecto para la carga inicial de organizaciones
+	// --- ¡MODIFICADO! Efecto de Carga Inicial ---
 	useEffect(() => {
-		if (organizaciones.length === 0 && isAuthenticated) {
-			setIsLoading(true);
-			const fetchOrganizaciones = async () => {
-				try {
-					const response = await apiClient.getOrganizaciones();
-					const cache = {
-						data: response.data,
-						timestamp: new Date().getTime(),
-					};
-					localStorage.setItem("organizaciones_cache", JSON.stringify(cache));
-					setOrganizaciones(response.data);
-					setLastRefreshTs(cache.timestamp);
-				} catch (err) {
-					setError(err);
-				} finally {
-					setIsLoading(false);
-				}
-			};
-			fetchOrganizaciones();
+		if (isAuthenticated) {
+			// Cargar organizaciones
+			if (organizaciones.length === 0) {
+				setIsLoading(true);
+				const fetchOrganizaciones = async () => {
+					try {
+						const response = await apiClient.getOrganizaciones();
+						const cache = {
+							data: response.data,
+							timestamp: new Date().getTime(),
+						};
+						localStorage.setItem("organizaciones_cache", JSON.stringify(cache));
+						setOrganizaciones(response.data);
+						setLastRefreshTs(cache.timestamp);
+					} catch (err) {
+						setError(err);
+					} finally {
+						setIsLoading(false);
+					}
+				};
+				fetchOrganizaciones();
+			}
+			// --- ¡AÑADIDO! Cargar plantillas ---
+			if (campaignTemplates.length === 0) {
+				fetchTemplates();
+			}
+
 		}
-	}, [organizaciones.length, isAuthenticated]);
+	}, [isAuthenticated, organizaciones.length, campaignTemplates.length, fetchTemplates]); // <-- Dependencias corregidas
 
 	// =====================================================
 	// --- RETORNO DEL HOOK ---
 	// =====================================================
 	return {
+		// Auth & User
 		currentUser,
 		isAuthenticated,
 		handleLoginSuccess,
 		handleLogout,
+		// UI State
 		isSidebarCollapsed,
 		setIsSidebarCollapsed,
 		activeView,
@@ -575,6 +589,7 @@ export const useAppState = () => {
 		confirmProps,
 		setConfirmProps,
 		closeConfirm,
+		// Filters
 		filterStatus,
 		setFilterStatus,
 		filterType,
@@ -584,29 +599,46 @@ export const useAppState = () => {
 		setFilterSuscripcion,
 		currentPage,
 		setCurrentPage,
+		// Data
 		organizaciones,
 		lastRefreshTs,
 		handleRefresh,
 		isLoading,
 		error,
+		// Procesos
 		isSaving,
 		isSendingCampaign,
 		isPreviewLoading,
+
+		// --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
+		// Plantillas (¡MODIFICADO!)
 		campaignTemplates,
-		handleTemplatesChange,
+		isLoadingTemplates, // <-- Añadido
+		handleSaveTemplate, // <-- Añadido
+		handleDeleteTemplate, // <-- Añadido
+		onAddTemplate: handleSaveTemplate, // <-- Añadido (Alias para Upsert)
+		// handleTemplatesChange, // <-- ELIMINADO
+		// --- FIN DE LA CORRECCIÓN ---
+
 		selectedCampaignId,
 		setSelectedCampaignId,
+		// Campañas
 		emailPreview,
+		setEmailPreview, // <-- Exportado para App.jsx
 		handleGeneratePreview,
 		handleConfirmAndSend,
+		// Call Center
 		isCallCenterMode,
 		isTaskLoading,
 		startCallCenterMode,
 		_executeStartCallCenterMode,
+		// Handlers de Navegación
 		openEditor,
 		viewDetail,
 		handleOpenCampaignModal,
+		// Handlers de Datos
 		saveContact,
+		// Dashboard Data
 		metricas,
 		estadosData,
 		islasData,
