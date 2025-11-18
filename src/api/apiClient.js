@@ -1,14 +1,32 @@
 import axios from "axios";
 
-// --- ¡CAMBIO CLAVE PARA PRODUCCIÓN! ---
-// Apuntamos directamente a tu URL de n8n en la nube.
-const N8N_BASE_URL = "https://n8n.icc-e.org";
+// Apuntamos a "/" para que React use el "proxy" definido en package.json
+const N8N_BASE_URL = "/";
 
 const apiClient = axios.create({
-	// Ya no usamos el proxy "/", usamos la URL completa.
 	baseURL: N8N_BASE_URL,
 });
 // ------------------------------------
+
+// --- ¡NUEVO! Interceptor para Logs de Depuración ---
+apiClient.interceptors.request.use((request) => {
+	console.groupCollapsed(
+		`🚀 API Request: ${request.method.toUpperCase()} ${request.url}`
+	);
+	console.log("URL Completa:", request.baseURL + request.url);
+	console.log("Headers:", request.headers);
+
+	if (request.data) {
+		console.log("📦 Body (Datos enviados):", request.data);
+	}
+
+	if (request.params) {
+		console.log("🔍 Query Params:", request.params);
+	}
+
+	console.groupEnd();
+	return request;
+});
 
 // --- LISTADO DE ORGANIZACIONES DESDE DYNAMO ---
 const GET_ORGANIZACIONES_PATH = "/webhook/573b9827-ad59-425f-9526-e2d16a7e2198"; // Endpoint de DynamoDB
@@ -20,31 +38,29 @@ const TEMPLATES_PATH = "/webhook/templates"; // Endpoint del flujo TemplateManag
 const GENERATE_PREVIEW_PATH = "/webhook/generate-preview"; // Endpoint del flujo MailWriter
 const CONFIRM_SEND_PATH = "/webhook/confirm-and-send";
 
-// === FUNCIONES DE PLANTILLAS (NUEVO) ===
-
-/**
- * Obtiene TODAS las plantillas de prompts desde Supabase.
- */
+// Obtiene TODAS las plantillas de prompts desde Supabase.*/
 apiClient.getTemplates = () => {
-	return apiClient.get(TEMPLATES_PATH);
+	return apiClient.post(TEMPLATES_PATH, { action: "GET" });
 };
 
-/**
- * Guarda o actualiza una plantilla en Supabase (Usa el Upsert).
- * @param {object} templateData - El objeto completo de la plantilla.
- */
+/*** Guarda o actualiza una plantilla en Supabase (Usa el Upsert).*
+//  *  @param {object} templateData - El objeto completo de la plantilla.*/
 apiClient.saveTemplate = (templateData) => {
-	// El flujo n8n TemplateManager espera el payload en el body
-	return apiClient.post(TEMPLATES_PATH, templateData);
+	return apiClient.post(TEMPLATES_PATH, {
+		action: "SAVE",
+		payload: templateData,
+	});
 };
 
 /**
  * Borra una plantilla de Supabase usando su ID.
- * @param {string} templateId - El ID de la plantilla (ej: "mmi_analytics").
+//  * @param {string} templateId - El ID de la plantilla.
  */
 apiClient.deleteTemplate = (templateId) => {
-	// El flujo n8n TemplateManager espera el ID en los query params
-	return apiClient.delete(`${TEMPLATES_PATH}?id=${templateId}`);
+	return apiClient.post(TEMPLATES_PATH, {
+		action: "DELETE",
+		payload: { id: templateId },
+	});
 };
 
 // Función para OBTENER toda la lista de organizaciones.
@@ -85,7 +101,7 @@ apiClient.confirmAndSend = (payload) => {
 // PREPARADO: historial de campañas (por tipo y fecha). Endpoint placeholder para cuando exista en el back.
 apiClient.getCampaignsHistory = () => {
 	// Espera que el backend exponga este webhook con estructura adecuada.
-	return apiClient.get("/webhook/campaigns-history").catch((error) => {
+	return apiClient.get("webhook/campaigns-history").catch((error) => {
 		console.error("Error al obtener el historial de campañas:", error);
 		throw error;
 	});
@@ -93,7 +109,7 @@ apiClient.getCampaignsHistory = () => {
 
 // Crear una cola dinámica a partir de una lista de IDs
 apiClient.createDynamicQueue = (orgIds) => {
-	return apiClient.post("/webhook/create-dynamic-queue", { orgIds });
+	return apiClient.post("webhook/create-dynamic-queue", { orgIds });
 };
 
 // Obtener el siguiente item de una cola específica (ya modificada para multiusuario)
@@ -105,13 +121,13 @@ apiClient.getNextInQueue = (queueId, userId) => {
 
 // --- ¡NUEVO! Función de Login ---
 apiClient.login = (usuario, password) => {
-	return apiClient.post("/webhook/login", { usuario, password });
+	return apiClient.post("webhook/login", { usuario, password });
 };
 
 // --- ¡NUEVO! Función de Crear Usuario (Admin) ---
 apiClient.createUser = (usuario, password, rol, token) => {
 	return apiClient.post(
-		"/webhook/create-user",
+		"webhook/create-user",
 		{ usuario, password, rol }, // El body que recibe n8n
 		{
 			headers: {
