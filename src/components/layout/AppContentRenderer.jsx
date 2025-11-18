@@ -1,9 +1,7 @@
 /* eslint-disable no-unused-vars */
-// src/components/layout/AppContentRenderer.jsx
 import React from "react";
 
-// Importaciones de las vistas
-import Dashboard from "../layout/Dashboard";
+import Dashboard from "./Dashboard"; // Asumiendo que Dashboard está en ./layout/
 import OrganizationList from "../organization/OrganizationList";
 import OrganizationDetail from "../organization/OrganizationDetail";
 import Campaigns from "../campaigns/Campaigns";
@@ -11,7 +9,6 @@ import ContactEditor from "../editor-tabs/ContactEditor";
 import UserAdmin from "../users/UserAdmin";
 
 const AppContentRenderer = (props) => {
-	// Desestructuración de las props para el renderizado
 	const {
 		activeView,
 		setActiveView,
@@ -40,7 +37,9 @@ const AppContentRenderer = (props) => {
 		saveContact,
 		selectedOrg,
 		campaignTemplates,
-		handleTemplatesChange,
+		handleSaveTemplate,
+		handleDeleteTemplate,
+		handleAddTemplate,
 		selectedCampaignId,
 		setSelectedCampaignId,
 		startCallCenterMode,
@@ -121,10 +120,12 @@ const AppContentRenderer = (props) => {
 			return (
 				<Campaigns
 					campaignTemplates={campaignTemplates}
-					onTemplatesChange={handleTemplatesChange}
 					onSelectTemplateForSend={setSelectedCampaignId}
 					setConfirmProps={setConfirmProps}
 					closeConfirm={closeConfirm}
+					onSaveTemplate={handleSaveTemplate}
+					onDeleteTemplate={handleDeleteTemplate}
+					onAddTemplate={handleAddTemplate}
 				/>
 			);
 		case "admin":
@@ -132,14 +133,18 @@ const AppContentRenderer = (props) => {
 				<UserAdmin
 					currentUser={currentUser}
 					setNotification={setNotification}
+					setConfirmProps={setConfirmProps}
+					closeConfirm={closeConfirm}
 				/>
 			);
 		default:
 			return (
 				<div className="flex items-center justify-center h-full">
+					 {" "}
 					<div className="p-8 text-center text-slate-500 dark:text-slate-400">
-						<p>Por favor, selecciona una vista.</p>
+						  <p>Por favor, selecciona una vista.</p> {" "}
 					</div>
+					 {" "}
 				</div>
 			);
 	}
