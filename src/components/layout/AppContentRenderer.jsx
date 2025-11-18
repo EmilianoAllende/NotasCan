@@ -1,9 +1,7 @@
 /* eslint-disable no-unused-vars */
-// src/components/layout/AppContentRenderer.jsx
 import React from "react";
 
-// Importaciones de las vistas
-import Dashboard from "../layout/Dashboard";
+import Dashboard from "./Dashboard"; // Asumiendo que Dashboard está en ./layout/
 import OrganizationList from "../organization/OrganizationList";
 import OrganizationDetail from "../organization/OrganizationDetail";
 import Campaigns from "../campaigns/Campaigns";
@@ -11,7 +9,6 @@ import ContactEditor from "../editor-tabs/ContactEditor";
 import UserAdmin from "../users/UserAdmin";
 
 const AppContentRenderer = (props) => {
-	// Desestructuración de las props para el renderizado
 	const {
 		activeView,
 		setActiveView,
@@ -40,6 +37,9 @@ const AppContentRenderer = (props) => {
 		saveContact,
 		selectedOrg,
 		campaignTemplates,
+		handleSaveTemplate,
+		handleDeleteTemplate,
+		handleAddTemplate,
 		selectedCampaignId,
 		setSelectedCampaignId,
 		startCallCenterMode,
@@ -95,7 +95,15 @@ const AppContentRenderer = (props) => {
 			);
 		case "campanas":
 			return (
-				<Campaigns {...props} />
+				<Campaigns
+					campaignTemplates={campaignTemplates}
+					onSelectTemplateForSend={setSelectedCampaignId}
+					setConfirmProps={setConfirmProps}
+					closeConfirm={closeConfirm}
+					onSaveTemplate={handleSaveTemplate}
+					onDeleteTemplate={handleDeleteTemplate}
+					onAddTemplate={handleAddTemplate}
+				/>
 			);
 		case "admin":
 			return (
@@ -109,9 +117,11 @@ const AppContentRenderer = (props) => {
 		default:
 			return (
 				<div className="flex items-center justify-center h-full">
+					 {" "}
 					<div className="p-8 text-center text-slate-500 dark:text-slate-400">
-						<p>Por favor, selecciona una vista.</p>
+						  <p>Por favor, selecciona una vista.</p> {" "}
 					</div>
+					 {" "}
 				</div>
 			);
 	}

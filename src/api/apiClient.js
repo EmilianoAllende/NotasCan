@@ -39,10 +39,14 @@ const GENERATE_PREVIEW_PATH = "/webhook/generate-preview"; // Endpoint del flujo
 const CONFIRM_SEND_PATH = "/webhook/confirm-and-send";
 
 // Obtiene TODAS las plantillas de prompts desde Supabase.*/
+// Obtiene TODAS las plantillas de prompts desde Supabase.*/
 apiClient.getTemplates = () => {
+	return apiClient.post(TEMPLATES_PATH, { action: "GET" });
 	return apiClient.post(TEMPLATES_PATH, { action: "GET" });
 };
 
+/*** Guarda o actualiza una plantilla en Supabase (Usa el Upsert).*
+//  *  @param {object} templateData - El objeto completo de la plantilla.*/
 /*** Guarda o actualiza una plantilla en Supabase (Usa el Upsert).*
 //  *  @param {object} templateData - El objeto completo de la plantilla.*/
 apiClient.saveTemplate = (templateData) => {
@@ -54,6 +58,7 @@ apiClient.saveTemplate = (templateData) => {
 
 /**
  * Borra una plantilla de Supabase usando su ID.
+//  * @param {string} templateId - El ID de la plantilla.
 //  * @param {string} templateId - El ID de la plantilla.
  */
 apiClient.deleteTemplate = (templateId) => {
@@ -109,7 +114,7 @@ apiClient.getCampaignsHistory = () => {
 
 // Crear una cola dinámica a partir de una lista de IDs
 apiClient.createDynamicQueue = (orgIds) => {
-	return apiClient.post("/webhook/create-dynamic-queue", { orgIds });
+	return apiClient.post("webhook/create-dynamic-queue", { orgIds });
 };
 
 // Obtener el siguiente item de una cola específica (ya modificada para multiusuario)
@@ -121,13 +126,13 @@ apiClient.getNextInQueue = (queueId, userId) => {
 
 // --- ¡NUEVO! Función de Login ---
 apiClient.login = (usuario, password) => {
-	return apiClient.post("/webhook/login", { usuario, password });
+	return apiClient.post("webhook/login", { usuario, password });
 };
 
 // --- ¡NUEVO! Función de Crear Usuario (Admin) ---
 apiClient.createUser = (usuario, password, rol, token) => {
 	return apiClient.post(
-		"/webhook/create-user",
+		"webhook/create-user",
 		{ usuario, password, rol }, // El body que recibe n8n
 		{
 			headers: {
