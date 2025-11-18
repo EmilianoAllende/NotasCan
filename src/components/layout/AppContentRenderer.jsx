@@ -40,7 +40,6 @@ const AppContentRenderer = (props) => {
 		saveContact,
 		selectedOrg,
 		campaignTemplates,
-		handleTemplatesChange,
 		selectedCampaignId,
 		setSelectedCampaignId,
 		startCallCenterMode,
@@ -63,31 +62,7 @@ const AppContentRenderer = (props) => {
 			);
 		case "listado":
 			return (
-				<OrganizationList
-					organizaciones={organizaciones}
-					openEditModal={openEditor}
-					viewDetail={viewDetail}
-					openCampaign={handleOpenCampaignModal}
-					filterStatus={filterStatus}
-					setFilterStatus={setFilterStatus}
-					filterType={filterType}
-					setFilterType={setFilterType}
-					filterIsla={filterIsla}
-					setFilterIsla={setFilterIsla}
-					filterSuscripcion={filterSuscripcion}
-					setFilterSuscripcion={setFilterSuscripcion}
-					lastRefreshTs={lastRefreshTs}
-					currentPage={currentPage}
-					setCurrentPage={setCurrentPage}
-					onRefresh={handleRefresh}
-					startCallCenterMode={startCallCenterMode}
-					campaignTemplates={campaignTemplates}
-					selectedCampaignId={selectedCampaignId}
-					setSelectedCampaignId={setSelectedCampaignId}
-					setConfirmProps={setConfirmProps}
-					closeConfirm={closeConfirm}
-					setNotification={setNotification}
-				/>
+				<OrganizationList {...props} />
 			);
 		case "detalle":
 			return (
@@ -96,6 +71,7 @@ const AppContentRenderer = (props) => {
 					openEditModal={openEditor}
 					setShowCampaignModal={() => handleOpenCampaignModal(selectedOrg)}
 					selectedCampaignId={selectedCampaignId}
+					setNotification={setNotification}
 					onSelectCampaignRequired={() => {
 						setNotification({
 							type: "warning",
@@ -119,19 +95,15 @@ const AppContentRenderer = (props) => {
 			);
 		case "campanas":
 			return (
-				<Campaigns
-					campaignTemplates={campaignTemplates}
-					onTemplatesChange={handleTemplatesChange}
-					onSelectTemplateForSend={setSelectedCampaignId}
-					setConfirmProps={setConfirmProps}
-					closeConfirm={closeConfirm}
-				/>
+				<Campaigns {...props} />
 			);
 		case "admin":
 			return (
 				<UserAdmin
 					currentUser={currentUser}
 					setNotification={setNotification}
+					setConfirmProps={setConfirmProps}
+					closeConfirm={closeConfirm}
 				/>
 			);
 		default:

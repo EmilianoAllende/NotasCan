@@ -57,16 +57,24 @@ export const useAppState = () => {
 		}
 	});
 
-	const [organizaciones, setOrganizaciones] = useState(() => {
+const [organizaciones, setOrganizaciones] = useState(() => {
 		try {
 			const cachedData = localStorage.getItem("organizaciones_cache");
-			if (!cachedData) return [];
+			if (!cachedData) return []; // <-- Devuelve array vacío si no hay caché
+
 			const { data, timestamp } = JSON.parse(cachedData);
 			const isExpired = new Date().getTime() - timestamp > CACHE_EXPIRATION_MS;
-			return isExpired ? [] : data;
+
+			// --- ¡LA CLAVE! Asegurarse de que 'data' sea un array ---
+			if (isExpired || !Array.isArray(data)) {
+				localStorage.removeItem("organizaciones_cache");
+				return []; // Devuelve array vacío si está expirado o corrupto
+			}
+			
+			return data; // Solo devuelve 'data' si es un array válido
 		} catch (error) {
 			console.error("Error al leer desde localStorage", error);
-			return [];
+			return []; // Devuelve array vacío en cualquier error
 		}
 	});
 
@@ -120,19 +128,50 @@ export const useAppState = () => {
 		setActiveView("listado");
 	}, []);
 
-	// --- ¡NUEVO! Carga de Plantillas desde Supabase (vía n8n) ---
+	// --- ¡CORREGIDO! Carga de Plantillas (Más Segura y Mapeada) ---
 	const fetchTemplates = useCallback(async () => {
 		setIsLoadingTemplates(true);
 		try {
 			const response = await apiClient.getTemplates();
-			setCampaignTemplates(response.data);
+
+			if (Array.isArray(response.data)) {
+				// Mapeamos los datos de la DB al formato que espera el Frontend.
+				const mappedTemplates = response.data.map(template => ({
+					// Renombramos 'builder_config' (DB) a 'builder' (React)
+					// y nos aseguramos de que sea un objeto si es nulo
+					builder: template.builder_config || { campaignType: '', instructions: '', examplesGood: '', examplesBad: '', useMetadata: true },
+					
+					// Nos aseguramos de que los campos de texto NUNCA sean 'null'
+					// para evitar el error de "uncontrolled input"
+					id: template.id, // El ID debe existir
+					title: template.title || '',
+					description: template.description || '',
+					mode: template.mode || 'builder',
+					rawPrompt: template.rawPrompt || '',
+				}));
+				// --- FIN DEL CAMBIO ---
+
+				setCampaignTemplates(mappedTemplates);
+
+			} else {
+				// ... (Manejo de error si la API no devuelve un array)
+				console.error("Error: la API de plantillas no devolvió un array.", response.data);
+				setCampaignTemplates([]); 
+				setNotification({
+					type: "error",
+					title: "Error de Datos",
+					message: "La API de plantillas devolvió datos inesperados.",
+				});
+			}
 		} catch (err) {
+			// ... (Manejo de error de red)
 			console.error("Error al cargar plantillas:", err);
 			setNotification({
 				type: "error",
 				title: "Error al Cargar Plantillas",
-				message: "No se pudieron cargar las plantillas desde la base de datos.",
+				message: `No se pudieron cargar las plantillas: ${err.message}`,
 			});
+			setCampaignTemplates([]); 
 		} finally {
 			setIsLoadingTemplates(false);
 		}
@@ -194,20 +233,27 @@ export const useAppState = () => {
 
 	const handleDeleteTemplate = useCallback(
 		async (templateId) => {
+			console.log("useAppState: handleDeleteTemplate llamado con ID:", templateId); // LOG
 			try {
-				await apiClient.deleteTemplate(templateId); // Llama al DELETE
+				// La API ahora devuelve una respuesta de éxito genérica, no los datos borrados.
+				await apiClient.deleteTemplate(templateId);
+
 				setNotification({
 					type: "success",
 					title: "Plantilla Eliminada",
 					message: "La plantilla fue eliminada.",
 				});
+
 				await fetchTemplates(); // Refresca la lista
+
+				console.log("useAppState: Borrado y refresco completados."); // LOG
 			} catch (err) {
+				// --- ¡LA CLAVE! Atrapamos el error que estaba silente ---
 				console.error("Error al eliminar plantilla:", err);
 				setNotification({
 					type: "error",
 					title: "Error al Eliminar",
-					message: "No se pudo eliminar la plantilla.",
+					message: `No se pudo eliminar la plantilla. Error: ${err.message || "Desconocido" }`,
 				});
 			}
 		},
@@ -303,7 +349,7 @@ export const useAppState = () => {
 	// --- LÓGICA DE CALL CENTER Y ENVÍO ---
 	// =====================================================
 
-	// --- ¡MODIFICADO! FUNCIÓN 4.1: Call Center - Obtener siguiente tarea ---
+	// --- FUNCIÓN 4.1: Call Center - Obtener siguiente tarea ---
 	const fetchNextTask = useCallback(
 		async (queueId, campaignId) => {
 			setIsTaskLoading(true);
@@ -315,7 +361,7 @@ export const useAppState = () => {
 				if (!queueId)
 					throw new Error("Intento de fetch sin un queueId activo.");
 
-				const taskResponse = await apiClient.getNextInQueue(
+				const taskResponse = await apiClient.getNextInQueue( //
 					queueId,
 					CURRENT_USER_ID
 				);
@@ -358,7 +404,7 @@ export const useAppState = () => {
 				setIsTaskLoading(false);
 			}
 		},
-		[currentUser] // Dependencias simplificadas
+		[currentUser]
 	);
 
 	// FUNCIÓN 2.1: Lógica REAL de envío
@@ -505,7 +551,6 @@ export const useAppState = () => {
 				return;
 			}
 
-			// ... (resto de validaciones sin cambios)
 			if (!selectedOrgs || selectedOrgs.length < 2) {
 				setNotification({
 					type: "warning",
@@ -534,7 +579,7 @@ export const useAppState = () => {
 	// --- EFECTOS (SIDE EFFECTS) ---
 	// =====================================================
 
-	// --- ¡MODIFICADO! Efecto de Carga Inicial ---
+	// --- ¡CORREGIDO! Efecto de Carga Inicial ---
 	useEffect(() => {
 		if (isAuthenticated) {
 			// Cargar organizaciones
@@ -609,22 +654,16 @@ export const useAppState = () => {
 		isSaving,
 		isSendingCampaign,
 		isPreviewLoading,
-
-		// --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
-		// Plantillas (¡MODIFICADO!)
 		campaignTemplates,
-		isLoadingTemplates, // <-- Añadido
-		handleSaveTemplate, // <-- Añadido
-		handleDeleteTemplate, // <-- Añadido
-		onAddTemplate: handleSaveTemplate, // <-- Añadido (Alias para Upsert)
-		// handleTemplatesChange, // <-- ELIMINADO
-		// --- FIN DE LA CORRECCIÓN ---
-
+		isLoadingTemplates,
+		handleSaveTemplate,
+		handleDeleteTemplate,
+		onAddTemplate: handleSaveTemplate,
 		selectedCampaignId,
 		setSelectedCampaignId,
 		// Campañas
 		emailPreview,
-		setEmailPreview, // <-- Exportado para App.jsx
+		setEmailPreview,
 		handleGeneratePreview,
 		handleConfirmAndSend,
 		// Call Center

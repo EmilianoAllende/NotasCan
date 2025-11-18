@@ -114,35 +114,6 @@ const Campaigns = ({
     setEditingTpl(null);
   };
 
-// const addTemplate = async () => { // <-- 1. Convertir a async
-// 		const baseId = "custom_" + Date.now();
-// 		const draft = {
-// 			id: baseId,
-// 			title: "Nueva campaña",
-// 			description: "Descripción breve...",
-// 			mode: "builder",
-// 			rawPrompt: "",
-// 			builder: {
-// 				campaignType: "personalizada",
-// 				instructions: "",
-// 				examplesGood: "",
-// 				examplesBad: "",
-// 				useMetadata: true,
-// 			},
-// 		};
-
-// 		// 2. Esperar (await) a que la plantilla se guarde
-// 		//    y la lista se refresque.
-// 		if (onAddTemplate) {
-// 			await onAddTemplate(draft);
-// 		}
-
-// 		// 3. Ahora que la lista está actualizada,
-// 		//    seleccionar el ID.
-// 		setSelectedTplId(baseId);
-// 	};
-
-
 const addTemplate = () => { // <-- 1. Quitamos 'async'
 		const baseId = "custom_" + Date.now();
 		const draft = {
@@ -183,7 +154,7 @@ const addTemplate = () => { // <-- 1. Quitamos 'async'
       cancelText: 'No, volver', // Botón de cancelar
       type: 'info',
       onConfirm: () => {
-        saveTemplate();
+        saveTemplate(); // <-- Llama a la función con logs
         closeConfirm();
       }
     });
@@ -199,7 +170,7 @@ const addTemplate = () => { // <-- 1. Quitamos 'async'
       cancelText: 'No, volver',
       type: 'danger',
       onConfirm: () => {
-        deleteTemplate();
+        deleteTemplate(); // <-- Llama a la función con logs
         closeConfirm();
       }
     });
@@ -350,7 +321,7 @@ const addTemplate = () => { // <-- 1. Quitamos 'async'
           ✉️ Editor de Plantillas de Campaña
         </h3>
         <button
-          onClick={addTemplate}
+          onClick={addTemplate} // <-- Llama a la función con logs
           className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition"
         >
           <Plus size={16} /> Nueva plantilla
@@ -600,14 +571,14 @@ const addTemplate = () => { // <-- 1. Quitamos 'async'
                 </button>
 
                 <button
-                  onClick={handleDeleteClick}
+                  onClick={handleDeleteClick} // <-- Llama a la función con logs
                   className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-red-600 text-red-600 hover:bg-red-50 dark:text-red-400 dark:border-red-700 dark:hover:bg-red-900/30"
                 >
                   <Trash2 size={16} /> Eliminar
                 </button>
 
                 <button
-                  onClick={handleSaveClick}
+                  onClick={handleSaveClick} // <-- Llama a la función con logs
                   className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700"
                 >
                   <Save size={16} /> Guardar cambios
