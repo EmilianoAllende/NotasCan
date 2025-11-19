@@ -49,5 +49,8 @@ export const useNavigationHandlers = (
 		openEditor,
 		viewDetail,
 		handleOpenCampaignModal,
+		// --- ¡LA CORRECCIÓN! ---
+		// Creamos el alias que 'useOrganizationList' está buscando
+		openCampaign: handleOpenCampaignModal,
 	};
 };
