@@ -39,9 +39,7 @@ const GENERATE_PREVIEW_PATH = "/webhook/generate-preview"; // Endpoint del flujo
 const CONFIRM_SEND_PATH = "/webhook/confirm-and-send";
 
 // Obtiene TODAS las plantillas de prompts desde Supabase.*/
-// Obtiene TODAS las plantillas de prompts desde Supabase.*/
 apiClient.getTemplates = () => {
-	return apiClient.post(TEMPLATES_PATH, { action: "GET" });
 	return apiClient.post(TEMPLATES_PATH, { action: "GET" });
 };
 
@@ -58,7 +56,6 @@ apiClient.saveTemplate = (templateData) => {
 
 /**
  * Borra una plantilla de Supabase usando su ID.
-//  * @param {string} templateId - El ID de la plantilla.
 //  * @param {string} templateId - El ID de la plantilla.
  */
 apiClient.deleteTemplate = (templateId) => {
@@ -106,7 +103,7 @@ apiClient.confirmAndSend = (payload) => {
 // PREPARADO: historial de campañas (por tipo y fecha). Endpoint placeholder para cuando exista en el back.
 apiClient.getCampaignsHistory = () => {
 	// Espera que el backend exponga este webhook con estructura adecuada.
-	return apiClient.get("//webhook/campaigns-history").catch((error) => {
+	return apiClient.get("/webhook/campaigns-history").catch((error) => {
 		console.error("Error al obtener el historial de campañas:", error);
 		throw error;
 	});

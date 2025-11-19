@@ -96,10 +96,6 @@ const Campaigns = ({
 		return () => {
 			mounted = false;
 		};
-		// <--- IMPORTANTE: Array vacío para evitar bucles
-		// --- ¡AQUÍ ESTÁ EL CAMBIO CLAVE! ---
-		// Cambiamos [campanasActivas, ...] por []
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const toggleType = (typeId) => {
@@ -149,34 +145,6 @@ const Campaigns = ({
 		setEditingTpl(null);
 	};
 
-	// const addTemplate = async () => { // <-- 1. Convertir a async
-	// 		const baseId = "custom_" + Date.now();
-	// 		const draft = {
-	// 			id: baseId,
-	// 			title: "Nueva campaña",
-	// 			description: "Descripción breve...",
-	// 			mode: "builder",
-	// 			rawPrompt: "",
-	// 			builder: {
-	// 				campaignType: "personalizada",
-	// 				instructions: "",
-	// 				examplesGood: "",
-	// 				examplesBad: "",
-	// 				useMetadata: true,
-	// 			},
-	// 		};
-
-	// 		// 2. Esperar (await) a que la plantilla se guarde
-	// 		//    y la lista se refresque.
-	// 		if (onAddTemplate) {
-	// 			await onAddTemplate(draft);
-	// 		}
-
-	// 		// 3. Ahora que la lista está actualizada,
-	// 		//    seleccionar el ID.
-	// 		setSelectedTplId(baseId);
-	// 	};
-
 	const addTemplate = () => {
 		// <-- 1. Quitamos 'async'
 		const baseId = "custom_" + Date.now();
@@ -195,19 +163,15 @@ const Campaigns = ({
 			},
 		};
 
-		// 2. Llamamos a la API, PERO SIN 'await'.
-		//    Esto guarda la plantilla en segundo plano.
 		if (onAddTemplate) {
 			onAddTemplate(draft);
 		}
 
-		// 3. ¡LA CLAVE! Actualizamos el estado del editor
-		//    localmente y al instante.
 		setEditingTpl(draft);
 		setSelectedTplId(baseId);
 	};
 
-	// --- ¡NUEVO! MANEJADORES CON CONFIRMACIÓN ---
+	// --- MANEJADORES CON CONFIRMACIÓN ---
 	const handleSaveClick = () => {
 		if (!editingTpl) return;
 		setConfirmProps({
@@ -255,7 +219,6 @@ const Campaigns = ({
 			},
 		});
 	};
-	// --- FIN DE NUEVOS MANEJADORES ---
 
 	return (
 		<div className="space-y-10">

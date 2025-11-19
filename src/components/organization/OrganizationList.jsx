@@ -1,4 +1,3 @@
-// src/components/organization/OrganizationList.jsx
 import React from "react";
 import OrganizationFilters from "./OrganizationFilters";
 import OrganizationTable from "./OrganizationTable";

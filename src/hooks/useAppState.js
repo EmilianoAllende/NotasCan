@@ -1,5 +1,3 @@
-// src/hooks/useAppState.js
-// eslint-disable-next-line no-unused-vars
 import React, { useMemo, useEffect } from "react";
 // Hooks Modulares
 import { useAuth } from "./useAuth";
@@ -9,6 +7,8 @@ import { useOrganizationData } from "./useOrganizationData";
 import { useCallCenterAndCampaignFlow } from "./useCallCenterAndCampaignFlow";
 import { useDashboardData } from "./useDashboardData";
 import { useDataHandlers } from "./useDataHandlers";
+// --- 1. IMPORTAR EL NUEVO HOOK ---
+import { useNavigationHandlers } from "./useNavigationHandlers";
 
 export const useAppState = () => {
 	// 1. Inicializar Hooks Modulares
@@ -38,6 +38,16 @@ export const useAppState = () => {
 		...campaigns,
 	});
 
+	// --- 3. AHORA SÍ, INICIALIZAMOS NAVIGATION HANDLERS ---
+	const navigationHandlers = useNavigationHandlers(
+		ui.setActiveView,
+		ui.setSelectedOrg,
+		campaignFlow.setEmailPreview, // Extraído de campaignFlow
+		campaignFlow.setCurrentTask, // Extraído de campaignFlow
+		campaignFlow.setIsCallCenterMode, // Extraído de campaignFlow
+		ui.setShowCampaignModal // Extraído de ui
+	);
+
 	return {
 		...auth,
 		...ui,
@@ -45,6 +55,8 @@ export const useAppState = () => {
 		...campaigns,
 		...campaignFlow,
 		...dataHandlers,
+		// --- 4. EXPORTAR LOS HANDLERS (incluyendo openCampaign) ---
+		...navigationHandlers,
 		metricas,
 		estadosData,
 		islasData,

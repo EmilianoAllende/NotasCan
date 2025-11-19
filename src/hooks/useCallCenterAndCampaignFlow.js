@@ -2,7 +2,7 @@
 import { useState, useCallback } from "react";
 import apiClient from "../api/apiClient"; // Asegúrate de que este archivo exista
 
-export const useCallCenterAndCampaignFlow = (
+export const useCallCenterAndCampaignFlow = ({ // <--- Desestructuración del objeto, para que no llore
 	currentUser,
 	selectedOrg,
 	selectedCampaignId,
@@ -11,8 +11,8 @@ export const useCallCenterAndCampaignFlow = (
 	closeConfirm,
 	setShowCampaignModal,
 	setSelectedOrg,
-	handleRefresh // Refresh global de datos de organizaciones
-) => {
+	handleRefresh 
+}) => {
 	// State
 	const [emailPreview, setEmailPreview] = useState(null);
 	const [isPreviewLoading, setIsPreviewLoading] = useState(false);
@@ -324,8 +324,10 @@ export const useCallCenterAndCampaignFlow = (
 		isPreviewLoading,
 		isSendingCampaign,
 		isCallCenterMode,
+		setIsCallCenterMode, // <--- ¡FALTABA ESTE! (Lo usa useNavigationHandlers)
 		isTaskLoading,
 		currentTask,
+		setCurrentTask, // <--- ¡FALTABA ESTE! (El causante del error actual)
 		handleGeneratePreview,
 		handleConfirmAndSend,
 		startCallCenterMode,
