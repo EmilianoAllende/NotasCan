@@ -29,7 +29,7 @@ apiClient.interceptors.request.use(request => {
 
 
 // --- LISTADO DE ORGANIZACIONES DESDE DYNAMO ---
-const GET_ORGANIZACIONES_PATH = "/webhook/573b9827-ad59-425f-9526-e2d16a7e2198"; // Endpoint de DynamoDB
+const GET_ORGANIZACIONES_PATH = "/webhook/organization-list";
 // --- EDICIÓN DE ORGANIZACIONES EN DYNAMO ---
 const UPDATE_ORGANIZACION_PATH = "/webhook/organizaciones";
 
@@ -67,7 +67,7 @@ apiClient.deleteTemplate = (templateId) => {
 
 // Función para OBTENER toda la lista de organizaciones.
 apiClient.getOrganizaciones = () => {
-	return apiClient.get(GET_ORGANIZACIONES_PATH);
+	return apiClient.post(GET_ORGANIZACIONES_PATH, {});
 };
 
 // Con esto el nodo AWS recibe los datos del formulario y los envía vía PUT.

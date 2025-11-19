@@ -1,4 +1,6 @@
-// Hooks Modulares
+/* eslint-disable no-unused-vars */
+import React from "react";
+
 import { useAuth } from "./useAuth";
 import { useUI } from "./useUI";
 import { useCampaignsAndTemplates } from "./useCampaignsAndTemplates";
@@ -6,17 +8,25 @@ import { useOrganizationData } from "./useOrganizationData";
 import { useCallCenterAndCampaignFlow } from "./useCallCenterAndCampaignFlow";
 import { useDashboardData } from "./useDashboardData";
 import { useDataHandlers } from "./useDataHandlers";
-// --- 1. IMPORTAR EL NUEVO HOOK ---
 import { useNavigationHandlers } from "./useNavigationHandlers";
 
 export const useAppState = () => {
-	// 1. Inicializar Hooks Modulares
+	// 1. Inicializar Hooks Modulares (EN EL ORDEN CORRECTO)
 	const auth = useAuth();
 	const ui = useUI(auth.setCurrentUser, auth.setIsAuthenticated);
-	const orgData = useOrganizationData(auth.isAuthenticated);
+
+	// --- CAMBIO DE ORDEN: Campaigns va PRIMERO ---
+	// Necesitamos 'fetchTemplates' para pasárselo a 'orgData'
 	const campaigns = useCampaignsAndTemplates(
 		ui.setNotification,
 		auth.isAuthenticated
+	);
+
+	// --- CAMBIO DE ARGUMENTOS: Pasamos lo que faltaba ---
+	const orgData = useOrganizationData(
+		auth.isAuthenticated,
+		ui.setNotification, // <-- FALTABA
+		campaigns.fetchTemplates // <-- FALTABA (Vital para handleRefresh)
 	);
 
 	// 2. Hooks que dependen de otros hooks
@@ -33,18 +43,18 @@ export const useAppState = () => {
 	const campaignFlow = useCallCenterAndCampaignFlow({
 		...auth,
 		...ui,
-		...orgData,
+		...orgData, // Ahora orgData.handleRefresh funciona bien
 		...campaigns,
 	});
 
-	// --- 3. AHORA SÍ, INICIALIZAMOS NAVIGATION HANDLERS ---
+	// 3. Inicializamos Navigation Handlers
 	const navigationHandlers = useNavigationHandlers(
 		ui.setActiveView,
 		ui.setSelectedOrg,
-		campaignFlow.setEmailPreview, // Extraído de campaignFlow
-		campaignFlow.setCurrentTask, // Extraído de campaignFlow
-		campaignFlow.setIsCallCenterMode, // Extraído de campaignFlow
-		ui.setShowCampaignModal // Extraído de ui
+		campaignFlow.setEmailPreview,
+		campaignFlow.setCurrentTask,
+		campaignFlow.setIsCallCenterMode,
+		ui.setShowCampaignModal
 	);
 
 	return {
@@ -54,11 +64,13 @@ export const useAppState = () => {
 		...campaigns,
 		...campaignFlow,
 		...dataHandlers,
-		// --- 4. EXPORTAR LOS HANDLERS (incluyendo openCampaign) ---
+		// 4. Exportar los handlers
 		...navigationHandlers,
 		metricas,
 		estadosData,
 		islasData,
 		sectoresData,
+		// Alias explícito para seguridad (aunque ...orgData ya lo incluye)
+		onRefresh: orgData.handleRefresh,
 	};
 };
