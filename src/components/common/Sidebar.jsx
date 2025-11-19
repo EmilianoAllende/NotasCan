@@ -10,6 +10,7 @@ import {
 	ShieldCheck,
 	ChevronLeft,
 	ChevronRight,
+	History,
 } from "lucide-react";
 import ThemeSwitcher from "./ThemeSwitcher"; // Importamos el toggle
 
@@ -27,6 +28,7 @@ const Sidebar = ({
 		{ id: "detalle", label: "Detalle", icon: Eye },
 		{ id: "editor", label: "Editor", icon: FilePenLine },
 		{ id: "campanas", label: "Campañas", icon: Mail },
+		{ id: "historial", label: "Historial", icon: History }, // --- ¡NUEVA PESTAÑA! ---
 		{ id: "dashboard", label: "Panel", icon: Building },
 	];
 

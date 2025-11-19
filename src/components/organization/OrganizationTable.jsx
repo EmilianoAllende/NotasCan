@@ -44,7 +44,7 @@ const OrganizationTable = ({
 
 	// 3. El JSX es ahora mucho más limpio
 	return (
-		<div className="mt-6 overflow-hidden border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm backdrop-blur-sm">
+		<div className="mt-2 overflow-hidden border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm backdrop-blur-sm">
 			<div className="overflow-x-auto">
 				<table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700 text-sm">
 					<thead className="bg-gray-100 dark:bg-gray-800 sticky top-0 z-10">
