@@ -7,7 +7,7 @@ import OrganizationDetail from "../organization/OrganizationDetail";
 import Campaigns from "../campaigns/Campaigns";
 import ContactEditor from "../editor-tabs/ContactEditor";
 import UserAdmin from "../users/UserAdmin";
-
+import CampaignHistory from "../campaigns/CampaignHistory";
 const AppContentRenderer = (props) => {
 	const {
 		activeView,
@@ -42,7 +42,9 @@ const AppContentRenderer = (props) => {
 		handleAddTemplate,
 		selectedCampaignId,
 		setSelectedCampaignId,
+
 		startCallCenterMode,
+		campanasActivas,
 		metricas,
 		estadosData,
 		islasData,
@@ -61,9 +63,7 @@ const AppContentRenderer = (props) => {
 				/>
 			);
 		case "listado":
-			return (
-				<OrganizationList {...props} />
-			);
+			return <OrganizationList {...props} />;
 		case "detalle":
 			return (
 				<OrganizationDetail
@@ -100,9 +100,23 @@ const AppContentRenderer = (props) => {
 					onSelectTemplateForSend={setSelectedCampaignId}
 					setConfirmProps={setConfirmProps}
 					closeConfirm={closeConfirm}
+					// Solo funciones de edición
 					onSaveTemplate={handleSaveTemplate}
 					onDeleteTemplate={handleDeleteTemplate}
 					onAddTemplate={handleAddTemplate}
+				/>
+			);
+		case "historial":
+			return (
+				<CampaignHistory
+					// Props originales para el fallback
+					campanasActivas={campanasActivas}
+					organizaciones={organizaciones}
+					campaignTemplates={campaignTemplates}
+					// --- NUEVOS PROPS DE CACHÉ ---
+					historyData={props.historyData} // El dato guardado en App
+					isLoading={props.isHistoryLoading} // El estado de carga
+					onRefresh={props.refreshHistory} // La función para recargar
 				/>
 			);
 		case "admin":
@@ -116,12 +130,11 @@ const AppContentRenderer = (props) => {
 			);
 		default:
 			return (
-				<div className="flex items-center justify-center h-full">
+				<div className="flex items-center justify-center h-full p-3">
 					 {" "}
 					<div className="p-8 text-center text-slate-500 dark:text-slate-400">
-						  <p>Por favor, selecciona una vista.</p> {" "}
+						  <p>Por favor, selecciona una vista.</p> 
 					</div>
-					 {" "}
 				</div>
 			);
 	}
