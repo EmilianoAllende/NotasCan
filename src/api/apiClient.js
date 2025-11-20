@@ -9,7 +9,7 @@ const apiClient = axios.create({
 // ------------------------------------
 
 
-// --- ¡NUEVO! Interceptor para Logs de Depuración ---
+// --- Interceptor para Logs de Depuración ---
 apiClient.interceptors.request.use(request => {
 	console.groupCollapsed(`🚀 API Request: ${request.method.toUpperCase()} ${request.url}`);
 	console.log('URL Completa:', request.baseURL + request.url);
