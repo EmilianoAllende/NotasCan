@@ -1,20 +1,11 @@
 import React from "react";
-import {
-	ChevronDown,
-	ChevronRight,
-	Plus,
-	Trash2,
-	Save,
-	Mail,
-} from "lucide-react";
-import apiClient from "../../api/apiClient";
+import { Plus, Trash2, Save, Mail } from "lucide-react";
 
 const Campaigns = ({
 	campanasActivas = [],
 	organizaciones = [],
 	campaignTemplates = [],
 	onSelectTemplateForSend,
-	// --- ¡NUEVO! Props recibidos de app.jsx ---
 	setConfirmProps,
 	closeConfirm,
 	isLoadingTemplates, // (Opcional, para mostrar un spinner)
@@ -22,17 +13,6 @@ const Campaigns = ({
 	onDeleteTemplate, // Función async para borrar
 	onAddTemplate, // Función async para añadir (usa la misma que onSaveTemplate)
 }) => {
-	// Historial de campañas (por tipo -> fechas -> organizaciones)
-	const [history, setHistory] = React.useState({
-		types: [],
-		summary: { hace_dias_ultima_campana: null },
-	});
-	const [loadingHistory, setLoadingHistory] = React.useState(false);
-	const [historyError, setHistoryError] = React.useState(null); // Estado UI de acordeones (expansión exclusiva)
-	const [dataOrigin, setDataOrigin] = React.useState(null); // 'API' o 'FALLBACK'
-	const [expandedType, setExpandedType] = React.useState(null); // id del tipo expandido
-	const [expandedDateByType, setExpandedDateByType] = React.useState({}); // { [typeId]: 'YYYY-MM-DD' } // Editor de plantillas
-
 	const [selectedTplId, setSelectedTplId] = React.useState(
 		campaignTemplates[0]?.id || ""
 	);
@@ -62,56 +42,6 @@ const Campaigns = ({
 	}, [selectedTpl]); // Cargar historial desde API; si falla, usar fallback agrupando campanasActivas
 
 	// Cargar historial desde API; si falla, usar fallback
-	React.useEffect(() => {
-		let mounted = true;
-		const load = async () => {
-			setLoadingHistory(true);
-			setHistoryError(null);
-			setDataOrigin(null); // Resetear estado
-
-			try {
-				const res = await apiClient.getCampaignsHistory();
-				if (!mounted) return;
-
-				setHistory(res.data);
-				setDataOrigin("API"); // <--- ¡ÉXITO! Viene de n8n
-			} catch (e) {
-				console.warn("Fallo getCampaignsHistory, se usa fallback local:", e);
-				setHistoryError(e?.message || "Error al cargar historial");
-				if (!mounted) return;
-
-				setHistory(
-					buildFallbackHistory(
-						campanasActivas,
-						campaignTemplates,
-						organizaciones
-					)
-				);
-				setDataOrigin("FALLBACK"); // <--- ERROR. Usamos datos locales
-			} finally {
-				if (mounted) setLoadingHistory(false);
-			}
-		};
-		load();
-		return () => {
-			mounted = false;
-		};
-	}, []);
-
-	const toggleType = (typeId) => {
-		setExpandedType((prev) => (prev === typeId ? null : typeId)); // Al cambiar de tipo, colapsar la fecha expandida de otros
-		setExpandedDateByType((prev) => ({
-			...prev,
-			[typeId]: prev[typeId] || null,
-		}));
-	};
-
-	const toggleDate = (typeId, dateStr) => {
-		setExpandedDateByType((prev) => ({
-			...prev,
-			[typeId]: prev[typeId] === dateStr ? null : dateStr,
-		}));
-	}; // Acciones del editor de plantillas
 
 	const handleFieldChange = (path, value) => {
 		if (!editingTpl) return;
@@ -221,137 +151,7 @@ const Campaigns = ({
 	};
 
 	return (
-		<div className="space-y-10">
-			{/* === Sección 1: Campañas enviadas === */}
-			<section className="bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-200 dark:border-slate-700 p-8 transition-all duration-300">
-				<h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4 flex items-center gap-2">
-					📅 Campañas enviadas
-				</h3>
-
-				{/* --- Estado general --- */}
-				<div className="text-sm text-slate-700 dark:text-slate-300 mb-5">
-					{loadingHistory ? (
-						<span className="animate-pulse">Cargando historial...</span>
-					) : history.summary?.hace_dias_ultima_campana != null ? (
-						<span className="font-medium">
-							Última campaña enviada:{" "}
-							<span className="text-blue-600 dark:text-blue-400">
-								hace {history.summary.hace_dias_ultima_campana} días
-							</span>
-						</span>
-					) : (
-						<span>No hay información de envíos recientes.</span>
-					)}
-				</div>
-				<span
-					className={`text-xs font-bold px-2 py-1 rounded border ${
-						dataOrigin === "API"
-							? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800"
-							: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800"
-					}`}>
-					{dataOrigin === "API"
-						? "🟢 Conectado a n8n"
-						: "🟠 Modo Local (Fallback)"}
-				</span>
-				{historyError && (
-					<p className="text-xs text-yellow-600 dark:text-yellow-300 mb-3">
-						⚠️ {historyError}. Mostrando datos locales.
-					</p>
-				)}
-
-				{/* --- Listado de tipos --- */}
-				<div className="divide-y divide-slate-200 dark:divide-slate-700">
-					{history.types.map((t) => (
-						<div key={t.id} className="py-4">
-							<button
-								onClick={() => toggleType(t.id)}
-								className="w-full flex items-start justify-between text-left p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
-								<div>
-									<div className="flex items-center gap-2">
-										{expandedType === t.id ? (
-											<ChevronDown size={16} className="text-blue-500" />
-										) : (
-											<ChevronRight size={16} className="text-slate-500" />
-										)}
-										<span className="font-medium text-slate-900 dark:text-slate-100">
-											{t.title}
-										</span>
-									</div>
-									<p className="ml-6 text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-										{t.description}
-									</p>
-								</div>
-
-								{t.last_sent_hace_dias != null && (
-									<span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap mt-1">
-										hace {t.last_sent_hace_dias} días
-									</span>
-								)}
-							</button>
-
-							{/* --- Subfechas --- */}
-							{expandedType === t.id && (
-								<div className="mt-3 ml-6 space-y-2">
-									{t.dates && t.dates.length > 0 ? (
-										t.dates.map((d) => (
-											<div
-												key={d.date}
-												className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden">
-												<button
-													onClick={() => toggleDate(t.id, d.date)}
-													className="w-full flex items-center justify-between px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
-													<div className="flex items-center gap-2">
-														{expandedDateByType[t.id] === d.date ? (
-															<ChevronDown
-																size={14}
-																className="text-blue-500"
-															/>
-														) : (
-															<ChevronRight
-																size={14}
-																className="text-slate-500"
-															/>
-														)}
-														<span className="text-sm text-slate-800 dark:text-slate-200">
-															{d.date}
-														</span>
-													</div>
-													<span className="text-xs text-slate-600 dark:text-slate-400">
-														{d.organizations?.length || 0} orgs
-													</span>
-												</button>
-
-												{expandedDateByType[t.id] === d.date && (
-													<div className="px-5 pb-3">
-														{(d.organizations || []).length === 0 ? (
-															<p className="text-sm text-slate-600 dark:text-slate-300 italic">
-																Sin organizaciones para esta fecha.
-															</p>
-														) : (
-															<ul className="list-disc list-inside text-sm text-slate-800 dark:text-slate-200 space-y-0.5">
-																{d.organizations.map((o, idx) => (
-																	<li key={o.id || idx}>
-																		{o.name || o.organizacion || o}
-																	</li>
-																))}
-															</ul>
-														)}
-													</div>
-												)}
-											</div>
-										))
-									) : (
-										<p className="text-sm text-slate-600 dark:text-slate-400">
-											No hay fechas registradas para este tipo.
-										</p>
-									)}
-								</div>
-							)}
-						</div>
-					))}
-				</div>
-			</section>
-
+		<div className="space-y-10 p-3">
 			{/* === Sección 2: Editor de campañas === */}
 			<section className="bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden">
 				{/* Encabezado */}
@@ -628,145 +428,5 @@ const Campaigns = ({
 };
 
 // --- (El resto de funciones: slugify, buildFallbackHistory, normalizeDate, etc. están aquí debajo, limpias) ---
-
-function slugify(str) {
-	return (str || "")
-		.toString()
-		.toLowerCase()
-		.normalize("NFD")
-		.replace(/[\u0300-\u036f]/g, "")
-		.replace(/[^a-z0-9]+/g, "_")
-		.replace(/^_|_$/g, "");
-}
-
-function buildFallbackHistory(
-	campanasActivas,
-	campaignTemplates,
-	organizaciones
-) {
-	// 1) Preferente: derivar desde organizaciones[].campaigns_log (enfoque dinámico)
-	const hasLogs =
-		Array.isArray(organizaciones) &&
-		organizaciones.some(
-			(o) => o && o.campaigns_log && typeof o.campaigns_log === "object"
-		);
-	if (hasLogs) {
-		const typeMap = new Map(); // id -> { id, title, description, dates: Map(date -> orgs[]) }
-		const allDates = [];
-		organizaciones.forEach((org) => {
-			const log = org?.campaigns_log;
-			if (!log || typeof log !== "object") return;
-			Object.entries(log).forEach(([key, info]) => {
-				if (!info) return;
-				const id = extractTemplateId(key);
-				const tpl = campaignTemplates.find((t) => t.id === id);
-				const title = tpl?.title || info.template_title || id;
-				const description = tpl?.description || "";
-				if (!typeMap.has(id))
-					typeMap.set(id, { id, title, description, dates: new Map() });
-				const entry = typeMap.get(id);
-				const last = normalizeDate(info.last_sent);
-				if (last) {
-					allDates.push(last);
-					if (!entry.dates.has(last)) entry.dates.set(last, []);
-					entry.dates.get(last).push({
-						name: org.organizacion || org.nombre || org.id || "Org",
-						id: org.id,
-					});
-				}
-			});
-		});
-
-		const types = Array.from(typeMap.values()).map((t) => ({
-			id: t.id,
-			title: t.title,
-			description: t.description,
-			last_sent_at: null,
-			last_sent_hace_dias: null,
-			dates: Array.from(t.dates.entries())
-				.sort((a, b) => b[0].localeCompare(a[0]))
-				.map(([date, orgs]) => ({ date, organizations: orgs })),
-		})); // Calcular 'hace_dias_ultima_campana' a partir de la fecha más reciente en logs
-
-		let hace_dias = null;
-		if (allDates.length) {
-			const newest = allDates.sort((a, b) => b.localeCompare(a))[0];
-			hace_dias = daysSince(newest);
-		}
-		return { types, summary: { hace_dias_ultima_campana: hace_dias } };
-	} // 2) Alternativa: agrupar campanasActivas (si no hay campaigns_log disponible)
-
-	const titleToId = Object.fromEntries(
-		campaignTemplates.map((t) => [t.title, t.id])
-	);
-	const map = new Map(); // id -> { id, title, description, dates: Map(date -> orgs[]) }
-	(campanasActivas || []).forEach((c) => {
-		const id = titleToId[c.tipo] || slugify(c.tipo);
-		if (!map.has(id)) {
-			const tpl = campaignTemplates.find((t) => t.id === id) || {
-				title: c.tipo,
-				description: "",
-			};
-			map.set(id, {
-				id,
-				title: tpl.title || c.tipo,
-				description: tpl.description || "",
-				dates: new Map(),
-			});
-		}
-		const entry = map.get(id);
-		const date = normalizeDate(c.fecha_envio);
-		if (!entry.dates.has(date)) entry.dates.set(date, []);
-		entry.dates.get(date).push({ name: c.organizacion, id: c.id });
-	});
-	const types = Array.from(map.values()).map((t) => ({
-		id: t.id,
-		title: t.title,
-		description: t.description,
-		last_sent_at: null,
-		last_sent_hace_dias: null,
-		dates: Array.from(t.dates.entries())
-			.sort((a, b) => b[0].localeCompare(a[0]))
-			.map(([date, orgs]) => ({ date, organizations: orgs })),
-	})); // Fallback de 'hace_dias_ultima_campana' usando organizaciones.hace_dias
-	let hace_dias = null;
-	if (Array.isArray(organizaciones) && organizaciones.length) {
-		const values = organizaciones
-			.map((o) => o?.hace_dias)
-			.filter((v) => Number.isFinite(v));
-		if (values.length) hace_dias = Math.min(...values);
-	}
-	return { types, summary: { hace_dias_ultima_campana: hace_dias } };
-}
-
-function normalizeDate(d) {
-	// Intenta transformar formatos varios a YYYY-MM-DD
-	if (!d) return ""; // Si ya viene como YYYY-MM-DD
-	if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
-	// Si viene como DD-MM-YYYY
-	const m = d.match(/^(\d{2})-(\d{2})-(\d{4})$/);
-	if (m) return `${m[3]}-${m[2]}-${m[1]}`;
-	return d;
-}
-
-function extractTemplateId(key) {
-	// Si la clave viene con sufijo (p.ej., "mmi_analytics_123"), extraemos prefijo hasta el último "_" si coincide con algún template.
-	// Estrategia: probar exacto; si no hay match, intentar recortar sufijo numérico.
-	if (!key) return ""; // Mantener clave completa como id por defecto (enfoque 100% dinámico)
-	return key;
-}
-
-function daysSince(isoOrYMD) {
-	try {
-		const dateStr = normalizeDate(isoOrYMD?.slice(0, 10));
-		const dt = new Date(dateStr);
-		if (Number.isNaN(dt.getTime())) return null;
-		const now = new Date();
-		const diffMs = now.getTime() - dt.getTime();
-		return Math.floor(diffMs / (1000 * 60 * 60 * 24));
-	} catch {
-		return null;
-	}
-}
 
 export default Campaigns;

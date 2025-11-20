@@ -51,7 +51,7 @@ const OrganizationList = (props) => {
 
 	// 3. El JSX es solo layout y paso de props
 	return (
-		<div className="max-w-full mx-auto sm:px-6 lg:px-8 transition-colors duration-300">
+		<div className="max-w-full mx-auto p-3 sm:px-6 lg:px-8 transition-colors duration-300">
 			<div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl ring-1 ring-gray-900/5 dark:ring-white/10 overflow-hidden">
 				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-6 py-6 border-b border-gray-100 dark:border-gray-800 bg-gray-50/70 dark:bg-gray-900/60 backdrop-blur-md">
 					<div>
@@ -64,7 +64,7 @@ const OrganizationList = (props) => {
 					</div>
 				</div>
 
-				<div className="p-6 border-b border-gray-100 dark:border-gray-800">
+				<div className="p-3 border-b border-gray-100 dark:border-gray-800">
 					<OrganizationFilters
 						filterStatus={filterStatus}
 						setFilterStatus={setFilterStatus}
@@ -93,7 +93,7 @@ const OrganizationList = (props) => {
 					/>
 				</div>
 
-				<div className="p-6">
+				<div className="p-2">
 					<OrganizationTable
 						filteredOrgs={filteredOrgs}
 						currentPage={currentPage}
@@ -124,7 +124,7 @@ const OrganizationList = (props) => {
 							de{" "}
 							<span className="font-semibold text-gray-900 dark:text-gray-100">
 								{filteredOrgs.length}
-							</span>{" "}
+							</span>
 							organizaciones
 							<span className="ml-2 py-0.5 px-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 font-medium rounded-full text-xs">
 								{selectedOrgIds.size} seleccionada
