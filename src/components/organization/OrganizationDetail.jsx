@@ -6,16 +6,19 @@ import ActivityAndTopics from "./ActivityAndTopics";
 import DetailActions from "./DetailActions";
 
 const StatusBadge = ({ estado }) => {
-	let text = "Pendiente";
-	let color = "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
+	let text = "";
+	let color = "";
 
 	if (estado === 1) {
-		text = "En revisión";
-		color =
-			"bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
-	} else if (estado === 2) {
-		text = "Completado";
+		text = "Lista Blanca";
 		color = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+	} else if (estado === 2) {
+		text = "Lista negra ";
+		color = "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
+	} else if (estado === 3) {
+		text = "Lista Blanca Nacional ";
+		color =
+			"bg-yellow-100 text-red-800 dark:bg-yellow-900 dark:text-yellow-300";
 	}
 
 	return (

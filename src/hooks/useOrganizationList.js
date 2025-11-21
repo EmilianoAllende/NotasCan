@@ -1,5 +1,6 @@
 // src/hooks/useOrganizationList.js
 import { useState, useMemo, useEffect, useCallback } from "react";
+// Importamos las utilidades correctamente
 import { getEntityType } from "../utils/organizationUtils";
 import { getElapsedString } from "../utils/dateUtils";
 
@@ -34,6 +35,9 @@ export const useOrganizationList = (props) => {
 	const [selectedOrg, setSelectedOrg] = useState(null);
 	const [lastRefreshLabel, setLastRefreshLabel] = useState("");
 
+	// --- Estado para el subtipo (Nuevo) ---
+	const [filterSubType, setFilterSubType] = useState("todos");
+
 	// 3. Efectos
 	useEffect(() => {
 		if (!lastRefreshTs) return setLastRefreshLabel("");
@@ -43,31 +47,55 @@ export const useOrganizationList = (props) => {
 		return () => clearInterval(id);
 	}, [lastRefreshTs]);
 
-	// 4. Lógica de datos derivada (Memos)
+	// 4. Lógica de datos derivada (Memos) - EL FILTRADO REAL
 	const filteredOrgs = useMemo(() => {
-		const lower = searchTerm.toLowerCase();
+		const lowercasedSearchTerm = searchTerm.toLowerCase();
+
 		return organizaciones.filter((org) => {
+			// Búsqueda por texto
 			const matchesSearch =
-				lower === "" ||
-				(org.organizacion || "").toLowerCase().includes(lower) ||
-				(org.nombre || "").toLowerCase().includes(lower) ||
-				(org.id || "").toLowerCase().includes(lower) ||
-				(org.nombres_org || "").toLowerCase().includes(lower);
-			const tipoEntidad = getEntityType(org);
+				lowercasedSearchTerm === ""
+					? true
+					: (org.organizacion || "")
+							.toLowerCase()
+							.includes(lowercasedSearchTerm) ||
+					  (org.nombre || "").toLowerCase().includes(lowercasedSearchTerm) ||
+					  (org.id || "").toLowerCase().includes(lowercasedSearchTerm) ||
+					  (org.nombres_org || "")
+							.toLowerCase()
+							.includes(lowercasedSearchTerm);
+
+			// Filtro de Estado
 			const matchesStatus =
 				filterStatus === "todos" ? true : org.estado_cliente === filterStatus;
+
+			// Filtro de Tipo
+			// Usamos el campo directo 'tipo_entidad' si existe, o getEntityType como fallback
+			const tipoEntidad = org.tipo_entidad || getEntityType(org);
 			const matchesType =
 				filterType === "todos" ? true : tipoEntidad === filterType;
+
+			// --- Filtro de Subtipo (Nuevo) ---
+			const matchesSubType =
+				filterSubType === "todos"
+					? true
+					: org.sub_tipo_entidad === filterSubType;
+
+			// Filtro de Isla
 			const matchesIsla =
 				filterIsla === "todos" ? true : org.isla === filterIsla;
+
+			// Filtro de Suscripción
 			const matchesSuscripcion =
 				filterSuscripcion === "todos"
 					? true
 					: org.suscripcion === filterSuscripcion;
+
 			return (
 				matchesSearch &&
 				matchesStatus &&
 				matchesType &&
+				matchesSubType && // <-- Condición añadida
 				matchesIsla &&
 				matchesSuscripcion
 			);
@@ -77,12 +105,14 @@ export const useOrganizationList = (props) => {
 		searchTerm,
 		filterStatus,
 		filterType,
+		filterSubType, // <-- Dependencia añadida
 		filterIsla,
 		filterSuscripcion,
 	]);
 
 	const totalPages = Math.ceil(filteredOrgs.length / ITEMS_PER_PAGE);
 
+	// 5. Lógica de Selección y Acciones
 	const getSelectedOrgs = useCallback(
 		() => organizaciones.filter((org) => selectedOrgIds.has(org.id)),
 		[organizaciones, selectedOrgIds]
@@ -90,19 +120,26 @@ export const useOrganizationList = (props) => {
 
 	const isCallCenterDisabled = selectedOrgIds.size < 2 || !selectedCampaignId;
 
-	const isClean =
-		searchTerm === "" &&
-		filterStatus === "todos" &&
-		filterType === "todos" &&
-		filterIsla === "todos" &&
-		filterSuscripcion === "todos" &&
-		(selectedCampaignId === null || selectedCampaignId === "");
-
-	const isLoading = organizaciones.length === 0;
-
-	// 5. Handlers y Callbacks
 	const handleCampaignClick = useCallback(
 		(org) => {
+			if (!selectedCampaignId) {
+				setConfirmProps({
+					show: true,
+					title: "Iniciar Envío",
+					message: `¿Seguro que quieres iniciar un envío de campaña para "${
+						org.organizacion || org.id
+					}"? (Deberás seleccionar una plantilla)`,
+					confirmText: "Sí, continuar",
+					cancelText: "No, volver",
+					type: "info",
+					onConfirm: () => {
+						openCampaign(org);
+						closeConfirm();
+					},
+				});
+				return;
+			}
+
 			const templateName =
 				campaignTemplates.find((t) => t.id === selectedCampaignId)?.title ||
 				"la campaña seleccionada";
@@ -130,6 +167,7 @@ export const useOrganizationList = (props) => {
 		]
 	);
 
+	// Resetear paginación y selección al filtrar
 	useEffect(() => {
 		setCurrentPage(1);
 		setSelectedOrgIds(new Set());
@@ -137,6 +175,7 @@ export const useOrganizationList = (props) => {
 		searchTerm,
 		filterStatus,
 		filterType,
+		filterSubType, // <-- Añadido
 		filterIsla,
 		filterSuscripcion,
 		setCurrentPage,
@@ -148,6 +187,7 @@ export const useOrganizationList = (props) => {
 		setSearchTerm("");
 		setFilterStatus("todos");
 		setFilterType("todos");
+		setFilterSubType("todos"); // <-- ¡Reseteamos el subtipo!
 		setFilterIsla("todos");
 		setFilterSuscripcion("todos");
 		setCurrentPage(1);
@@ -156,13 +196,25 @@ export const useOrganizationList = (props) => {
 	}, [
 		setFilterStatus,
 		setFilterType,
+		// setFilterSubType es local, no necesita estar en deps si useCallback se recrea
 		setFilterIsla,
 		setFilterSuscripcion,
 		setCurrentPage,
 		setSelectedCampaignId,
 	]);
 
-	// 6. Retornamos todo lo que el JSX necesitará
+	const isClean =
+		searchTerm === "" &&
+		filterStatus === "todos" &&
+		filterType === "todos" &&
+		filterSubType === "todos" && // <-- Añadido
+		filterIsla === "todos" &&
+		filterSuscripcion === "todos" &&
+		(selectedCampaignId === null || selectedCampaignId === "");
+
+	const isLoading = organizaciones.length === 0;
+
+	// --- 6. RETORNO (CORRECCIÓN CRÍTICA) ---
 	return {
 		searchTerm,
 		setSearchTerm,
@@ -180,5 +232,8 @@ export const useOrganizationList = (props) => {
 		handleClearFilters,
 		isClean,
 		isLoading,
+		// ¡AQUÍ ESTÁ LA CLAVE! Debemos devolver estas dos variables:
+		filterSubType,
+		setFilterSubType,
 	};
 };

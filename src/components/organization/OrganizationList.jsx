@@ -25,6 +25,8 @@ const OrganizationList = (props) => {
 		handleCampaignClick,
 		handleClearFilters,
 		isClean,
+		SubFilterType,
+		setFilterSubType,
 		isLoading,
 	} = useOrganizationList(props);
 
@@ -69,7 +71,9 @@ const OrganizationList = (props) => {
 						filterStatus={filterStatus}
 						setFilterStatus={setFilterStatus}
 						filterType={filterType}
+						SubFilterType={SubFilterType}
 						setFilterType={setFilterType}
+						setFilterSubType={setFilterSubType}
 						filterIsla={filterIsla}
 						setFilterIsla={setFilterIsla}
 						filterSuscripcion={filterSuscripcion}

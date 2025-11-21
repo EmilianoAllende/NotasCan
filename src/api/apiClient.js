@@ -8,25 +8,25 @@ const apiClient = axios.create({
 });
 // ------------------------------------
 
-
 // --- Interceptor para Logs de Depuración ---
-apiClient.interceptors.request.use(request => {
-	console.groupCollapsed(`🚀 API Request: ${request.method.toUpperCase()} ${request.url}`);
-	console.log('URL Completa:', request.baseURL + request.url);
-	console.log('Headers:', request.headers);
+apiClient.interceptors.request.use((request) => {
+	console.groupCollapsed(
+		`🚀 API Request: ${request.method.toUpperCase()} ${request.url}`
+	);
+	console.log("URL Completa:", request.baseURL + request.url);
+	console.log("Headers:", request.headers);
 
 	if (request.data) {
-		console.log('📦 Body (Datos enviados):', request.data);
+		console.log("📦 Body (Datos enviados):", request.data);
 	}
-	
+
 	if (request.params) {
-		console.log('🔍 Query Params:', request.params);
+		console.log("🔍 Query Params:", request.params);
 	}
 
 	console.groupEnd();
 	return request;
 });
-
 
 // --- LISTADO DE ORGANIZACIONES DESDE DYNAMO ---
 const GET_ORGANIZACIONES_PATH = "/webhook/organization-list";
@@ -48,9 +48,9 @@ apiClient.getTemplates = () => {
 /*** Guarda o actualiza una plantilla en Supabase (Usa el Upsert).*
 //  *  @param {object} templateData - El objeto completo de la plantilla.*/
 apiClient.saveTemplate = (templateData) => {
-	return apiClient.post(TEMPLATES_PATH, { 
-		action: "SAVE", 
-		payload: templateData 
+	return apiClient.post(TEMPLATES_PATH, {
+		action: "SAVE",
+		payload: templateData,
 	});
 };
 
@@ -59,10 +59,10 @@ apiClient.saveTemplate = (templateData) => {
 //  * @param {string} templateId - El ID de la plantilla.
  */
 apiClient.deleteTemplate = (templateId) => {
-	return apiClient.post(TEMPLATES_PATH, { 
-    action: "DELETE", 
-    payload: { id: templateId } 
-  });
+	return apiClient.post(TEMPLATES_PATH, {
+		action: "DELETE",
+		payload: { id: templateId },
+	});
 };
 
 // Función para OBTENER toda la lista de organizaciones.
