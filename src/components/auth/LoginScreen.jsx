@@ -15,7 +15,7 @@ const LoginScreen = ({ onLoginSuccess }) => {
 		setError(null);
 try {
     const response = await apiClient.login(usuario, password);
-    
+    //dejo un comentario
     // Verifica qué te devolvió el servidor en consola para estar seguro
     console.log("Respuesta n8n:", response.data); 
 
