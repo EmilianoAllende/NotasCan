@@ -123,7 +123,7 @@ apiClient.getNextInQueue = (queueId, userId) => {
 
 // --- ¡NUEVO! Función de Login ---
 apiClient.login = (usuario, password) => {
-	return apiClient.post("webhook/login", { usuario, password });
+	return apiClient.post("/webhook/notascan-login", { usuario, password });
 };
 
 // --- ¡NUEVO! Función de Crear Usuario (Admin) ---
