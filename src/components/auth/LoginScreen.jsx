@@ -13,20 +13,25 @@ const LoginScreen = ({ onLoginSuccess }) => {
 		e.preventDefault();
 		setIsLoading(true);
 		setError(null);
+try {
+    const response = await apiClient.login(usuario, password);
+    //dejo un comentario
+    // Verifica qué te devolvió el servidor en consola para estar seguro
+    console.log("Respuesta n8n:", response.data); 
 
-		try {
-			// 1. Llama a la función de login del apiClient
-			const response = await apiClient.login(usuario, password);
-
-			// 2. Si el status es 'success', llama a la función onLoginSuccess
-			//    (App.jsx recibirá el objeto { status: 'success', user: {...} })
-			if (response.data && response.data.status === "success") {
-				onLoginSuccess(response.data);
-			} else {
-				// Esto no debería pasar si el backend devuelve 401 en error
-				setError("Respuesta inesperada del servidor.");
-				console.error("Respuesta inesperada del servidor:", response);
-			}
+    // CASO 1: Login Exitoso
+    if (response.data && response.data.status === "success") {
+        onLoginSuccess(response.data);
+    } 
+    // CASO 2: Login Fallido (Lógica de negocio, pero conexión exitosa)
+    else if (response.data && response.data.status === "error") {
+        // Aquí capturas el mensaje que n8n te envía (ej: "Usuario no encontrado")
+        setError(response.data.message || "Usuario o contraseña incorrectos.");
+    } 
+    // CASO 3: Respuesta desconocida
+    else {
+        setError("Respuesta inesperada del servidor.");
+    }
 		} catch (err) {
 			// 3. Maneja los errores
 			if (err.response && err.response.status === 401) {
