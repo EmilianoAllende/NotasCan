@@ -25,6 +25,7 @@ const LoginScreen = ({ onLoginSuccess }) => {
 			} else {
 				// Esto no debería pasar si el backend devuelve 401 en error
 				setError("Respuesta inesperada del servidor.");
+				console.error("Respuesta inesperada del servidor:", response);
 			}
 		} catch (err) {
 			// 3. Maneja los errores
