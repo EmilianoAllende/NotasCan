@@ -151,16 +151,8 @@ const SendCampaignModal = ({
 			isSending={isSending}
 			handleCancelClick={handleCancelClick}
 			onShowHtmlPreview={() => setShowHtmlPreview(true)}
-			extraButtons={
-				isCallCenterMode && (
-					<button
-						onClick={onSkipTask}
-						className="mr-auto px-4 py-2 text-sm font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
-						title="Posponer esta tarea y pasar a la siguiente">
-						Saltar (Posponer)
-					</button>
-				)
-			}
+			isCallCenterMode={isCallCenterMode} // Pasa el modo
+			onSkipTask={onSkipTask} // Pasa la función para saltar
 		/>
 	);
 
