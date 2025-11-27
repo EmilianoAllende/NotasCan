@@ -89,7 +89,7 @@ apiClient.getCampaignsHistory = () => {
 };
 
 apiClient.createDynamicQueue = (orgIds) => {
-	return apiClient.post("webhook/create-dynamic-queue", { orgIds });
+	return apiClient.post("/webhook/create-dynamic-queue", { orgIds });
 };
 
 // ✅ MODIFICADO: Ahora acepta campaignId como parámetro
@@ -111,8 +111,8 @@ apiClient.login = (usuario, password) => {
 
 apiClient.createUser = (usuario, password, rol, token) => {
 	return apiClient.post(
-		"webhook/create-user",
-		{ usuario, password, rol },
+		"/webhook/create-user",
+		{ usuario, password, rol }, // El body que recibe n8n
 		{
 			headers: {
 				Authorization: `Bearer ${token}`,

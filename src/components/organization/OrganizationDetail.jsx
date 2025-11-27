@@ -59,26 +59,27 @@ const OrganizationDetail = ({
 
 	const orgInfo = metadata.organizacion || {};
 
-	return (
-		<div className="space-y-6 max-h-auto overflow-y-auto pr-2">
-			<DetailHeader
-				selectedOrg={selectedOrg}
-				orgInfo={orgInfo}
-				StatusBadge={StatusBadge}
-			/>
-			<ContactInfo selectedOrg={selectedOrg} orgInfo={orgInfo} />
-			<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-				<ActivityAndTopics selectedOrg={selectedOrg} orgInfo={orgInfo} />
-			</div>
-			<DetailActions
-				selectedOrg={selectedOrg}
-				openEditModal={openEditModal}
-				setShowCampaignModal={setShowCampaignModal}
-				selectedCampaignId={selectedCampaignId}
-				onSelectCampaignRequired={onSelectCampaignRequired}
-			/>
-		</div>
-	);
+return (
+    <div className="space-y-6 max-h-auto overflow-y-auto pr-2 p-4">
+        <DetailHeader
+            selectedOrg={selectedOrg}
+            orgInfo={orgInfo}
+            StatusBadge={StatusBadge}
+        />
+        
+        <ContactInfo selectedOrg={selectedOrg} orgInfo={orgInfo} />
+
+        <ActivityAndTopics selectedOrg={selectedOrg} orgInfo={orgInfo} />
+
+        <DetailActions
+            selectedOrg={selectedOrg}
+            openEditModal={openEditModal}
+            setShowCampaignModal={setShowCampaignModal}
+            selectedCampaignId={selectedCampaignId}
+            onSelectCampaignRequired={onSelectCampaignRequired}
+        />
+    </div>
+);
 };
 
 export default OrganizationDetail;

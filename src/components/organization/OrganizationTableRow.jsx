@@ -1,9 +1,7 @@
 // src/components/organization/OrganizationTableRow.jsx
 import React from "react";
 import { Eye, Edit, Mail } from "lucide-react";
-import StatusBadge from "../common/StatusBadge";
 
-// Definición local de estados (debe coincidir con OrganizationFilters)
 const ESTADOS_CLIENTE = {
 	PENDIENTE: 0,
 	LISTA_BLANCA: 1,
@@ -15,28 +13,30 @@ const ESTADOS_CLIENTE = {
 	CONTACTOS_BODY: 7,
 };
 
-// --- ¡NUEVO! Función auxiliar para obtener el color ---
 const getStatusColor = (estado) => {
 	switch (estado) {
-		case ESTADOS_CLIENTE.LISTA_BLANCA:
-			return "bg-green-500"; // Verde
-		case ESTADOS_CLIENTE.LISTA_NEGRA:
-			return "bg-red-500"; // Rojo
-		case ESTADOS_CLIENTE.LISTA_BLANCA_NACIONAL:
-			return "bg-blue-500"; // Azul
-		case ESTADOS_CLIENTE.OTRO_TIPO:
-			return "bg-gray-500"; // Gris
-		case ESTADOS_CLIENTE.COMPETENCIA:
-			return "bg-indigo-500"; // Índigo
-		case ESTADOS_CLIENTE.REVISION:
-			return "bg-orange-500"; // Naranja
-		case ESTADOS_CLIENTE.CONTACTOS_BODY:
-			return "bg-purple-500"; // Morado
-		case ESTADOS_CLIENTE.PENDIENTE:
-			return "bg-yellow-400"; // Amarillo (Default)
-		default:
-			return "bg-red-400"; // Amarillo (Default)
+		case ESTADOS_CLIENTE.LISTA_BLANCA: return "bg-green-500";
+		case ESTADOS_CLIENTE.LISTA_NEGRA: return "bg-red-500";
+		case ESTADOS_CLIENTE.LISTA_BLANCA_NACIONAL: return "bg-blue-500";
+		case ESTADOS_CLIENTE.OTRO_TIPO: return "bg-gray-500";
+		case ESTADOS_CLIENTE.COMPETENCIA: return "bg-indigo-500";
+		case ESTADOS_CLIENTE.REVISION: return "bg-orange-500";
+		case ESTADOS_CLIENTE.CONTACTOS_BODY: return "bg-purple-500";
+		case ESTADOS_CLIENTE.PENDIENTE: return "bg-yellow-400";
+		default: return "bg-red-400";
 	}
+};
+
+const formatDate = (dateString) => {
+	if (!dateString || dateString === "indefinido") return null;
+	const date = new Date(dateString);
+	if (isNaN(date.getTime())) return null;
+	
+	return new Intl.DateTimeFormat('es-ES', {
+		day: '2-digit',
+		month: '2-digit',
+		year: 'numeric'
+	}).format(date);
 };
 
 const OrganizationTableRow = ({
@@ -50,6 +50,7 @@ const OrganizationTableRow = ({
 	handleCampaignClick,
 }) => {
 	const { display, more } = getDisplayContacts(org);
+    const email = org.id && org.id.includes('@') ? org.id : null;
 
 	return (
 		<tr
@@ -73,7 +74,6 @@ const OrganizationTableRow = ({
 			{/* Organización */}
 			<td className="py-4 px-3 align-middle">
 				<div className="flex items-center gap-3">
-					{/* --- USAMOS LA FUNCIÓN AUXILIAR AQUÍ --- */}
 					<span
 						className={`flex-shrink-0 w-2.5 h-2.5 rounded-full shadow-sm ring-1 ring-white dark:ring-slate-800 ${getStatusColor(
 							org.estado_cliente
@@ -84,53 +84,59 @@ const OrganizationTableRow = ({
 						<div
 							className="font-medium text-gray-900 dark:text-gray-100 truncate max-w-[220px]"
 							title={org.organizacion || org.nombre}>
-							{org.organizacion || org.nombre || "Sin nombre"}
+							{org.organizacion || org.nombre || "Sin nombre de organización"}
 						</div>
 						<div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-[220px]">
-							{org.sector || "Sin sector"}
+							{org.sector || ""}
 						</div>
 					</div>
 				</div>
 			</td>
 
-			{/* Contacto */}
-			<td className="py-4 px-3 align-middle text-gray-700 dark:text-gray-300 text-sm">
+			{/* Contacto + Rol (COMBINADOS) */}
+			<td className="py-4 px-3 align-middle text-sm">
 				<div className="flex flex-col gap-0.5">
+                    {/* Lista de Nombres */}
 					{display.map((contact, i) => (
-						<div key={i} className="truncate max-w-[180px]" title={contact}>
+						<div key={i} className="font-medium text-gray-900 dark:text-gray-200 truncate max-w-[180px]" title={contact}>
 							{contact}
 						</div>
 					))}
+                    
+                    {/* Subtítulo: Rol */}
+                    {org.rol && org.rol !== "indefinido" && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]">
+                            {org.rol}
+                        </div>
+                    )}
+
 					{more > 0 && (
-						<div className="text-xs text-gray-500 dark:text-gray-500 italic">
-							+{more} más
+						<div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+							+{more} otros
 						</div>
 					)}
 					{display.length === 0 && (
 						<span className="text-gray-400 dark:text-gray-600 italic">
-							Sin contacto
+							sin nombre de contacto
 						</span>
 					)}
 				</div>
 			</td>
 
-			{/* Estado (Badge) */}
+            {/* Email */}
 			<td className="py-4 px-3 align-middle">
-				<StatusBadge estado={org.estado_cliente} />
+                {email ? (
+                    <a href={`mailto:${email}`} className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate max-w-[180px] block" title={email}>
+                        {email}
+                    </a>
+                ) : (
+                    <span className="text-xs text-gray-400 italic">No disponible</span>
+                )}
 			</td>
 
 			{/* Último contacto */}
-			<td className="py-4 px-3 align-middle text-gray-600 dark:text-gray-400 text-sm">
-				<div>
-					{org.ultimo_contacto
-						? new Date(org.ultimo_contacto).toLocaleDateString()
-						: "Nunca"}
-				</div>
-				{org.hace_dias != null && (
-					<div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-						Hace {org.hace_dias} días
-					</div>
-				)}
+			<td className="py-4 px-3 align-middle text-gray-600 dark:text-gray-400 text-sm font-mono">
+				{org.ultimo_contacto ? formatDate(org.ultimo_contacto) : "Nunca contactado"}
 			</td>
 
 			{/* Acciones */}

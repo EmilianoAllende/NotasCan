@@ -1,5 +1,7 @@
 // src/hooks/useUI.js
 import { useState, useCallback } from "react";
+// 1. IMPORTA ESTO (Asegúrate de que la ruta sea correcta)
+import { ESTADOS_CLIENTE } from "../utils/organizationUtils"; 
 
 export const useUI = () => {
 	// UI
@@ -20,10 +22,15 @@ export const useUI = () => {
 	});
 
 	// Filters
-	const [filterStatus, setFilterStatus] = useState("todos");
+	// 2. CAMBIA ESTO: De "todos" a la constante de Lista Blanca
+	const [filterStatus, setFilterStatus] = useState(ESTADOS_CLIENTE.LISTA_BLANCA);
+	
 	const [filterType, setFilterType] = useState("todos");
 	const [filterIsla, setFilterIsla] = useState("todos");
-	const [filterSuscripcion, setFilterSuscripcion] = useState("todos");
+	
+	// 3. CAMBIA ESTO: De "todos" a "activa"
+	const [filterSuscripcion, setFilterSuscripcion] = useState("activa");
+	
 	const [currentPage, setCurrentPage] = useState(1);
 
 	const closeConfirm = useCallback(() => {
