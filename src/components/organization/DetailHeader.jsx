@@ -6,12 +6,14 @@ import {
     Calendar, 
     Briefcase, 
     Hash,
-    Building2
+    Building2,
+    ArrowLeft // 1. Importamos el icono
 } from "lucide-react";
 
-const DetailHeader = ({ selectedOrg, StatusBadge }) => {
+// 2. Recibimos 'onBack' en los props
+const DetailHeader = ({ selectedOrg, StatusBadge, onBack }) => {
     
-    // Lógica de procesamiento de datos (similar a ContactInfo)
+    // Lógica de procesamiento de datos
     const info = useMemo(() => {
         if (!selectedOrg) return null;
 
@@ -26,7 +28,6 @@ const DetailHeader = ({ selectedOrg, StatusBadge }) => {
             console.error("Error parsing metadata in header", e);
         }
 
-        // Determinar Actividad Principal
         let actividad = selectedOrg.actividad_principal;
         if (!actividad && meta.organizacion?.actividad_principal) {
             actividad = meta.organizacion.actividad_principal;
@@ -35,16 +36,11 @@ const DetailHeader = ({ selectedOrg, StatusBadge }) => {
         return {
             name: selectedOrg.organizacion || selectedOrg.nombre,
             id: selectedOrg.id,
-            // Ubicación
             municipio: selectedOrg.municipio || meta.ubicacion?.municipio,
             isla: selectedOrg.isla || meta.ubicacion?.isla,
-            // Tipo (Preferimos subtipo, formateado)
             type: (selectedOrg.sub_tipo_entidad || selectedOrg.tipo_entidad || meta.organizacion?.tipo || "Sin clasificar").replace(/_/g, " "),
-            // Actividad
             activity: actividad || "No especificada",
-            // Fecha
             created: selectedOrg.created_date ? new Date(selectedOrg.created_date).toLocaleDateString() : null,
-            // Web
             url: selectedOrg.url && selectedOrg.url !== "indefinido" ? selectedOrg.url : null
         };
     }, [selectedOrg]);
@@ -53,6 +49,18 @@ const DetailHeader = ({ selectedOrg, StatusBadge }) => {
 
     return (
         <div className="p-6 bg-white rounded-2xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
+            
+            {/* 3. Botón 'Volver' integrado DENTRO de la tarjeta */}
+            <div className="mb-4">
+                <button
+                    onClick={onBack}
+                    className="group inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:bg-gray-700/50 dark:border-gray-600 dark:text-gray-300 dark:hover:text-blue-400 transition-all duration-200"
+                >
+                    <ArrowLeft size={16} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+                    Volver a Gestión
+                </button>
+            </div>
+
             {/* Cabecera Principal */}
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6 border-b border-gray-100 dark:border-gray-700 pb-4">
                 <div className="flex-1">
