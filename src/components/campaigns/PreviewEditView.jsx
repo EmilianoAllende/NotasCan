@@ -8,6 +8,7 @@ const PreviewEditView = ({
   isSending,
   handleCancelClick,
   onShowHtmlPreview,
+  extraButtons,
 }) => (
   <>
     <div className="mb-8">
@@ -53,6 +54,7 @@ const PreviewEditView = ({
     </div>
 
     <div className="flex justify-between items-center mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
+      {extraButtons}
       <button
         onClick={onShowHtmlPreview}
         className="px-5 py-2.5 text-sm font-medium border-2 border-slate-300 dark:border-slate-600 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200 active:scale-95"

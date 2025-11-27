@@ -1,8 +1,7 @@
-// src/hooks/useCallCenterAndCampaignFlow.js
 import { useState, useCallback } from "react";
-import apiClient from "../api/apiClient"; // Asegúrate de que este archivo exista
+import apiClient from "../api/apiClient";
 
-export const useCallCenterAndCampaignFlow = ({ // <--- Desestructuración del objeto, para que no llore
+export const useCallCenterAndCampaignFlow = ({
 	currentUser,
 	selectedOrg,
 	selectedCampaignId,
@@ -13,16 +12,14 @@ export const useCallCenterAndCampaignFlow = ({ // <--- Desestructuración del ob
 	setSelectedOrg,
 	handleRefresh 
 }) => {
-	// State
 	const [emailPreview, setEmailPreview] = useState(null);
 	const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 	const [isSendingCampaign, setIsSendingCampaign] = useState(false);
 	const [isCallCenterMode, setIsCallCenterMode] = useState(false);
 	const [isTaskLoading, setIsTaskLoading] = useState(false);
 	const [currentQueueId, setCurrentQueueId] = useState(null);
-	const [currentTask, setCurrentTask] = useState(null); // Contendrá { taskInfo, organization, email }
+	const [currentTask, setCurrentTask] = useState(null);
 
-	// Función auxiliar para abrir el modal y limpiar estados
 	const handleOpenCampaignModal = useCallback(
 		(org) => {
 			setSelectedOrg(org);
@@ -34,72 +31,6 @@ export const useCallCenterAndCampaignFlow = ({ // <--- Desestructuración del ob
 		[setSelectedOrg, setShowCampaignModal]
 	);
 
-	// FUNCIÓN 4.1: Call Center - Obtener siguiente tarea
-	const fetchNextTask = useCallback(
-		async (queueId) => {
-			setIsTaskLoading(true);
-			setShowCampaignModal(true);
-			setEmailPreview(null);
-			const campaignId = selectedCampaignId;
-			const CURRENT_USER_ID = currentUser?.usuario || "user_default";
-
-			try {
-				if (!queueId)
-					throw new Error("Intento de fetch sin un queueId activo.");
-
-				const taskResponse = await apiClient.getNextInQueue(
-					queueId,
-					CURRENT_USER_ID
-				);
-
-				if (taskResponse.data && taskResponse.data.organization) {
-					const taskData = taskResponse.data;
-					const organization = taskData.organization;
-
-					// 2. Llamar a generatePreview con el payload simple
-					const payload = {
-						organization: organization,
-						campaignId: campaignId,
-					};
-					const emailResponse = await apiClient.generatePreview(payload);
-
-					// 3. Establecer estado
-					setCurrentTask(taskData);
-					setSelectedOrg(organization);
-					setEmailPreview(emailResponse.data);
-				} else {
-					setNotification({
-						type: "success",
-						title: "Cola Finalizada",
-						message: "¡Has procesado todas las organizaciones en la cola!",
-					});
-					setIsCallCenterMode(false);
-					setShowCampaignModal(false);
-					setCurrentQueueId(null);
-					setCurrentTask(null);
-				}
-			} catch (err) {
-				console.error("Error fetching next task:", err);
-				setNotification({
-					type: "error",
-					title: "Error de Red",
-					message: "No se pudo cargar la siguiente tarea de la cola.",
-				});
-				setIsCallCenterMode(false);
-			} finally {
-				setIsTaskLoading(false);
-			}
-		},
-		[
-			currentUser,
-			selectedCampaignId,
-			setNotification,
-			setShowCampaignModal,
-			setSelectedOrg,
-		]
-	);
-
-	// FUNCIÓN 1: Generar el borrador (Preview)
 	const handleGeneratePreview = useCallback(
 		async (orgToPreview, campaignIdToPreview) => {
 			const organization = orgToPreview || selectedOrg;
@@ -120,23 +51,17 @@ export const useCallCenterAndCampaignFlow = ({ // <--- Desestructuración del ob
 					organization: organization,
 					campaignId: campaignId,
 				};
-
-				const response = await apiClient.generatePreview(payload);
-
-				setEmailPreview(response.data);
-				setNotification({
-					type: "success",
-					title: "Borrador Generado",
-					message:
-						"El borrador de la campaña ha sido generado exitosamente por la IA.",
-				});
+				
+				console.log("📤 Payload enviado a generate-preview:", payload);
+				
+				const emailResponse = await apiClient.generatePreview(payload);
+				setEmailPreview(emailResponse.data);
 			} catch (err) {
 				console.error("Error al generar el borrador:", err);
 				setNotification({
 					type: "error",
 					title: "Error al Generar Borrador",
-					message:
-						"No se pudo generar el borrador con la IA. Verifica la conexión con n8n.",
+					message: "No se pudo generar el borrador. Verifica la conexión con n8n.",
 				});
 			} finally {
 				setIsPreviewLoading(false);
@@ -145,7 +70,80 @@ export const useCallCenterAndCampaignFlow = ({ // <--- Desestructuración del ob
 		[selectedOrg, selectedCampaignId, setNotification]
 	);
 
-	// FUNCIÓN 2.1: Lógica REAL de envío (Ejecutado después de la confirmación)
+	// ✅ MODIFICADO: Ahora pasa campaignId a getNextInQueue
+	const fetchNextTask = useCallback(
+		async (queueId, skipCurrent = false) => {
+			setIsTaskLoading(true);
+			setShowCampaignModal(true);
+			setEmailPreview(null);
+			const campaignId = selectedCampaignId;
+			const CURRENT_USER_ID = currentUser?.usuario || "user_default";
+
+			let skipTaskInfo = null;
+			if (skipCurrent && currentTask && currentTask.taskInfo) {
+				skipTaskInfo = currentTask.taskInfo;
+			}
+
+			try {
+				if (!queueId)
+					throw new Error("Intento de fetch sin un queueId activo.");
+				
+				if (!campaignId)
+					throw new Error("No hay campaignId seleccionado en el modo Call Center.");
+
+				// ✅ Pasamos campaignId como tercer parámetro
+				const taskResponse = await apiClient.getNextInQueue(
+					queueId, CURRENT_USER_ID, campaignId, skipTaskInfo
+				);
+				
+				if (taskResponse.data && taskResponse.data.organization) {
+					const taskData = taskResponse.data;
+					const organization = taskData.organization;
+
+					await handleGeneratePreview(organization, campaignId);
+					setCurrentTask(taskData);
+					setSelectedOrg(organization);
+					
+					if (skipCurrent) {
+						setNotification({
+							type: "info",
+							title: "Tarea Saltada",
+							message: "La tarea anterior ha sido devuelta a la cola con menor prioridad.",
+						});
+					}
+				} else {
+					setNotification({
+						type: "success",
+						title: "Cola Finalizada",
+						message: "¡Has procesado todas las organizaciones en la cola!",
+					});
+					setIsCallCenterMode(false);
+					setShowCampaignModal(false);
+					setCurrentQueueId(null);
+					setCurrentTask(null);
+				}
+			} catch (err) {
+				console.error("Error fetching next task:", err);
+				setNotification({
+					type: "error",
+					title: "Error de Red",
+					message: "No se pudo cargar la siguiente tarea de la cola.",
+				});
+			} finally {
+				setIsTaskLoading(false);
+			}
+		},
+		[
+			currentUser,
+			selectedCampaignId,
+			setNotification,
+			setShowCampaignModal,
+			setSelectedOrg, 
+			currentTask,
+			handleGeneratePreview,
+		]
+	);
+
 	const _executeConfirmAndSend = useCallback(
 		async (finalContent) => {
 			setIsSendingCampaign(true);
@@ -163,7 +161,6 @@ export const useCallCenterAndCampaignFlow = ({ // <--- Desestructuración del ob
 				const response = await apiClient.confirmAndSend(payload);
 				let result = response.data;
 
-				// Lógica de parseo y manejo de respuesta
 				if (typeof result === "string") {
 					try {
 						result = JSON.parse(result);
@@ -224,7 +221,6 @@ export const useCallCenterAndCampaignFlow = ({ // <--- Desestructuración del ob
 		]
 	);
 
-	// FUNCIÓN 2.2: Confirmación de envío
 	const handleConfirmAndSend = useCallback(
 		(finalContent) => {
 			setConfirmProps({
@@ -244,7 +240,6 @@ export const useCallCenterAndCampaignFlow = ({ // <--- Desestructuración del ob
 		[_executeConfirmAndSend, closeConfirm, selectedOrg, setConfirmProps]
 	);
 
-	// FUNCIÓN 4.2: Call Center - Lógica REAL de inicio
 	const _executeStartCallCenterMode = useCallback(
 		async (selectedOrgs) => {
 			setIsTaskLoading(true);
@@ -276,7 +271,6 @@ export const useCallCenterAndCampaignFlow = ({ // <--- Desestructuración del ob
 		[fetchNextTask, selectedCampaignId, setNotification]
 	);
 
-	// FUNCIÓN 4.3: Call Center - Confirmación de inicio
 	const startCallCenterMode = useCallback(
 		(selectedOrgs) => {
 			if (!selectedCampaignId) {
@@ -318,16 +312,23 @@ export const useCallCenterAndCampaignFlow = ({ // <--- Desestructuración del ob
 		]
 	);
 
+	const handleSkipTask = useCallback(() => {
+		if (currentQueueId) {
+			fetchNextTask(currentQueueId, true);
+		}
+	}, [currentQueueId, fetchNextTask]);
+
 	return {
 		emailPreview,
 		setEmailPreview,
 		isPreviewLoading,
 		isSendingCampaign,
 		isCallCenterMode,
-		setIsCallCenterMode, // <--- ¡FALTABA ESTE! (Lo usa useNavigationHandlers)
+		handleSkipTask,
+		setIsCallCenterMode,
 		isTaskLoading,
 		currentTask,
-		setCurrentTask, // <--- ¡FALTABA ESTE! (El causante del error actual)
+		setCurrentTask,
 		handleGeneratePreview,
 		handleConfirmAndSend,
 		startCallCenterMode,
