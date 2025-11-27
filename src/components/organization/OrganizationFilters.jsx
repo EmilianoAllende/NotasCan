@@ -58,8 +58,7 @@ const OrganizationFilters = ({
 	return (
 		<div className="grid gap-3">
             {/* Aumentamos grid-cols a 5 para que quepa el nuevo filtro en pantallas grandes */}
-			<div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
-				
+<div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">				
                 {/* 1. Selector de Estado */}
 				<select
 					value={filterStatus}
@@ -125,15 +124,7 @@ const OrganizationFilters = ({
 					))}
 				</select>
 
-				{/* 5. Selector de Suscripción */}
-				<select
-					value={filterSuscripcion}
-					onChange={(e) => setFilterSuscripcion(e.target.value)}
-					className="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors">
-					<option value="todos">Todas las suscripciones</option>
-					<option value="activa">Activa</option>
-					<option value="inactiva">Inactiva</option>
-				</select>
+				
 			</div>
 
             {/* ... (Resto del componente: Barra de búsqueda, Campaña, Botones) ... */}
@@ -278,14 +269,7 @@ const OrganizationFilters = ({
 							</span>
 						</span>
 					)}
-					{filterSuscripcion !== "todos" && (
-						<span className="mr-1">
-							, suscripción:{" "}
-							<span className="font-medium text-gray-700 dark:text-gray-300">
-								{filterSuscripcion}
-							</span>
-						</span>
-					)}
+					
 					<button
 						onClick={handleClearFilters}
 						className="ml-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium underline decoration-transparent hover:decoration-current transition-all">

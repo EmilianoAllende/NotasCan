@@ -1,8 +1,8 @@
 // src/components/organization/OrganizationTable.jsx
 import React from "react";
 import { RefreshCw } from "lucide-react";
-import { useOrganizationTableLogic } from "../../hooks/useOrganizationTableLogic"; // Importamos el Hook
-import OrganizationTableRow from "./OrganizationTableRow"; // Importamos la Fila
+import { useOrganizationTableLogic } from "../../hooks/useOrganizationTableLogic";
+import OrganizationTableRow from "./OrganizationTableRow";
 
 const OrganizationTable = ({
 	filteredOrgs,
@@ -10,15 +10,14 @@ const OrganizationTable = ({
 	ITEMS_PER_PAGE,
 	selectedOrgIds,
 	setSelectedOrgIds,
-	selectedOrg, // Se sigue pasando para la fila
-	setSelectedOrg, // Se sigue pasando para la fila
-	viewDetail, // Se sigue pasando para la fila
-	openEditModal, // Se sigue pasando para la fila
-	handleCampaignClick, // Se sigue pasando para la fila
-	ESTADOS_CLIENTE, // Se sigue pasando para la fila
+	selectedOrg,
+	setSelectedOrg,
+	viewDetail,
+	openEditModal,
+	handleCampaignClick,
+	ESTADOS_CLIENTE,
 	isLoading,
 }) => {
-	// 1. Usamos el hook para obtener la lógica y los datos paginados
 	const {
 		paginatedOrgs,
 		areAllOnPageSelected,
@@ -33,16 +32,15 @@ const OrganizationTable = ({
 		setSelectedOrgIds,
 	});
 
-	// 2. Definimos los encabezados
+	// --- CAMBIO: Se quitó "Rol" de los headers ---
 	const headers = [
 		"Organización",
-		"Contacto",
-		"Estado",
+		"Contacto",       // Aquí irá el nombre + rol
+		"Email",
 		"Último contacto",
-		"", // Para acciones
+		"",               // Acciones
 	];
 
-	// 3. El JSX es ahora mucho más limpio
 	return (
 		<div className="mt-2 overflow-hidden border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm backdrop-blur-sm">
 			<div className="overflow-x-auto">
@@ -70,7 +68,6 @@ const OrganizationTable = ({
 					<tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
 						{paginatedOrgs.length > 0 ? (
 							paginatedOrgs.map((org) => (
-								// 4. Delegamos el renderizado de la fila
 								<OrganizationTableRow
 									key={org.id}
 									org={org}
@@ -85,10 +82,9 @@ const OrganizationTable = ({
 								/>
 							))
 						) : (
-							// Estado vacío o de carga
 							<tr>
 								<td
-									colSpan={headers.length + 1} // +1 por el checkbox
+									colSpan={headers.length + 1}
 									className="px-6 py-10 text-center text-gray-500 dark:text-gray-400">
 									{isLoading ? (
 										<div className="flex justify-center items-center">

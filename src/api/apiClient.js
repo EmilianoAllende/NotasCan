@@ -111,7 +111,7 @@ apiClient.getCampaignsHistory = () => {
 
 // Crear una cola dinámica a partir de una lista de IDs
 apiClient.createDynamicQueue = (orgIds) => {
-	return apiClient.post("webhook/create-dynamic-queue", { orgIds });
+	return apiClient.post("/webhook/create-dynamic-queue", { orgIds });
 };
 
 // Obtener el siguiente item de una cola específica (ya modificada para multiusuario)
@@ -129,7 +129,7 @@ apiClient.login = (usuario, password) => {
 // --- ¡NUEVO! Función de Crear Usuario (Admin) ---
 apiClient.createUser = (usuario, password, rol, token) => {
 	return apiClient.post(
-		"webhook/create-user",
+		"/webhook/create-user",
 		{ usuario, password, rol }, // El body que recibe n8n
 		{
 			headers: {
