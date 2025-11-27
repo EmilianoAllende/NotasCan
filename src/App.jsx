@@ -119,7 +119,6 @@ const App = () => {
 						confirmText={confirmProps.confirmText}
 						type={confirmProps.type}
 					/>
-					<AIindicator metricas={metricas} procesando={organizaciones.length} />
 					<Notification
 						notification={notification}
 						onClose={() => setNotification(null)}

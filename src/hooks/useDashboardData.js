@@ -1,23 +1,53 @@
 import React from 'react';
+// Asegúrate de que la ruta a organizationUtils sea correcta según tu estructura
 import { getEntityType, ESTADOS_CLIENTE } from '../utils/organizationUtils';
 
 export const useDashboardData = (organizaciones) => {
   const metricas = React.useMemo(() => {
+    // Protección contra datos vacíos
+    if (!organizaciones) return { pendientes: 0, automatizacion: 0, total: 0, en_revision: 0 };
+
     const total = organizaciones.length;
-    const completadas = organizaciones.filter(o => o.estado_cliente === ESTADOS_CLIENTE.COMPLETADO).length;
-    const en_revision = organizaciones.filter(o => o.estado_cliente === ESTADOS_CLIENTE.EN_REVISION).length;
-    const pendientes = organizaciones.filter(o => o.estado_cliente === ESTADOS_CLIENTE.PENDIENTE).length;
-    const automatizacion = total > 0 ? Math.round((completadas / total) * 100) : 0;
-    const precision_ia = 0; // Placeholder hasta tener una señal real
-    return { total_organizaciones: total, completadas, en_revision, pendientes, automatizacion, precision_ia };
+
+    // 1. Calcular Pendientes: Estado es PENDIENTE (0) o nulo/undefined
+    const pendientes = organizaciones.filter(o => 
+      o.estado_cliente === ESTADOS_CLIENTE.PENDIENTE || !o.estado_cliente
+    ).length;
+
+    // 2. Calcular En Revisión (Si usas ese estado)
+    const en_revision = organizaciones.filter(o => 
+      o.estado_cliente === ESTADOS_CLIENTE.REVISION
+    ).length;
+
+    // 3. Calcular Automatización:
+    // Criterio: Tienen Email válido (el ID tiene '@') Y Suscripción Activa
+    const orgsAutomatizables = organizaciones.filter(org => {
+      const tieneEmail = org.id && org.id.includes('@');
+      const estaActiva = org.suscripcion === 'activa';
+      return tieneEmail && estaActiva;
+    }).length;
+
+    const automatizacion = total > 0 ? Math.round((orgsAutomatizables / total) * 100) : 0;
+    const precision_ia = 85; // Placeholder o valor estático por ahora
+
+    return { 
+      total, 
+      pendientes, 
+      en_revision, 
+      automatizacion, 
+      precision_ia,
+      orgsAutomatizables // Lo retornamos por si quieres usar el número exacto en gráficas
+    };
   }, [organizaciones]);
 
+  // Gráfica de Estados (Simplificada para el Dashboard)
   const estadosData = React.useMemo(() => ([
-    { estado: 'Completadas', cantidad: metricas.completadas, color: '#10b981' },
-    { estado: 'En revisión', cantidad: metricas.en_revision, color: '#f59e0b' },
-    { estado: 'Pendientes', cantidad: metricas.pendientes, color: '#ef4444' }
+    { estado: 'Listas para IA', cantidad: metricas.orgsAutomatizables, color: '#10b981' }, // Verde
+    { estado: 'En revisión', cantidad: metricas.en_revision, color: '#f59e0b' }, // Naranja
+    { estado: 'Pendientes', cantidad: metricas.pendientes, color: '#ef4444' } // Rojo
   ]), [metricas]);
 
+  // Gráfica de Islas
   const islasData = React.useMemo(() => {
     const counts = new Map();
     for (const org of organizaciones) {
@@ -30,6 +60,7 @@ export const useDashboardData = (organizaciones) => {
       .sort((a, b) => b.organizaciones - a.organizaciones);
   }, [organizaciones]);
 
+  // Gráfica de Sectores
   const sectoresData = React.useMemo(() => {
     const counts = new Map();
     for (const org of organizaciones) {

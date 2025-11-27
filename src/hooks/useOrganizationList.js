@@ -1,7 +1,7 @@
 // src/hooks/useOrganizationList.js
 import { useState, useMemo, useEffect, useCallback } from "react";
-// Importamos las utilidades correctamente
-import { getEntityType } from "../utils/organizationUtils";
+// Importamos las utilidades correctamente (Agregado ESTADOS_CLIENTE)
+import { getEntityType, ESTADOS_CLIENTE } from "../utils/organizationUtils";
 import { getElapsedString } from "../utils/dateUtils";
 
 const ITEMS_PER_PAGE = 25;
@@ -95,7 +95,7 @@ export const useOrganizationList = (props) => {
 				matchesSearch &&
 				matchesStatus &&
 				matchesType &&
-				matchesSubType && // <-- Condición añadida
+				matchesSubType &&
 				matchesIsla &&
 				matchesSuscripcion
 			);
@@ -105,7 +105,7 @@ export const useOrganizationList = (props) => {
 		searchTerm,
 		filterStatus,
 		filterType,
-		filterSubType, // <-- Dependencia añadida
+		filterSubType,
 		filterIsla,
 		filterSuscripcion,
 	]);
@@ -175,7 +175,7 @@ export const useOrganizationList = (props) => {
 		searchTerm,
 		filterStatus,
 		filterType,
-		filterSubType, // <-- Añadido
+		filterSubType,
 		filterIsla,
 		filterSuscripcion,
 		setCurrentPage,
@@ -183,38 +183,45 @@ export const useOrganizationList = (props) => {
 
 	useEffect(() => setSelectedOrgIds(new Set()), [currentPage]);
 
+	// --- FUNCIÓN MODIFICADA: Resetea a los valores por defecto ---
 	const handleClearFilters = useCallback(() => {
 		setSearchTerm("");
-		setFilterStatus("todos");
+		
+		// 1. Restauramos a Lista Blanca (valor por defecto)
+		setFilterStatus(ESTADOS_CLIENTE.LISTA_BLANCA);
+		
 		setFilterType("todos");
-		setFilterSubType("todos"); // <-- ¡Reseteamos el subtipo!
+		setFilterSubType("todos");
 		setFilterIsla("todos");
-		setFilterSuscripcion("todos");
+		
+		// 2. Restauramos a Suscripción Activa (valor por defecto)
+		setFilterSuscripcion("activa");
+		
 		setCurrentPage(1);
 		setSelectedOrgIds(new Set());
 		setSelectedCampaignId(null);
 	}, [
 		setFilterStatus,
 		setFilterType,
-		// setFilterSubType es local, no necesita estar en deps si useCallback se recrea
+		// setFilterSubType es local, no necesita estar en deps
 		setFilterIsla,
 		setFilterSuscripcion,
 		setCurrentPage,
 		setSelectedCampaignId,
 	]);
 
+	// --- VARIABLE MODIFICADA: Verifica contra los valores por defecto ---
 	const isClean =
 		searchTerm === "" &&
-		filterStatus === "todos" &&
+		filterStatus === ESTADOS_CLIENTE.LISTA_BLANCA && // Verifica si es Lista Blanca
 		filterType === "todos" &&
-		filterSubType === "todos" && // <-- Añadido
+		filterSubType === "todos" &&
 		filterIsla === "todos" &&
-		filterSuscripcion === "todos" &&
+		filterSuscripcion === "activa" && // Verifica si es Activa
 		(selectedCampaignId === null || selectedCampaignId === "");
 
 	const isLoading = organizaciones.length === 0;
 
-	// --- 6. RETORNO (CORRECCIÓN CRÍTICA) ---
 	return {
 		searchTerm,
 		setSearchTerm,
@@ -232,7 +239,6 @@ export const useOrganizationList = (props) => {
 		handleClearFilters,
 		isClean,
 		isLoading,
-		// ¡AQUÍ ESTÁ LA CLAVE! Debemos devolver estas dos variables:
 		filterSubType,
 		setFilterSubType,
 	};
