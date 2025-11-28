@@ -1,6 +1,5 @@
 // src/components/editor-tabs/ContactEditor.jsx
 import React, { useState, useEffect, useMemo } from "react";
-// 1. IMPORTAMOS EL ICONO 'Lock'
 import { 
     ArrowLeft, Save, Globe, MapPin, User, Tag, Building, 
     // eslint-disable-next-line no-unused-vars
@@ -8,10 +7,82 @@ import {
 } from "lucide-react";
 import { TIPOS_ENTIDAD, SUBTIPOS_POR_ENTIDAD } from "../../utils/organizationUtils";
 
+// --- COMPONENTES UI (Externos para evitar re-renderizados) ---
+
+const SectionHeader = ({ icon: Icon, title, colorClass, bgClass }) => (
+    <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-t-xl">
+        <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${bgClass}`}>
+                <Icon className={`w-5 h-5 ${colorClass}`} />
+            </div>
+            <h3 className="text-base font-bold text-gray-900 dark:text-white uppercase tracking-wide">
+                {title}
+            </h3>
+        </div>
+    </div>
+);
+
+const InputField = ({ label, name, icon: Icon, type = "text", className = "", disabled, value, onChange, ...props }) => (
+    <div className={`group ${className}`}>
+        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 ml-1">
+            {label}
+        </label>
+        <div className="relative">
+            {Icon && (
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Icon className={`h-4 w-4 transition-colors ${disabled ? 'text-gray-400' : 'text-gray-400 group-focus-within:text-blue-500'}`} />
+                </div>
+            )}
+            <input
+                type={type}
+                name={name}
+                value={value || ""}
+                onChange={onChange}
+                disabled={disabled}
+                className={`
+                    block w-full rounded-lg border 
+                    ${disabled 
+                        ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500' 
+                        : 'bg-gray-50 border-gray-300 text-gray-900 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:bg-gray-700/50 dark:border-gray-600 dark:text-white dark:focus:bg-gray-700'}
+                    shadow-sm sm:text-sm py-2.5 transition-all 
+                    ${Icon ? 'pl-10' : 'pl-4'}
+                `}
+                {...props}
+            />
+        </div>
+    </div>
+);
+
+const SelectField = ({ label, name, options, disabled = false, value, onChange, ...props }) => (
+    <div>
+        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 ml-1">
+            {label}
+        </label>
+        <div className="relative">
+            <select
+                name={name}
+                value={value || ""}
+                onChange={onChange}
+                disabled={disabled}
+                className={`block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white shadow-sm focus:bg-white dark:focus:bg-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 sm:text-sm py-2.5 pl-4 transition-all appearance-none ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                {...props}
+            >
+                {options}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
+                    <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                </svg>
+            </div>
+        </div>
+    </div>
+);
+
+// --- COMPONENTE PRINCIPAL ---
+
 const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
     const [formData, setFormData] = useState({});
 
-    // Helper para formatear etiquetas
     const formatLabel = (str) => {
         if (!str) return "";
         return str.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -22,11 +93,24 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
         if (selectedOrg) {
             const processedData = { ...selectedOrg };
 
-            // Arrays a String
+            // 1. Limpieza SOLO de comillas extra (mantenemos "indefinido" visible)
+            Object.keys(processedData).forEach(key => {
+                let val = processedData[key];
+                if (typeof val === 'string') {
+                    // Si viene como "\"Texto\"", lo convertimos a "Texto"
+                    if (val.startsWith('"') && val.endsWith('"')) {
+                        processedData[key] = val.slice(1, -1);
+                    }
+                    // NOTA: Se eliminó la limpieza de "indefinido" para que se muestre tal cual.
+                }
+            });
+
+            // 2. Arrays a String (Intereses y Nombres)
             ['intereses', 'nombres_org'].forEach(field => {
-                if (typeof processedData[field] === 'string' && processedData[field].startsWith('[')) {
+                const val = processedData[field];
+                if (typeof val === 'string' && val.startsWith('[')) {
                     try {
-                        const parsed = JSON.parse(processedData[field]);
+                        const parsed = JSON.parse(val);
                         if (Array.isArray(parsed)) {
                             processedData[field] = parsed.join(', ');
                         }
@@ -34,7 +118,7 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
                 }
             });
 
-            // Rol: Tomar solo el primero
+            // 3. Rol: Tomar solo el primero
             if (typeof processedData.rol === 'string' && processedData.rol.startsWith('[')) {
                 try {
                     const parsedRol = JSON.parse(processedData.rol);
@@ -69,79 +153,7 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
         return SUBTIPOS_POR_ENTIDAD[formData.tipo_entidad] || [];
     }, [formData.tipo_entidad]);
 
-    if (!formData.id && !formData.organizacion) return null;
-
-    // --- COMPONENTES UI ---
-    
-    const SectionHeader = ({ icon: Icon, title, colorClass, bgClass }) => (
-        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-t-xl">
-            <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${bgClass}`}>
-                    <Icon className={`w-5 h-5 ${colorClass}`} />
-                </div>
-                <h3 className="text-base font-bold text-gray-900 dark:text-white uppercase tracking-wide">
-                    {title}
-                </h3>
-            </div>
-        </div>
-    );
-
-    const InputField = ({ label, name, icon: Icon, type = "text", className = "", disabled, ...props }) => (
-        <div className={`group ${className}`}>
-            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 ml-1">
-                {label}
-            </label>
-            <div className="relative">
-                {Icon && (
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        {/* Si está disabled, el icono se ve más gris */}
-                        <Icon className={`h-4 w-4 transition-colors ${disabled ? 'text-gray-400' : 'text-gray-400 group-focus-within:text-blue-500'}`} />
-                    </div>
-                )}
-                <input
-                    type={type}
-                    name={name}
-                    value={formData[name] || ""}
-                    onChange={handleChange}
-                    disabled={disabled}
-                    className={`
-                        block w-full rounded-lg border 
-                        ${disabled 
-                            ? 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500' 
-                            : 'bg-gray-50 border-gray-300 text-gray-900 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:bg-gray-700/50 dark:border-gray-600 dark:text-white dark:focus:bg-gray-700'}
-                        shadow-sm sm:text-sm py-2.5 transition-all 
-                        ${Icon ? 'pl-10' : 'pl-4'}
-                    `}
-                    {...props}
-                />
-            </div>
-        </div>
-    );
-
-    const SelectField = ({ label, name, options, disabled = false, ...props }) => (
-        <div>
-            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 ml-1">
-                {label}
-            </label>
-            <div className="relative">
-                <select
-                    name={name}
-                    value={formData[name] || ""}
-                    onChange={handleChange}
-                    disabled={disabled}
-                    className={`block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white shadow-sm focus:bg-white dark:focus:bg-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 sm:text-sm py-2.5 pl-4 transition-all appearance-none ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
-                    {...props}
-                >
-                    {options}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                    <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
-                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                    </svg>
-                </div>
-            </div>
-        </div>
-    );
+    if (!formData.id && !formData.nombre && !formData.organizacion) return null;
 
     return (
         <div className="h-full flex flex-col bg-gray-50/50 dark:bg-gray-900 transition-colors">
@@ -161,7 +173,7 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
                             Editar Organización
                         </h2>
                         <p className="text-xs text-gray-500 dark:text-gray-400 font-medium truncate max-w-xs sm:max-w-md">
-                            {formData.organizacion || formData.nombre || "Nueva Organización"}
+                            {formData.organizacion ||formData.nombre ||  "Nueva Organización"}
                         </p>
                     </div>
                 </div>
@@ -201,25 +213,40 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
                         <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <div className="col-span-1 md:col-span-2">
                                 <InputField 
-                                    label="Nombre Organización" 
-                                    name="organizacion" 
-                                    placeholder="Nombre oficial de la entidad"
+                                    label="subnombre" 
+                                    name="nombre" 
+                                    value={formData.nombre}
+                                    onChange={handleChange}
+                                    placeholder="Nombre visible de la ficha"
                                     className="col-span-2"
                                 />
                             </div>
+
+                            <div className="col-span-1">
+                                <InputField 
+                                    label="Nombre de la Organización (Legal/Entidad)" 
+                                    name="organizacion" 
+                                    value={formData.organizacion}
+                                    onChange={handleChange}
+                                    placeholder="Nombre de la entidad"
+                                />
+                            </div>
                             
-                            {/* --- CAMBIO AQUÍ: ID BLOQUEADO CON CANDADO --- */}
                             <InputField 
-                                label="Email (ID) - No Editable" 
+                                label="Email (ID)" 
                                 name="id" 
-                                icon={Lock} // Icono de candado
-                                disabled={true} // Input deshabilitado
+                                value={formData.id}
+                                onChange={handleChange}
+                                icon={Lock}
+                                disabled={true}
                                 title="El ID es único y no se puede modificar"
                             />
                             
                             <InputField 
                                 label="Sitio Web" 
                                 name="url" 
+                                value={formData.url}
+                                onChange={handleChange}
                                 icon={Globe} 
                                 placeholder="https://www.ejemplo.com"
                             />
@@ -227,11 +254,15 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
                             <InputField 
                                 label="Teléfono" 
                                 name="telefono" 
+                                value={formData.telefono}
+                                onChange={handleChange}
                                 icon={Phone} 
-                                placeholder="+34 928..."
+                                placeholder="+34..."
                             />
 
                             <SelectField label="Suscripción" name="suscripcion"
+                                value={formData.suscripcion}
+                                onChange={handleChange}
                                 options={
                                     <>
                                         <option value="activa">Activa</option>
@@ -253,12 +284,25 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
 
                         <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="md:col-span-3">
-                                <InputField label="Dirección Completa" name="direccion" placeholder="Calle, Número..." />
+                                <InputField 
+                                    label="Dirección Completa" 
+                                    name="direccion" 
+                                    value={formData.direccion}
+                                    onChange={handleChange}
+                                    placeholder="Calle, Número..." 
+                                />
                             </div>
                             
-                            <InputField label="Municipio" name="municipio" />
+                            <InputField 
+                                label="Municipio" 
+                                name="municipio" 
+                                value={formData.municipio}
+                                onChange={handleChange}
+                            />
                             
                             <SelectField label="Isla" name="isla"
+                                value={formData.isla}
+                                onChange={handleChange}
                                 options={
                                     <>
                                         <option value="">Seleccionar...</option>
@@ -275,7 +319,7 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
                         </div>
                     </div>
 
-                    {/* SECCIÓN 3: CLASIFICACIÓN */}
+                    {/* SECCIÓN 3: CLASIFICACIÓN Y CONTACTO */}
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col">
                         <SectionHeader 
                             icon={Tag} 
@@ -287,6 +331,8 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
                         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                             
                             <SelectField label="Tipo Entidad" name="tipo_entidad"
+                                value={formData.tipo_entidad}
+                                onChange={handleChange}
                                 options={
                                     <>
                                         <option value="">Seleccionar Tipo...</option>
@@ -300,6 +346,8 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
                             />
 
                             <SelectField label="Sub-tipo / Sector" name="sub_tipo_entidad"
+                                value={formData.sub_tipo_entidad}
+                                onChange={handleChange}
                                 disabled={!formData.tipo_entidad}
                                 options={
                                     <>
@@ -318,6 +366,8 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
                             <InputField 
                                 label="Nombres Contacto (Sep. por comas)" 
                                 name="nombres_org" 
+                                value={formData.nombres_org}
+                                onChange={handleChange}
                                 icon={User}
                                 placeholder="Ej: Juan Pérez"
                             />
@@ -325,6 +375,8 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
                             <InputField 
                                 label="Rol / Cargo Principal" 
                                 name="rol" 
+                                value={formData.rol}
+                                onChange={handleChange}
                                 icon={Briefcase}
                                 placeholder="Ej: Director"
                             />
@@ -338,7 +390,7 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
                                     value={formData.intereses || ""}
                                     onChange={handleChange}
                                     rows={3}
-                                    placeholder="Ej: economia, turismo..."
+                                    placeholder="Ej: economia, turismo, tecnologia..."
                                     className="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white shadow-sm focus:bg-white dark:focus:bg-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 sm:text-sm py-3 px-4 transition-all resize-none"
                                 />
                             </div>
