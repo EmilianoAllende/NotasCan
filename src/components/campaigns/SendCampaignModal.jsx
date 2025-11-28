@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
-// --- ¡NUEVO! Importamos el componente modularizado ---
 import HtmlPreviewModal from "../preview/HtmlPreviewModal";
 import TemplateSelectionView from './TemplateSelectionView';
 import PreviewEditView from './PreviewEditView';
-// --- ¡NUEVO! Importamos la función de utilidad ---
 import { generatePreviewHtml } from "../preview/GeneratePreviewHtml";
 
 const SendCampaignModal = ({
@@ -22,6 +20,7 @@ const SendCampaignModal = ({
 	setConfirmProps,
 	closeConfirm,
 	isCallCenterMode,
+	onSkipTask,
 }) => {
 	const [showHtmlPreview, setShowHtmlPreview] = useState(false);
 	const [editableContent, setEditableContent] = useState({
@@ -35,7 +34,7 @@ const SendCampaignModal = ({
 		else setEditableContent({ subject: "", body: "" });
 	}, [emailPreview]);
 
-	// --- ¡NUEVO! Auto-generar si ya hay campaña seleccionada ---
+	// --- Auto-generar si ya hay campaña seleccionada ---
 	useEffect(() => {
 		// Si el modal está abierto, no es Call Center (porque ese tiene su propia lógica),
 		// hay una organización, hay una campaña seleccionada globalmente,
@@ -60,12 +59,10 @@ const SendCampaignModal = ({
 		isPreviewLoading,
 		onGeneratePreview,
 	]);
-	// -----------------------------------------------------------
 
 	if (!show || !selectedOrg) return null;
 
 	if (isTaskLoading && isCallCenterMode) {
-		// <-- Solo mostrar si es Call Center
 		return (
 			<div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">				
 				<div className="bg-white dark:bg-slate-800 rounded-xl p-8 max-w-md w-full text-center shadow-xl animate-scaleIn">
@@ -120,7 +117,6 @@ const SendCampaignModal = ({
 
 	const renderInitialView = () => (
   <>
-    {/* Modificamos la condición para mostrar el spinner también si hay campaña seleccionada (autogenerando) */}
     {(isCallCenterMode || isPreviewLoading || (selectedCampaignId && !emailPreview)) ? (
       <div className="flex flex-col items-center justify-center text-center p-12 rounded-2xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md mx-auto mt-10 backdrop-blur-sm">
         <div className="mb-6 w-16 h-16 relative">
@@ -155,6 +151,8 @@ const SendCampaignModal = ({
 			isSending={isSending}
 			handleCancelClick={handleCancelClick}
 			onShowHtmlPreview={() => setShowHtmlPreview(true)}
+			isCallCenterMode={isCallCenterMode} // Pasa el modo
+			onSkipTask={onSkipTask} // Pasa la función para saltar
 		/>
 	);
 
@@ -168,11 +166,10 @@ const SendCampaignModal = ({
 
 			{showHtmlPreview && (
 				<HtmlPreviewModal
-					// --- ¡CAMBIO! Llamando a la función importada ---
 					htmlContent={generatePreviewHtml(editableContent, selectedOrg)}
 					onClose={() => setShowHtmlPreview(false)}
 					selectedOrg={selectedOrg}
-					subject={editableContent.subject} // <-- ¡PROP AÑADIDA!
+					subject={editableContent.subject}
 				/>
 			)}
 		</>
