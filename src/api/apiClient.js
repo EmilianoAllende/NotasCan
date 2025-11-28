@@ -28,7 +28,7 @@ apiClient.interceptors.request.use((request) => {
 	return request;
 });
 
-// --- LISTADO DE ORGANIZACIONES DESDE DYNAMO ---
+// --- LISTADO DE ORGANIZACIONES DESDE DYNAMO ---s
 const GET_ORGANIZACIONES_PATH = "/webhook/organization-list";
 // --- EDICIÓN DE ORGANIZACIONES EN DYNAMO ---
 const UPDATE_ORGANIZACION_PATH = "/webhook/organizaciones";
@@ -36,7 +36,7 @@ const UPDATE_ORGANIZACION_PATH = "/webhook/organizaciones";
 // --- ENDPOINTS DE PLANTILLAS (NUEVOS) ---
 const TEMPLATES_PATH = "/webhook/templates"; // Endpoint del flujo TemplateManager
 const GENERATE_PREVIEW_PATH = "/webhook/generate-preview"; // Endpoint del flujo MailWriter
-const CONFIRM_SEND_PATH = "/webhook/confirm-and-send";
+const CONFIRM_SEND_PATH = "/webhook/confirm-and-send-test";
 
 // Obtiene TODAS las plantillas de prompts desde Supabase.*/
 apiClient.getTemplates = () => {
@@ -110,15 +110,25 @@ apiClient.getCampaignsHistory = () => {
 };
 
 // Crear una cola dinámica a partir de una lista de IDs
-apiClient.createDynamicQueue = (orgIds) => {
-	return apiClient.post("/webhook/create-dynamic-queue", { orgIds });
+apiClient.createDynamicQueue = (orgIds, queueId) => {
+	// Enviamos el ID generado por el frontend
+	return apiClient.post("/webhook/create-dynamic-queue-test", { 
+        orgIds, 
+        queueId 
+    });
 };
 
-// Obtener el siguiente item de una cola específica (ya modificada para multiusuario)
-apiClient.getNextInQueue = (queueId, userId) => {
-	return apiClient.get(
-		`/webhook/siguiente-correo?queueId=${queueId}&userId=${userId}`
-	);
+// Obtener el siguiente item
+apiClient.getNextInQueue = (queueId, userId, campaignId) => {
+    // Usamos 'params' de axios para manejar la query string automáticamente
+    // Aseguramos enviar campaignId que faltaba antes
+	return apiClient.get("/webhook/siguiente-correo-test", {
+		params: {
+            queueId,
+            userId,
+            campaignId 
+        }
+	});
 };
 
 // --- ¡NUEVO! Función de Login ---
