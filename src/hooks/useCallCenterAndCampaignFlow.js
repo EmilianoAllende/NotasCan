@@ -81,7 +81,10 @@ export const useCallCenterAndCampaignFlow = ({
 
 			let skipTaskInfo = null;
 			if (skipCurrent && currentTask && currentTask.taskInfo) {
+				console.log("3. Obteniendo datos de la tarea a saltar:", currentTask.taskInfo);
 				skipTaskInfo = currentTask.taskInfo;
+			} else if (skipCurrent) {
+				console.warn("3.1. Se intentó saltar, pero no se encontró 'currentTask' o 'currentTask.taskInfo'.");
 			}
 
 			try {
@@ -91,9 +94,13 @@ export const useCallCenterAndCampaignFlow = ({
 				if (!campaignId)
 					throw new Error("No hay campaignId seleccionado en el modo Call Center.");
 
-				// ✅ Pasamos campaignId como tercer parámetro
+				console.log(`4. Llamando a apiClient.getNextInQueue con skipTaskInfo:`, skipTaskInfo);
+				// Pasamos campaignId como tercer parámetro a la llamada de la API
 				const taskResponse = await apiClient.getNextInQueue(
-					queueId, CURRENT_USER_ID, campaignId, skipTaskInfo
+					queueId,
+					CURRENT_USER_ID,
+					campaignId,
+					skipTaskInfo
 				);
 				
 				if (taskResponse.data && taskResponse.data.organization) {
@@ -314,7 +321,10 @@ export const useCallCenterAndCampaignFlow = ({
 
 	const handleSkipTask = useCallback(() => {
 		if (currentQueueId) {
+			console.log("2. Ejecutando handleSkipTask con queueId:", currentQueueId);
 			fetchNextTask(currentQueueId, true);
+		} else {
+			console.warn("2.1. Se intentó ejecutar handleSkipTask, pero no hay un 'currentQueueId' activo.");
 		}
 	}, [currentQueueId, fetchNextTask]);
 

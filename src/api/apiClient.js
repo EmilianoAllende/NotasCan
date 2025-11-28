@@ -92,7 +92,7 @@ apiClient.createDynamicQueue = (orgIds) => {
 	return apiClient.post("/webhook/create-dynamic-queue", { orgIds });
 };
 
-// ✅ MODIFICADO: Ahora acepta campaignId como parámetro
+// Modificado: Acepta campaignId y skipTaskInfo opcional
 apiClient.getNextInQueue = (queueId, userId, campaignId, skipTaskInfo = null) => {
 	let url = `/webhook/siguiente-correo?queueId=${queueId}&userId=${userId}&campaignId=${campaignId}`;
 

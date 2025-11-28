@@ -108,6 +108,7 @@ const App = () => {
 						isTaskLoading={isTaskLoading}
 						isCallCenterMode={isCallCenterMode}
 						setConfirmProps={setConfirmProps}
+						onSkipTask={state.handleSkipTask} // <-- ¡AÑADIR ESTA LÍNEA!
 						closeConfirm={closeConfirm}
 					/>
 					<ConfirmModal
