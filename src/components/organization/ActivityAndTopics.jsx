@@ -7,12 +7,14 @@ const ActivityAndTopics = ({ selectedOrg }) => {
         if (!selectedOrg) return null;
 
         // 1. Lógica de limpieza para Intereses (Tags)
-        let tags = [];
+       let tags = [];
         try {
-            if (typeof selectedOrg.intereses === "string") {
-                // Elimina corchetes y comillas extras si vienen sucios como '["tag"]'
+            // VERIFICACIÓN AGREGADA: Si es "indefinido", lo ignoramos antes de parsear
+            if (selectedOrg.intereses === "indefinido") {
+                tags = [];
+            } 
+            else if (typeof selectedOrg.intereses === "string") {
                 const cleanString = selectedOrg.intereses.replace(/[[\]"]/g, '');
-                // Divide por coma si hay múltiples
                 tags = cleanString.split(',').map(s => s.trim()).filter(Boolean);
             } else if (Array.isArray(selectedOrg.intereses)) {
                 tags = selectedOrg.intereses;

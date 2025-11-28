@@ -26,15 +26,16 @@ apiClient.interceptors.request.use((request) => {
 	return request;
 });
 
-// --- LISTADO DE ORGANIZACIONES DESDE DYNAMO ---
+// --- LISTADO DE ORGANIZACIONES DESDE DYNAMO ---s
 const GET_ORGANIZACIONES_PATH = "/webhook/organization-list";
 // --- EDICIÓN DE ORGANIZACIONES EN DYNAMO ---
 const UPDATE_ORGANIZACION_PATH = "/webhook/organizaciones";
 
 // --- ENDPOINTS DE PLANTILLAS (NUEVOS) ---
-const TEMPLATES_PATH = "/webhook/templates";
-const GENERATE_PREVIEW_PATH = "/webhook/generate-preview";
-const CONFIRM_SEND_PATH = "/webhook/confirm-and-send";
+const TEMPLATES_PATH = "/webhook/templates"; // Endpoint del flujo TemplateManager
+const GENERATE_PREVIEW_PATH = "/webhook/generate-preview"; // Endpoint del flujo MailWriter
+const CONFIRM_SEND_PATH = "/webhook/confirm-and-send-test";
+
 
 apiClient.getTemplates = () => {
 	return apiClient.post(TEMPLATES_PATH, { action: "GET" });
@@ -88,21 +89,26 @@ apiClient.getCampaignsHistory = () => {
 	});
 };
 
-apiClient.createDynamicQueue = (orgIds) => {
-	return apiClient.post("/webhook/create-dynamic-queue", { orgIds });
+// Crear una cola dinámica a partir de una lista de IDs
+apiClient.createDynamicQueue = (orgIds, queueId) => {
+	// Enviamos el ID generado por el frontend
+	return apiClient.post("/webhook/create-dynamic-queue-test", { 
+        orgIds, 
+        queueId 
+    });
 };
 
-// Modificado: Acepta campaignId y skipTaskInfo opcional
-apiClient.getNextInQueue = (queueId, userId, campaignId, skipTaskInfo = null) => {
-	let url = `/webhook/siguiente-correo?queueId=${queueId}&userId=${userId}&campaignId=${campaignId}`;
-
-	// Si hay una tarea para saltar, añadimos sus datos a la URL
-	if (skipTaskInfo && skipTaskInfo.score) {
-		url += `&skipQueueId=${queueId}&skipScore=${skipTaskInfo.score}`;
-	}
-
-	console.log("🔗 getNextInQueue URL:", url);
-	return apiClient.get(url);
+// Obtener el siguiente item
+apiClient.getNextInQueue = (queueId, userId, campaignId) => {
+    // Usamos 'params' de axios para manejar la query string automáticamente
+    // Aseguramos enviar campaignId que faltaba antes
+	return apiClient.get("/webhook/siguiente-correo-test", {
+		params: {
+            queueId,
+            userId,
+            campaignId 
+        }
+	});
 };
 
 apiClient.login = (usuario, password) => {

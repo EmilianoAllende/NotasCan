@@ -5,10 +5,10 @@ import OrganizationTable from "./OrganizationTable";
 // Importaciones de utilidades y componentes movidos
 import { ESTADOS_CLIENTE } from "../../utils/organizationUtils";
 import Pagination from "../shared/Pagination";
-import { useOrganizationList } from "../../hooks/useOrganizationList"; // Importamos el nuevo Hook
+import { useOrganizationList } from "../../hooks/useOrganizationList"; 
 
 const OrganizationList = (props) => {
-	// 1. Llamamos al hook y le pasamos *todas* las props que recibe
+	// 1. Llamamos al hook
 	const {
 		searchTerm,
 		setSearchTerm,
@@ -30,9 +30,9 @@ const OrganizationList = (props) => {
 		isLoading,
 	} = useOrganizationList(props);
 
-	// 2. Desestructuramos las props que el hook NO maneja, pero que el JSX SÍ necesita
+	// 2. Desestructuramos las props
 	const {
-		openEditModal,
+		openEditor, // <--- CORRECCIÓN 1: Recibimos 'openEditor' (el nombre real que viene de App)
 		viewDetail,
 		currentPage,
 		setCurrentPage,
@@ -51,7 +51,6 @@ const OrganizationList = (props) => {
 		setFilterSuscripcion,
 	} = props;
 
-	// 3. El JSX es solo layout y paso de props
 	return (
 		<div className="max-w-full mx-auto p-3 sm:px-6 lg:px-8 transition-colors duration-300">
 			<div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl ring-1 ring-gray-900/5 dark:ring-white/10 overflow-hidden">
@@ -91,7 +90,7 @@ const OrganizationList = (props) => {
 						isCallCenterDisabled={isCallCenterDisabled}
 						campaignTemplates={campaignTemplates}
 						filteredOrgsLength={filteredOrgs.length}
-						totalOrgsLength={props.organizaciones.length} // Pasamos el total original
+						totalOrgsLength={props.organizaciones.length} 
 						lastRefreshLabel={lastRefreshLabel}
 						ESTADOS_CLIENTE={ESTADOS_CLIENTE}
 					/>
@@ -107,8 +106,11 @@ const OrganizationList = (props) => {
 						selectedOrg={selectedOrg}
 						setSelectedOrg={setSelectedOrg}
 						viewDetail={viewDetail}
-						openEditModal={openEditModal}
-						handleCampaignClick={handleCampaignClick}
+                        
+                        // CORRECCIÓN 2: Pasamos 'openEditor' como 'openEditModal' a la tabla
+						openEditModal={openEditor} 
+						
+                        handleCampaignClick={handleCampaignClick}
 						ESTADOS_CLIENTE={ESTADOS_CLIENTE}
 						isLoading={isLoading}
 					/>

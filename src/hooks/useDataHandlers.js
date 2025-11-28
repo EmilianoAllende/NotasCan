@@ -1,63 +1,27 @@
 // src/hooks/useDataHandlers.js
-import { useEffect, useCallback } from "react";
+import { useCallback, useState } from "react";
 import apiClient from "../api/apiClient";
-// eslint-disable-next-line no-unused-vars
-const CACHE_EXPIRATION_MS = 3 * 60 * 60 * 1000;
 
 export const useDataHandlers = (
-	isAuthenticated,
-	organizaciones,
-	setOrganizaciones,
-	setLastRefreshTs,
-	setIsLoading,
-	setError,
-	setIsSaving,
-	setActiveView,
-	setNotification
+	setNotification, // 1. Recibido de useUI
+	setActiveView,   // 2. Recibido de useUI
+	handleRefresh    // 3. Recibido de useOrganizationData (¡IMPORTANTE!)
 ) => {
-	useEffect(() => {
-		if (organizaciones.length === 0 && isAuthenticated) {
-			setIsLoading(true);
-			const fetchOrganizaciones = async () => {
-				try {
-					const response = await apiClient.getOrganizaciones();
-					const cache = {
-						data: response.data,
-						timestamp: new Date().getTime(),
-					};
-					localStorage.setItem("organizaciones_cache", JSON.stringify(cache));
-					setOrganizaciones(response.data);
-					setLastRefreshTs(cache.timestamp);
-				} catch (err) {
-					setError(err);
-				} finally {
-					setIsLoading(false);
-				}
-			};
-			fetchOrganizaciones();
-		}
-	}, [
-		organizaciones.length,
-		isAuthenticated,
-		setOrganizaciones,
-		setLastRefreshTs,
-		setIsLoading,
-		setError,
-	]);
-	// Handler para refrescar
-	const handleRefresh = useCallback(() => {
-		localStorage.removeItem("organizaciones_cache");
-		setOrganizaciones([]);
-		// setCurrentPage(1); // Esto pertenece a UI, se maneja en el componente
-		setLastRefreshTs(null);
-	}, [setOrganizaciones, setLastRefreshTs]);
+	const [isSaving, setIsSaving] = useState(false);
+	const [error, setError] = useState(null);
+
+    // NOTA: Ya no necesitamos definir handleRefresh aquí adentro, 
+    // porque lo recibimos como parámetro (argumento n° 3).
+
 	// Handler para guardar
 	const saveContact = useCallback(
 		async (updatedOrg) => {
 			setIsSaving(true);
 			setError(null);
-			const orgToSend = { ...updatedOrg };
-			// Lógica de limpieza de datos
+			
+            const orgToSend = { ...updatedOrg };
+			
+            // Lógica de limpieza de datos
 			Object.keys(orgToSend).forEach((key) => {
 				const value = orgToSend[key];
 				if (
@@ -69,11 +33,18 @@ export const useDataHandlers = (
 					orgToSend[key] = "[vacio]";
 				}
 			});
+
 			try {
 				await apiClient.updateOrganization(orgToSend);
-				handleRefresh(); // Reutiliza el handler de refresco
+				
+                // AQUÍ ESTABA EL ERROR: Ahora llamamos a la función que recibimos por props
+                if (typeof handleRefresh === 'function') {
+				    handleRefresh(); 
+                }
+
 				setActiveView("listado");
-				setNotification({
+				
+                setNotification({
 					type: "success",
 					title: "Guardado",
 					message: "Organización actualizada con éxito.",
@@ -90,11 +61,14 @@ export const useDataHandlers = (
 				setIsSaving(false);
 			}
 		},
-		[handleRefresh, setActiveView, setError, setIsSaving, setNotification]
+		[handleRefresh, setActiveView, setNotification]
 	);
 
 	return {
-		handleRefresh,
+        // No devolvemos handleRefresh porque ya existe fuera, 
+        // pero devolvemos los estados locales de este hook
+        isSaving,
+        error,
 		saveContact,
 	};
 };

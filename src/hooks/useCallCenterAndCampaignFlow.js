@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import apiClient from "../api/apiClient";
 
 export const useCallCenterAndCampaignFlow = ({
@@ -19,18 +19,165 @@ export const useCallCenterAndCampaignFlow = ({
 	const [isTaskLoading, setIsTaskLoading] = useState(false);
 	const [currentQueueId, setCurrentQueueId] = useState(null);
 	const [currentTask, setCurrentTask] = useState(null);
+	
+	// 🔥 NUEVO: Ref para evitar race conditions
+	const pendingOrgRef = useRef(null);
+	const pendingTaskRef = useRef(null);
 
-	const handleOpenCampaignModal = useCallback(
-		(org) => {
-			setSelectedOrg(org);
+const handleOpenCampaignModal = useCallback(
+    (org) => {
+        // 🔥 LIMPIEZA CRÍTICA: Borrar referencias de la cola anterior
+        pendingOrgRef.current = null; 
+        pendingTaskRef.current = null;
+
+        // Configuración normal del modo individual
+        setSelectedOrg(org);
+        setEmailPreview(null);
+        setCurrentTask(null);
+        setIsCallCenterMode(false);
+        setShowCampaignModal(true);
+    },
+    [setSelectedOrg, setShowCampaignModal]
+);
+	// --- FUNCIÓN BLINDADA: Obtener siguiente tarea ---
+	const fetchNextTask = useCallback(
+		async (queueId) => {
+			console.log("🔄 Iniciando fetchNextTask con QueueID:", queueId);
+			
+			// 1. Forzamos UI de carga inmediata y limpiamos estados
+			setIsTaskLoading(true); 
+			setShowCampaignModal(true); 
 			setEmailPreview(null);
 			setCurrentTask(null);
-			setIsCallCenterMode(false);
-			setShowCampaignModal(true);
+			
+			const campaignId = selectedCampaignId;
+			const CURRENT_USER_ID = currentUser?.usuario || "user_default";
+
+			let skipTaskInfo = null;
+			if (skipCurrent && currentTask && currentTask.taskInfo) {
+				console.log("3. Obteniendo datos de la tarea a saltar:", currentTask.taskInfo);
+				skipTaskInfo = currentTask.taskInfo;
+			} else if (skipCurrent) {
+				console.warn("3.1. Se intentó saltar, pero no se encontró 'currentTask' o 'currentTask.taskInfo'.");
+			}
+
+			try {
+				if (!queueId) throw new Error("Falta queueId activo.");
+
+				// 2. Llamada a API
+				const taskResponse = await apiClient.getNextInQueue(
+					queueId,
+					CURRENT_USER_ID,
+                    campaignId 
+				);
+
+				console.log("📦 Respuesta n8n (Raw):", taskResponse.data);
+
+				// 3. Normalización de datos (Soporta Array o Objeto)
+				// Dentro de fetchNextTask...
+const responseData = Array.isArray(taskResponse.data) ? taskResponse.data[0] : taskResponse.data;
+const taskData = responseData?.json || responseData;
+
+// VALIDACIÓN ANTI-DUPLICADOS
+if (taskData && taskData.organization && pendingOrgRef.current) {
+    if (taskData.organization.id === pendingOrgRef.current.id) {
+        console.warn("⚠️ n8n devolvió la misma organización que acabamos de terminar. Reintentando...");
+        // Podrías lanzar un reintento silencioso aquí o simplemente dejar que el usuario lo note.
+        // Lo ideal es que el retraso de 4000ms (4s) que pusiste sea suficiente.
+    }
+}
+
+				if (taskData && taskData.organization) {
+					const organization = taskData.organization;
+					
+					// 🔥 NORMALIZACIÓN: Asegurar que tenga nombre
+					if (!organization.nombre && organization.organizacion) {
+						organization.nombre = organization.organizacion;
+					}
+					
+					console.log("✅ Organización recibida:", {
+						nombre: organization.nombre,
+						id: organization.id,
+						email: organization.email_para_envios || organization.id
+					});
+
+					// 🔥 CRÍTICO: Guardamos en refs ANTES de setear estados
+					pendingOrgRef.current = organization;
+					pendingTaskRef.current = taskData;
+
+					// 4. Establecer Organización y Tarea
+					setCurrentTask(taskData);
+					setSelectedOrg(organization);
+
+                    // 5. Gestión del Email (Preview)
+                    let emailData = taskData.email || taskData.json?.email;
+
+                    // 🔥 NUEVO: Validación mejorada
+                    if (emailData && typeof emailData === 'object' && emailData.subject && emailData.body) {
+                        console.log("✨ Email recibido desde n8n (formato correcto).");
+                        setEmailPreview(emailData);
+                    } else if (emailData && typeof emailData === 'string') {
+                        // 🔥 CASO ESPECIAL: n8n devolvió solo el body como string
+                        console.warn("⚠️ Email recibido como string. Generando objeto completo...");
+                        
+                        const payload = {
+                            organization: organization,
+                            campaignId: campaignId,
+                        };
+                        const emailResponse = await apiClient.generatePreview(payload);
+                        setEmailPreview(emailResponse.data);
+                    } else {
+                        // FALLBACK: Si n8n no mandó el email, lo generamos aquí
+                        console.warn("⚠️ n8n no devolvió el borrador. Generando localmente...");
+                        
+                        const payload = {
+                            organization: organization,
+                            campaignId: campaignId,
+                        };
+                        const emailResponse = await apiClient.generatePreview(payload);
+                        setEmailPreview(emailResponse.data);
+                    }
+					
+				} else {
+					console.log("🏁 No se recibió organización. Fin de cola.");
+					setNotification({
+						type: "success",
+						title: "Cola Finalizada",
+						message: "¡Has procesado todas las organizaciones en la cola!",
+					});
+					setIsCallCenterMode(false);
+					setShowCampaignModal(false);
+					setCurrentQueueId(null);
+					setCurrentTask(null);
+					setEmailPreview(null);
+					pendingOrgRef.current = null;
+					pendingTaskRef.current = null;
+				}
+			} catch (err) {
+				console.error("❌ Error fetchNextTask:", err);
+				setNotification({
+					type: "error",
+					title: "Error de Proceso",
+					message: "No se pudo cargar la siguiente tarea. Revisa la consola.",
+				});
+			} finally {
+				setIsTaskLoading(false);
+				// 🔥 CRÍTICO: Resetear estado de envío cuando termina de cargar
+				setIsSendingCampaign(false);
+			}
 		},
-		[setSelectedOrg, setShowCampaignModal]
+		[
+			currentUser,
+			selectedCampaignId,
+			setNotification,
+			setShowCampaignModal,
+			setSelectedOrg, 
+			currentTask,
+			handleGeneratePreview,
+		]
 	);
 
+	// FUNCIÓN 1: Generar el borrador (Preview manual)
 	const handleGeneratePreview = useCallback(
 		async (orgToPreview, campaignIdToPreview) => {
 			const organization = orgToPreview || selectedOrg;
@@ -51,17 +198,21 @@ export const useCallCenterAndCampaignFlow = ({
 					organization: organization,
 					campaignId: campaignId,
 				};
-				
-				console.log("📤 Payload enviado a generate-preview:", payload);
-				
-				const emailResponse = await apiClient.generatePreview(payload);
-				setEmailPreview(emailResponse.data);
+
+				const response = await apiClient.generatePreview(payload);
+
+				setEmailPreview(response.data);
+				setNotification({
+					type: "success",
+					title: "Borrador Generado",
+					message: "El borrador ha sido generado exitosamente.",
+				});
 			} catch (err) {
 				console.error("Error al generar el borrador:", err);
 				setNotification({
 					type: "error",
-					title: "Error al Generar Borrador",
-					message: "No se pudo generar el borrador. Verifica la conexión con n8n.",
+					title: "Error al Generar",
+					message: "No se pudo generar el borrador. Verifica la conexión.",
 				});
 			} finally {
 				setIsPreviewLoading(false);
@@ -70,96 +221,38 @@ export const useCallCenterAndCampaignFlow = ({
 		[selectedOrg, selectedCampaignId, setNotification]
 	);
 
-	// ✅ MODIFICADO: Ahora pasa campaignId a getNextInQueue
-	const fetchNextTask = useCallback(
-		async (queueId, skipCurrent = false) => {
-			setIsTaskLoading(true);
-			setShowCampaignModal(true);
-			setEmailPreview(null);
-			const campaignId = selectedCampaignId;
-			const CURRENT_USER_ID = currentUser?.usuario || "user_default";
-
-			let skipTaskInfo = null;
-			if (skipCurrent && currentTask && currentTask.taskInfo) {
-				console.log("3. Obteniendo datos de la tarea a saltar:", currentTask.taskInfo);
-				skipTaskInfo = currentTask.taskInfo;
-			} else if (skipCurrent) {
-				console.warn("3.1. Se intentó saltar, pero no se encontró 'currentTask' o 'currentTask.taskInfo'.");
-			}
-
-			try {
-				if (!queueId)
-					throw new Error("Intento de fetch sin un queueId activo.");
-				
-				if (!campaignId)
-					throw new Error("No hay campaignId seleccionado en el modo Call Center.");
-
-				console.log(`4. Llamando a apiClient.getNextInQueue con skipTaskInfo:`, skipTaskInfo);
-				// Pasamos campaignId como tercer parámetro a la llamada de la API
-				const taskResponse = await apiClient.getNextInQueue(
-					queueId,
-					CURRENT_USER_ID,
-					campaignId,
-					skipTaskInfo
-				);
-				
-				if (taskResponse.data && taskResponse.data.organization) {
-					const taskData = taskResponse.data;
-					const organization = taskData.organization;
-
-					await handleGeneratePreview(organization, campaignId);
-					setCurrentTask(taskData);
-					setSelectedOrg(organization);
-					
-					if (skipCurrent) {
-						setNotification({
-							type: "info",
-							title: "Tarea Saltada",
-							message: "La tarea anterior ha sido devuelta a la cola con menor prioridad.",
-						});
-					}
-				} else {
-					setNotification({
-						type: "success",
-						title: "Cola Finalizada",
-						message: "¡Has procesado todas las organizaciones en la cola!",
-					});
-					setIsCallCenterMode(false);
-					setShowCampaignModal(false);
-					setCurrentQueueId(null);
-					setCurrentTask(null);
-				}
-			} catch (err) {
-				console.error("Error fetching next task:", err);
-				setNotification({
-					type: "error",
-					title: "Error de Red",
-					message: "No se pudo cargar la siguiente tarea de la cola.",
-				});
-			} finally {
-				setIsTaskLoading(false);
-			}
-		},
-		[
-			currentUser,
-			selectedCampaignId,
-			setNotification,
-			setShowCampaignModal,
-			setSelectedOrg, 
-			currentTask,
-			handleGeneratePreview,
-		]
-	);
-
+	// FUNCIÓN 2.1: Lógica REAL de envío
 	const _executeConfirmAndSend = useCallback(
 		async (finalContent) => {
 			setIsSendingCampaign(true);
+			
+			// 🔥 CRÍTICO: Usamos refs como fallback si los estados están null
+			const orgForPayload = selectedOrg || pendingOrgRef.current;
+			const taskForPayload = currentTask || pendingTaskRef.current;
+			
+			if (!orgForPayload) {
+				console.error("❌ No hay organización disponible para envío");
+				setNotification({
+					type: "error",
+					title: "Error",
+					message: "No se pudo identificar la organización. Intenta recargar.",
+				});
+				setIsSendingCampaign(false);
+				return;
+			}
+			
+			const orgIdForPayload = orgForPayload.id;
+			const orgNameForNotification = orgForPayload.organizacion || orgForPayload.nombre;
+			const taskInfoForPayload = taskForPayload?.taskInfo;
+			
+			console.log("📧 Enviando mail a:", orgNameForNotification, "ID:", orgIdForPayload);
+			
 			try {
 				const payload = {
-					organizationId: selectedOrg.id,
+					organizationId: orgIdForPayload,
 					subject: finalContent.subject,
 					body: finalContent.body,
-					...(currentTask?.taskInfo && { taskInfo: currentTask.taskInfo }),
+					...(taskInfoForPayload && { taskInfo: taskInfoForPayload }),
 					campaignId: selectedCampaignId || undefined,
 					sentAt: new Date().toISOString(),
 					updateHaceDias: true,
@@ -169,74 +262,74 @@ export const useCallCenterAndCampaignFlow = ({
 				let result = response.data;
 
 				if (typeof result === "string") {
-					try {
-						result = JSON.parse(result);
-					} catch (e) {
-						/* ignore */
-					}
+					try { result = JSON.parse(result); } catch (e) {}
 				}
 
 				if (result && result.status === "success") {
 					setNotification({
 						type: "success",
-						title: "Campaña Enviada",
-						message: `La campaña para ${
-							selectedOrg.organizacion || selectedOrg.nombre
-						} se ha enviado correctamente.`,
+						title: "Enviado",
+						message: `Correo enviado a ${orgNameForNotification}.`,
 					});
-					if (isCallCenterMode) {
-						fetchNextTask(currentQueueId);
-					} else {
-						handleRefresh();
-						setShowCampaignModal(false);
-						setEmailPreview(null);
-					}
+
+                    // --- LÓGICA CRÍTICA DE SEGUIMIENTO ---
+					if (isCallCenterMode && currentQueueId) {
+                    console.log("🔄 Mail enviado. Iniciando transición a siguiente tarea...");
+
+                    // 1. LIMPIAR SOLO DATOS DE LA TAREA, NO LA ORGANIZACIÓN (para que el modal no se cierre)
+                    setEmailPreview(null);
+                    setCurrentTask(null);
+                    // ❌ ELIMINADO: setSelectedOrg(null);  <-- ESTO CERRABA EL MODAL
+                    
+                    // 2. ACTIVAR UI DE CARGA INMEDIATAMENTE
+                    setIsTaskLoading(true); // Esto forzará al Modal a mostrar el Spinner
+
+                    // 3. Esperar los 4 segundos para DynamoDB (GSI Consistency)
+                    setTimeout(() => {
+                        fetchNextTask(currentQueueId);
+                    }, 4000); 
+                } else {
+                    // Si NO es Call Center, aquí sí cerramos todo
+                    setIsSendingCampaign(false);
+                    handleRefresh();
+                    setShowCampaignModal(false);
+                    setEmailPreview(null);
+                }
+            
 				} else if (result && result.status === "canceled") {
 					setNotification({
 						type: "warning",
-						title: "Envío Cancelado",
-						message: result.message || "Envío de campaña cancelado.",
+						title: "Cancelado",
+						message: result.message || "Envío cancelado.",
 					});
+					setIsSendingCampaign(false);
 				} else {
-					setNotification({
-						type: "error",
-						title: "Respuesta Inesperada",
-						message: `Estado recibido: "${result?.status || "undefined"}".`,
-					});
+					throw new Error(result?.status || "Respuesta desconocida");
 				}
 			} catch (err) {
-				console.error("Error al enviar la campaña:", err);
+				console.error("Error al enviar:", err);
 				setNotification({
 					type: "error",
-					title: "Error de Conexión",
-					message: "No se pudo completar el envío.",
+					title: "Error de Envío",
+					message: "No se pudo enviar el correo. Inténtalo de nuevo.",
 				});
-			} finally {
-				setIsSendingCampaign(false);
+				setIsSendingCampaign(false); // ⬅️ Siempre resetear en error
 			}
+			// 🔥 NOTA: Ya no necesitamos finally aquí porque se resetea en fetchNextTask
 		},
-		[
-			selectedOrg,
-			selectedCampaignId,
-			currentTask,
-			isCallCenterMode,
-			currentQueueId,
-			handleRefresh,
-			fetchNextTask,
-			setNotification,
-			setShowCampaignModal,
-		]
+		[selectedOrg, currentTask, setNotification, selectedCampaignId, isCallCenterMode, currentQueueId, fetchNextTask, handleRefresh, setShowCampaignModal]
 	);
 
 	const handleConfirmAndSend = useCallback(
 		(finalContent) => {
+			// 🔥 Usamos ref como fallback
+			const orgForConfirm = selectedOrg || pendingOrgRef.current;
+			
 			setConfirmProps({
 				show: true,
-				title: "Confirmar Envío de Correo",
-				message: `¿Estás seguro de que quieres enviar este correo a ${
-					selectedOrg?.organizacion || selectedOrg?.nombre
-				}?`,
-				confirmText: "Enviar Correo",
+				title: "Confirmar Envío",
+				message: `¿Enviar correo a ${orgForConfirm?.organizacion || orgForConfirm?.nombre || 'esta organización'}?`,
+				confirmText: "Enviar",
 				type: "info",
 				onConfirm: () => {
 					_executeConfirmAndSend(finalContent);
@@ -251,27 +344,34 @@ export const useCallCenterAndCampaignFlow = ({
 		async (selectedOrgs) => {
 			setIsTaskLoading(true);
 			try {
-				if (!selectedCampaignId)
-					throw new Error("Campaña no seleccionada al iniciar CC.");
+				if (!selectedCampaignId) throw new Error("Falta campaña.");
 
 				const orgIds = selectedOrgs.map((org) => org.id);
-				const response = await apiClient.createDynamicQueue(orgIds);
-				const { queueId } = response.data;
-				if (queueId) {
-					setCurrentQueueId(queueId);
-					setIsCallCenterMode(true);
-					await fetchNextTask(queueId);
-				} else {
-					throw new Error("La API no devolvió un queueId.");
-				}
+                
+                const clientGeneratedQueueId = `q_${Date.now()}`;
+
+                console.log("🔑 Fijando QueueID Cliente:", clientGeneratedQueueId);
+
+				await apiClient.createDynamicQueue(
+                    orgIds, 
+                    clientGeneratedQueueId 
+                );
+				
+				setCurrentQueueId(clientGeneratedQueueId);
+				setIsCallCenterMode(true);
+                
+                console.log("⏳ Esperando 4 segundos para inicializar cola...");
+                setTimeout(() => {
+				    fetchNextTask(clientGeneratedQueueId);
+                }, 4000); // ⬅️ Aumentado a 4 segundos
+
 			} catch (err) {
-				console.error("Error al iniciar el modo call center:", err);
+				console.error("Error start CC:", err);
 				setNotification({
 					type: "error",
-					title: "Error al Crear Cola",
-					message: "No se pudo generar la cola de envíos.",
+					title: "Error al Iniciar",
+					message: err.message || "No se pudo iniciar la cola.",
 				});
-			} finally {
 				setIsTaskLoading(false);
 			}
 		},
@@ -283,26 +383,24 @@ export const useCallCenterAndCampaignFlow = ({
 			if (!selectedCampaignId) {
 				setNotification({
 					type: "warning",
-					title: "Campaña no seleccionada",
-					message:
-						"Por favor, selecciona una campaña del listado antes de iniciar el Modo Call Center.",
+					title: "Falta Campaña",
+					message: "Selecciona una campaña primero.",
 				});
 				return;
 			}
 			if (!selectedOrgs || selectedOrgs.length < 2) {
 				setNotification({
 					type: "warning",
-					title: "Selección Insuficiente",
-					message:
-						"Debes seleccionar al menos 2 organizaciones para iniciar el modo call center.",
+					title: "Selección",
+					message: "Selecciona al menos 2 organizaciones.",
 				});
 				return;
 			}
 			setConfirmProps({
 				show: true,
-				title: "Iniciar Modo Call Center",
-				message: `¿Estás seguro de que quieres generar una cola con ${selectedOrgs.length} organizaciones?`,
-				confirmText: "Generar Cola",
+				title: "Modo Call Center",
+				message: `¿Iniciar cola con ${selectedOrgs.length} organizaciones?`,
+				confirmText: "Iniciar",
 				type: "info",
 				onConfirm: () => {
 					_executeStartCallCenterMode(selectedOrgs);
@@ -334,7 +432,6 @@ export const useCallCenterAndCampaignFlow = ({
 		isPreviewLoading,
 		isSendingCampaign,
 		isCallCenterMode,
-		handleSkipTask,
 		setIsCallCenterMode,
 		isTaskLoading,
 		currentTask,
