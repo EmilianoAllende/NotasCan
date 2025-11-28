@@ -12,6 +12,7 @@ export const useCallCenterAndCampaignFlow = ({
 	setSelectedOrg,
 	handleRefresh 
 }) => {
+	// State
 	const [emailPreview, setEmailPreview] = useState(null);
 	const [isPreviewLoading, setIsPreviewLoading] = useState(false);
 	const [isSendingCampaign, setIsSendingCampaign] = useState(false);
@@ -52,14 +53,6 @@ const handleOpenCampaignModal = useCallback(
 			
 			const campaignId = selectedCampaignId;
 			const CURRENT_USER_ID = currentUser?.usuario || "user_default";
-
-			let skipTaskInfo = null;
-			if (skipCurrent && currentTask && currentTask.taskInfo) {
-				console.log("3. Obteniendo datos de la tarea a saltar:", currentTask.taskInfo);
-				skipTaskInfo = currentTask.taskInfo;
-			} else if (skipCurrent) {
-				console.warn("3.1. Se intentó saltar, pero no se encontró 'currentTask' o 'currentTask.taskInfo'.");
-			}
 
 			try {
 				if (!queueId) throw new Error("Falta queueId activo.");
@@ -171,9 +164,7 @@ if (taskData && taskData.organization && pendingOrgRef.current) {
 			selectedCampaignId,
 			setNotification,
 			setShowCampaignModal,
-			setSelectedOrg, 
-			currentTask,
-			handleGeneratePreview,
+			setSelectedOrg,
 		]
 	);
 
@@ -416,15 +407,6 @@ if (taskData && taskData.organization && pendingOrgRef.current) {
 			setConfirmProps,
 		]
 	);
-
-	const handleSkipTask = useCallback(() => {
-		if (currentQueueId) {
-			console.log("2. Ejecutando handleSkipTask con queueId:", currentQueueId);
-			fetchNextTask(currentQueueId, true);
-		} else {
-			console.warn("2.1. Se intentó ejecutar handleSkipTask, pero no hay un 'currentQueueId' activo.");
-		}
-	}, [currentQueueId, fetchNextTask]);
 
 	return {
 		emailPreview,
