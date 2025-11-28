@@ -52,6 +52,10 @@ const OrganizationTableRow = ({
 	const { display, more } = getDisplayContacts(org);
     const email = org.id && org.id.includes('@') ? org.id : null;
 
+	// Limpieza rápida para visualización
+	const nombreVisual = org.nombre && org.nombre !== "indefinido" ? org.nombre.replace(/"/g, '') : null;
+	const sectorVisual = org.sector && org.sector !== "indefinido" ? org.sector : null;
+
 	return (
 		<tr
 			className={`group transition-colors duration-150 ${
@@ -81,32 +85,37 @@ const OrganizationTableRow = ({
 						title={`Estado: ${org.estado_cliente}`}
 					/>
 					<div className="min-w-0">
+						{/* Título Principal: Organización (o Nombre si no hay org) */}
 						<div
 							className="font-medium text-gray-900 dark:text-gray-100 truncate max-w-[220px]"
-							title={org.organizacion || org.nombre}>
-							{org.organizacion || org.nombre || "Sin nombre de organización"}
+							title={org.organizacion || nombreVisual}>
+							{org.organizacion || nombreVisual || "Sin nombre"}
 						</div>
+						
+						{/* Subtítulo: Sector • Nombre (Agregado aquí) */}
 						<div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-[220px]">
-							{org.sector || ""}
+							{[
+								sectorVisual, 
+								// Solo mostramos el nombre si existe y es diferente a la organización (para no repetir)
+								(nombreVisual && nombreVisual !== org.organizacion) ? nombreVisual : null
+							].filter(Boolean).join(" • ")}
 						</div>
 					</div>
 				</div>
 			</td>
 
-			{/* Contacto + Rol (COMBINADOS) */}
+			{/* Contacto + Rol */}
 			<td className="py-4 px-3 align-middle text-sm">
 				<div className="flex flex-col gap-0.5">
-                    {/* Lista de Nombres */}
 					{display.map((contact, i) => (
 						<div key={i} className="font-medium text-gray-900 dark:text-gray-200 truncate max-w-[180px]" title={contact}>
 							{contact}
 						</div>
 					))}
                     
-                    {/* Subtítulo: Rol */}
                     {org.rol && org.rol !== "indefinido" && (
                         <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]">
-                            {org.rol}
+                            {org.rol.replace(/[[\]"]/g, '')} {/* Limpieza extra por si acaso */}
                         </div>
                     )}
 
@@ -117,7 +126,7 @@ const OrganizationTableRow = ({
 					)}
 					{display.length === 0 && (
 						<span className="text-gray-400 dark:text-gray-600 italic">
-							sin nombre de contacto
+							Sin contacto
 						</span>
 					)}
 				</div>
