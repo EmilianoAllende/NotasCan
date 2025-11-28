@@ -1,13 +1,15 @@
+// src/layout/AppContentRenderer.jsx
 /* eslint-disable no-unused-vars */
-import React from "react";
+import React, { useCallback } from "react";
 
-import Dashboard from "./Dashboard"; // Asumiendo que Dashboard está en ./layout/
+import Dashboard from "./Dashboard"; 
 import OrganizationList from "../organization/OrganizationList";
 import OrganizationDetail from "../organization/OrganizationDetail";
 import Campaigns from "../campaigns/Campaigns";
 import ContactEditor from "../editor-tabs/ContactEditor";
 import UserAdmin from "../users/UserAdmin";
 import CampaignHistory from "../campaigns/CampaignHistory";
+
 const AppContentRenderer = (props) => {
 	const {
 		activeView,
@@ -36,13 +38,13 @@ const AppContentRenderer = (props) => {
 		handleOpenCampaignModal,
 		saveContact,
 		selectedOrg,
+		setSelectedOrg, // Aseguramos que esto venga de props
 		campaignTemplates,
 		handleSaveTemplate,
 		handleDeleteTemplate,
 		handleAddTemplate,
 		selectedCampaignId,
 		setSelectedCampaignId,
-
 		startCallCenterMode,
 		campanasActivas,
 		metricas,
@@ -51,6 +53,13 @@ const AppContentRenderer = (props) => {
 		sectoresData,
 		currentUser,
 	} = props;
+
+	// --- NUEVA FUNCIÓN: Volver Atrás ---
+	// Resetea la organización seleccionada y vuelve al listado
+	const handleBack = useCallback(() => {
+		setSelectedOrg(null);
+		setActiveView("listado");
+	}, [setSelectedOrg, setActiveView]);
 
 	switch (activeView) {
 		case "dashboard":
@@ -80,6 +89,8 @@ const AppContentRenderer = (props) => {
 								"Por favor, selecciona una campaña en el listado antes de enviar un email.",
 						});
 					}}
+					// Pasamos la función de volver
+					onBack={handleBack} 
 				/>
 			);
 		case "editor":
@@ -87,10 +98,12 @@ const AppContentRenderer = (props) => {
 				<ContactEditor
 					selectedOrg={selectedOrg}
 					onSave={saveContact}
-					onCancel={() => setActiveView("listado")}
+					onCancel={handleBack} // Usamos handleBack para cancelar también
 					isSaving={isSaving}
 					setConfirmProps={setConfirmProps}
 					closeConfirm={closeConfirm}
+					// Pasamos la función de volver explícita
+					onBack={handleBack}
 				/>
 			);
 		case "campanas":
@@ -100,7 +113,6 @@ const AppContentRenderer = (props) => {
 					onSelectTemplateForSend={setSelectedCampaignId}
 					setConfirmProps={setConfirmProps}
 					closeConfirm={closeConfirm}
-					// Solo funciones de edición
 					onSaveTemplate={handleSaveTemplate}
 					onDeleteTemplate={handleDeleteTemplate}
 					onAddTemplate={handleAddTemplate}
@@ -109,14 +121,12 @@ const AppContentRenderer = (props) => {
 		case "historial":
 			return (
 				<CampaignHistory
-					// Props originales para el fallback
 					campanasActivas={campanasActivas}
 					organizaciones={organizaciones}
 					campaignTemplates={campaignTemplates}
-					// --- NUEVOS PROPS DE CACHÉ ---
-					historyData={props.historyData} // El dato guardado en App
-					isLoading={props.isHistoryLoading} // El estado de carga
-					onRefresh={props.refreshHistory} // La función para recargar
+					historyData={props.historyData}
+					isLoading={props.isHistoryLoading}
+					onRefresh={props.refreshHistory}
 				/>
 			);
 		case "admin":
@@ -131,9 +141,8 @@ const AppContentRenderer = (props) => {
 		default:
 			return (
 				<div className="flex items-center justify-center h-full p-3">
-					 {" "}
 					<div className="p-8 text-center text-slate-500 dark:text-slate-400">
-						  <p>Por favor, selecciona una vista.</p> 
+						<p>Por favor, selecciona una vista.</p>
 					</div>
 				</div>
 			);

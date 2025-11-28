@@ -35,6 +35,7 @@ const OrganizationDetail = ({
 	setShowCampaignModal,
 	selectedCampaignId,
 	onSelectCampaignRequired,
+    onBack, // 2. Recibimos la función onBack
 }) => {
 	if (!selectedOrg) {
 		return (
@@ -59,27 +60,31 @@ const OrganizationDetail = ({
 
 	const orgInfo = metadata.organizacion || {};
 
-return (
-    <div className="space-y-6 max-h-auto overflow-y-auto pr-2 p-4">
-        <DetailHeader
-            selectedOrg={selectedOrg}
-            orgInfo={orgInfo}
-            StatusBadge={StatusBadge}
-        />
-        
-        <ContactInfo selectedOrg={selectedOrg} orgInfo={orgInfo} />
+    return (
+        <div className="space-y-6 max-h-auto overflow-y-auto pr-2 p-4">
+            {/* 3. Botón añadido al inicio (head) */}
 
-        <ActivityAndTopics selectedOrg={selectedOrg} orgInfo={orgInfo} />
+           
+            <DetailHeader
+                selectedOrg={selectedOrg}
+                orgInfo={orgInfo}
+                StatusBadge={StatusBadge}
+				onBack={onBack} // <--- ¡No olvides esto!
+            />
+            
+            <ContactInfo selectedOrg={selectedOrg} orgInfo={orgInfo} />
 
-        <DetailActions
-            selectedOrg={selectedOrg}
-            openEditModal={openEditModal}
-            setShowCampaignModal={setShowCampaignModal}
-            selectedCampaignId={selectedCampaignId}
-            onSelectCampaignRequired={onSelectCampaignRequired}
-        />
-    </div>
-);
+            <ActivityAndTopics selectedOrg={selectedOrg} orgInfo={orgInfo} />
+
+            <DetailActions
+                selectedOrg={selectedOrg}
+                openEditModal={openEditModal}
+                setShowCampaignModal={setShowCampaignModal}
+                selectedCampaignId={selectedCampaignId}
+                onSelectCampaignRequired={onSelectCampaignRequired}
+            />
+        </div>
+    );
 };
 
 export default OrganizationDetail;
