@@ -195,7 +195,7 @@ export const useOrganizationList = (props) => {
 		setFilterIsla("todos");
 		
 		// 2. Restauramos a Suscripción Activa (valor por defecto)
-		setFilterSuscripcion("activa");
+		setFilterSuscripcion("todos");
 		
 		setCurrentPage(1);
 		setSelectedOrgIds(new Set());
@@ -217,7 +217,6 @@ export const useOrganizationList = (props) => {
 		filterType === "todos" &&
 		filterSubType === "todos" &&
 		filterIsla === "todos" &&
-		filterSuscripcion === "activa" && // Verifica si es Activa
 		(selectedCampaignId === null || selectedCampaignId === "");
 
 	const isLoading = organizaciones.length === 0;

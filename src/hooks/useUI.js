@@ -29,7 +29,7 @@ export const useUI = () => {
 	const [filterIsla, setFilterIsla] = useState("todos");
 	
 	// 3. CAMBIA ESTO: De "todos" a "activa"
-	const [filterSuscripcion, setFilterSuscripcion] = useState("activa");
+	const [filterSuscripcion, setFilterSuscripcion] = useState("todos");
 	
 	const [currentPage, setCurrentPage] = useState(1);
 

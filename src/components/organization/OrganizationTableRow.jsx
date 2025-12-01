@@ -1,6 +1,7 @@
 // src/components/organization/OrganizationTableRow.jsx
-import React from "react";
-import { Eye, Edit, Mail } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+// Agregamos MoreVertical para el ícono de los 3 puntitos
+import { Eye, Edit, Mail, MoreVertical } from "lucide-react";
 
 const ESTADOS_CLIENTE = {
 	PENDIENTE: 0,
@@ -51,10 +52,28 @@ const OrganizationTableRow = ({
 }) => {
 	const { display, more } = getDisplayContacts(org);
     const email = org.id && org.id.includes('@') ? org.id : null;
-
-	// Limpieza rápida para visualización
 	const nombreVisual = org.nombre && org.nombre !== "indefinido" ? org.nombre.replace(/"/g, '') : null;
 	const sectorVisual = org.sector && org.sector !== "indefinido" ? org.sector : null;
+
+	// --- LÓGICA DEL MENÚ DESPLEGABLE ---
+	const [showMenu, setShowMenu] = useState(false);
+	const menuRef = useRef(null);
+
+	// Cerrar el menú si se hace clic fuera
+	useEffect(() => {
+		const handleClickOutside = (event) => {
+			if (menuRef.current && !menuRef.current.contains(event.target)) {
+				setShowMenu(false);
+			}
+		};
+		// Solo agregamos el listener si el menú está abierto
+		if (showMenu) {
+			document.addEventListener("mousedown", handleClickOutside);
+		}
+		return () => {
+			document.removeEventListener("mousedown", handleClickOutside);
+		};
+	}, [showMenu]);
 
 	return (
 		<tr
@@ -63,6 +82,7 @@ const OrganizationTableRow = ({
 					? "bg-blue-50 dark:bg-blue-900/30 border-l-4 border-l-blue-500"
 					: "hover:bg-gray-50 dark:hover:bg-gray-800/60 border-l-4 border-l-transparent"
 			}`}>
+			
 			{/* Checkbox */}
 			<td className="py-4 pl-4 pr-3 sm:pl-6 align-middle">
 				<div className="flex items-center h-full">
@@ -85,18 +105,14 @@ const OrganizationTableRow = ({
 						title={`Estado: ${org.estado_cliente}`}
 					/>
 					<div className="min-w-0">
-						{/* Título Principal: Organización (o Nombre si no hay org) */}
 						<div
-							className="font-medium text-gray-900 dark:text-gray-100 truncate max-w-[220px]"
+							className="font-medium text-gray-900 dark:text-gray-100 whitespace-normal break-words"
 							title={org.organizacion || nombreVisual}>
 							{org.organizacion || nombreVisual || "Sin nombre"}
 						</div>
-						
-						{/* Subtítulo: Sector • Nombre (Agregado aquí) */}
-						<div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-[220px]">
+						<div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 whitespace-normal break-words">
 							{[
 								sectorVisual, 
-								// Solo mostramos el nombre si existe y es diferente a la organización (para no repetir)
 								(nombreVisual && nombreVisual !== org.organizacion) ? nombreVisual : null
 							].filter(Boolean).join(" • ")}
 						</div>
@@ -108,14 +124,14 @@ const OrganizationTableRow = ({
 			<td className="py-4 px-3 align-middle text-sm">
 				<div className="flex flex-col gap-0.5">
 					{display.map((contact, i) => (
-						<div key={i} className="font-medium text-gray-900 dark:text-gray-200 whitespace-normal break-words" title={contact}>
+						<div key={i} className="font-medium text-gray-900 dark:text-gray-200 whitespace-normal break-words">
 							{contact}
 						</div>
 					))}
                     
                     {org.rol && org.rol !== "indefinido" && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]">
-                            {org.rol.replace(/[[\]"]/g, '')} {/* Limpieza extra por si acaso */}
+                        <div className="text-xs text-gray-500 dark:text-gray-400 whitespace-normal break-words">
+                            {org.rol.replace(/[[\]"]/g, '')}
                         </div>
                     )}
 
@@ -134,50 +150,73 @@ const OrganizationTableRow = ({
 
             {/* Email */}
 			<td className="py-4 px-3 align-middle">
-    {email ? (
-        <a 
-            href={`mailto:${email}`} 
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline block whitespace-normal break-all" // <-- CAMBIO
-            title={email}>
-            {email}
-        </a>
-    ) : (
-        <span className="text-xs text-gray-400 italic">No disponible</span>
-    )}
-</td>
+                {email ? (
+                    <a href={`mailto:${email}`} className="text-sm text-blue-600 dark:text-blue-400 hover:underline block whitespace-normal break-all" title={email}>
+                        {email}
+                    </a>
+                ) : (
+                    <span className="text-xs text-gray-400 italic">No disponible</span>
+                )}
+			</td>
 
 			{/* Último contacto */}
 			<td className="py-4 px-3 align-middle text-gray-600 dark:text-gray-400 text-sm font-mono">
-				{org.ultimo_contacto  ? formatDate(org.ultimo_contacto ) : "Nunca contactado"}
+				{org.ultimo_contacto || org.hace_dias ? formatDate(org.ultimo_contacto || org.hace_dias) : "Nunca contactado"}
 			</td>
 
-			{/* Acciones */}
-			<td className="py-4 px-3 align-middle text-right">
-				<div className="flex justify-end items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+			{/* --- ACCIONES CON MENÚ DESPLEGABLE --- */}
+			<td className="py-4 px-3 align-middle text-right relative">
+				<div className="relative inline-block text-left" ref={menuRef}>
 					<button
-						onClick={() => {
-							setSelectedOrg(org);
-							viewDetail(org);
+						onClick={(e) => {
+							e.stopPropagation();
+							setShowMenu(!showMenu);
 						}}
-						className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 transition-colors"
-						title="Ver detalles">
-						<Eye size={18} />
+						className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors focus:outline-none"
+					>
+						<MoreVertical size={20} />
 					</button>
-					<button
-						onClick={() => {
-							setSelectedOrg(org);
-							openEditModal(org);
-						}}
-						className="p-1.5 rounded-lg text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/30 transition-colors"
-						title="Editar">
-						<Edit size={18} />
-					</button>
-					<button
-						onClick={() => handleCampaignClick(org)}
-						className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/30 transition-colors"
-						title="Enviar campaña">
-						<Mail size={18} />
-					</button>
+
+					{showMenu && (
+						<div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-50 animate-fadeIn">
+							<div className="py-1" role="menu">
+								<button
+									onClick={(e) => {
+                                        e.stopPropagation();
+										setSelectedOrg(org);
+										viewDetail(org);
+										setShowMenu(false);
+									}}
+									className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+								>
+									<Eye size={16} className="text-blue-500" /> Ver detalles
+								</button>
+
+								<button
+									onClick={(e) => {
+                                        e.stopPropagation();
+										setSelectedOrg(org);
+										openEditModal(org);
+										setShowMenu(false);
+									}}
+									className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+								>
+									<Edit size={16} className="text-indigo-500" /> Editar
+								</button>
+
+								<button
+									onClick={(e) => {
+                                        e.stopPropagation();
+										handleCampaignClick(org);
+										setShowMenu(false);
+									}}
+									className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+								>
+									<Mail size={16} className="text-green-500" /> Enviar campaña
+								</button>
+							</div>
+						</div>
+					)}
 				</div>
 			</td>
 		</tr>

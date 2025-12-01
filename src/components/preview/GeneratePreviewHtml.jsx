@@ -58,7 +58,7 @@ export const generatePreviewHtml = (editableContent, selectedOrg, senderName = "
             </span>
             
             <div class="footer-tech">
-                MMI Analytics | <a href="#">Darse de baja</a>
+               <a href="#">Darse de baja</a>
             </div>
         </div>
         
