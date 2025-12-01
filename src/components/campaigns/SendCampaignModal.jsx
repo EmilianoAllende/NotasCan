@@ -3,6 +3,8 @@ import HtmlPreviewModal from "../preview/HtmlPreviewModal";
 import TemplateSelectionView from './TemplateSelectionView';
 import PreviewEditView from './PreviewEditView';
 import { generatePreviewHtml } from "../preview/GeneratePreviewHtml";
+// Puedes poner esto fuera del componente SendCampaignModal
+
 
 const SendCampaignModal = ({
 	show,
@@ -76,7 +78,8 @@ const SendCampaignModal = ({
 			</div>
 		);
 	}
-
+const selectedCampaignObj = campaignTemplates.find(t => t.id === selectedCampaignId);
+const dynamicSender = selectedCampaignObj?.builder?.senderName || "MMI Analytics";
 	const handleCancelClick = () => {
 		setConfirmProps({
 			show: true,
@@ -164,16 +167,20 @@ const SendCampaignModal = ({
 				</div>
 			</div>
 
-			{showHtmlPreview && (
-				<HtmlPreviewModal
-					htmlContent={generatePreviewHtml(editableContent, selectedOrg)}
-					onClose={() => setShowHtmlPreview(false)}
-					selectedOrg={selectedOrg}
-					subject={editableContent.subject}
-				/>
-			)}
-		</>
-	);
+{showHtmlPreview && (
+      <HtmlPreviewModal
+        htmlContent={generatePreviewHtml(
+            editableContent, 
+            selectedOrg,
+            dynamicSender // <--- 🔥 PASAMOS EL DATO DINÁMICO AQUÍ
+        )}
+        onClose={() => setShowHtmlPreview(false)}
+        selectedOrg={selectedOrg}
+        subject={editableContent.subject}
+      />
+    )}
+  </>
+);
 };
 
 export default SendCampaignModal;
