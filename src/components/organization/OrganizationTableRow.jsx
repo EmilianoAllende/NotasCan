@@ -108,7 +108,7 @@ const OrganizationTableRow = ({
 			<td className="py-4 px-3 align-middle text-sm">
 				<div className="flex flex-col gap-0.5">
 					{display.map((contact, i) => (
-						<div key={i} className="font-medium text-gray-900 dark:text-gray-200 truncate max-w-[180px]" title={contact}>
+						<div key={i} className="font-medium text-gray-900 dark:text-gray-200 whitespace-normal break-words" title={contact}>
 							{contact}
 						</div>
 					))}
@@ -134,18 +134,21 @@ const OrganizationTableRow = ({
 
             {/* Email */}
 			<td className="py-4 px-3 align-middle">
-                {email ? (
-                    <a href={`mailto:${email}`} className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate max-w-[180px] block" title={email}>
-                        {email}
-                    </a>
-                ) : (
-                    <span className="text-xs text-gray-400 italic">No disponible</span>
-                )}
-			</td>
+    {email ? (
+        <a 
+            href={`mailto:${email}`} 
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline block whitespace-normal break-all" // <-- CAMBIO
+            title={email}>
+            {email}
+        </a>
+    ) : (
+        <span className="text-xs text-gray-400 italic">No disponible</span>
+    )}
+</td>
 
 			{/* Último contacto */}
 			<td className="py-4 px-3 align-middle text-gray-600 dark:text-gray-400 text-sm font-mono">
-				{org.ultimo_contacto ? formatDate(org.ultimo_contacto) : "Nunca contactado"}
+				{org.ultimo_contacto  ? formatDate(org.ultimo_contacto ) : "Nunca contactado"}
 			</td>
 
 			{/* Acciones */}
