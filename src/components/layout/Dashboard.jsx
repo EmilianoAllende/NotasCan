@@ -85,24 +85,23 @@ const Dashboard = ({ metricas, estadosData, islasData, sectoresData }) => {
 				/>
 			</div>
 
-			{/* --- Sección de Gráficos --- */}
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-gray-900 dark:text-gray-100">
 				
-				{/* 1. Gráfico de Pastel (Estados) */}
 				<div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex flex-col">
 					<h3 className="text-lg font-bold mb-4">Estado de la Base de Datos</h3>
 					<div className="flex-1 min-h-[250px]">
 						<ResponsiveContainer width="100%" height="100%">
 							<PieChart>
 								<Pie
-									data={estadosData}
-									cx="50%"
-									cy="50%"
-									innerRadius={60} // Donut chart es más moderno
-									outerRadius={80}
-									paddingAngle={5}
-									dataKey="cantidad"
-								>
+    data={estadosData}
+    cx="50%"
+    cy="50%"
+    innerRadius={60}
+    outerRadius={80}
+    paddingAngle={5}
+    dataKey="cantidad"      // <--- Ya tienes esto (el valor numérico)
+    nameKey="estado"        // <--- AGREGA ESTO (El nombre de la categoría)
+>
 									{estadosData.map((entry, index) => (
 										<Cell 
 											key={`cell-${index}`} 
