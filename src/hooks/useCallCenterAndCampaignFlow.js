@@ -21,31 +21,32 @@ export const useCallCenterAndCampaignFlow = ({
 	const [currentQueueId, setCurrentQueueId] = useState(null);
 	const [currentTask, setCurrentTask] = useState(null);
 	
-	// 🔥 NUEVO: Ref para evitar race conditions
+	// 🔥 Refs para evitar race conditions y manejar estado entre renderizados
 	const pendingOrgRef = useRef(null);
 	const pendingTaskRef = useRef(null);
 
-const handleOpenCampaignModal = useCallback(
-    (org) => {
-        // 🔥 LIMPIEZA CRÍTICA: Borrar referencias de la cola anterior
-        pendingOrgRef.current = null; 
-        pendingTaskRef.current = null;
+	// --- 1. ABRIR MODAL (MODO INDIVIDUAL) ---
+	const handleOpenCampaignModal = useCallback(
+		(org) => {
+            // 🔥 LIMPIEZA CRÍTICA: Borrar referencias de la cola anterior (Datos Fantasma)
+            pendingOrgRef.current = null;
+            pendingTaskRef.current = null;
 
-        // Configuración normal del modo individual
-        setSelectedOrg(org);
-        setEmailPreview(null);
-        setCurrentTask(null);
-        setIsCallCenterMode(false);
-        setShowCampaignModal(true);
-    },
-    [setSelectedOrg, setShowCampaignModal]
-);
-	// --- FUNCIÓN BLINDADA: Obtener siguiente tarea ---
+			setSelectedOrg(org);
+			setEmailPreview(null);
+			setCurrentTask(null);
+			setIsCallCenterMode(false);
+			setShowCampaignModal(true);
+		},
+		[setSelectedOrg, setShowCampaignModal]
+	);
+
+	// --- 2. OBTENER SIGUIENTE TAREA (MODO CALL CENTER) ---
 	const fetchNextTask = useCallback(
 		async (queueId) => {
 			console.log("🔄 Iniciando fetchNextTask con QueueID:", queueId);
 			
-			// 1. Forzamos UI de carga inmediata y limpiamos estados
+			// Forzamos UI de carga inmediata
 			setIsTaskLoading(true); 
 			setShowCampaignModal(true); 
 			setEmailPreview(null);
@@ -57,7 +58,7 @@ const handleOpenCampaignModal = useCallback(
 			try {
 				if (!queueId) throw new Error("Falta queueId activo.");
 
-				// 2. Llamada a API
+				// Llamada a API
 				const taskResponse = await apiClient.getNextInQueue(
 					queueId,
 					CURRENT_USER_ID,
@@ -66,53 +67,33 @@ const handleOpenCampaignModal = useCallback(
 
 				console.log("📦 Respuesta n8n (Raw):", taskResponse.data);
 
-				// 3. Normalización de datos (Soporta Array o Objeto)
-				// Dentro de fetchNextTask...
-const responseData = Array.isArray(taskResponse.data) ? taskResponse.data[0] : taskResponse.data;
-const taskData = responseData?.json || responseData;
-
-// VALIDACIÓN ANTI-DUPLICADOS
-if (taskData && taskData.organization && pendingOrgRef.current) {
-    if (taskData.organization.id === pendingOrgRef.current.id) {
-        console.warn("⚠️ n8n devolvió la misma organización que acabamos de terminar. Reintentando...");
-        // Podrías lanzar un reintento silencioso aquí o simplemente dejar que el usuario lo note.
-        // Lo ideal es que el retraso de 4000ms (4s) que pusiste sea suficiente.
-    }
-}
+				// Normalización de datos
+				const responseData = Array.isArray(taskResponse.data) ? taskResponse.data[0] : taskResponse.data;
+				const taskData = responseData?.json || responseData;
 
 				if (taskData && taskData.organization) {
 					const organization = taskData.organization;
 					
-					// 🔥 NORMALIZACIÓN: Asegurar que tenga nombre
+					// Normalización: Asegurar que tenga nombre
 					if (!organization.nombre && organization.organizacion) {
 						organization.nombre = organization.organizacion;
 					}
 					
-					console.log("✅ Organización recibida:", {
-						nombre: organization.nombre,
-						id: organization.id,
-						email: organization.email_para_envios || organization.id
-					});
-
-					// 🔥 CRÍTICO: Guardamos en refs ANTES de setear estados
+					// Guardamos en refs ANTES de setear estados
 					pendingOrgRef.current = organization;
 					pendingTaskRef.current = taskData;
 
-					// 4. Establecer Organización y Tarea
+					// Establecer Organización y Tarea
 					setCurrentTask(taskData);
 					setSelectedOrg(organization);
 
-                    // 5. Gestión del Email (Preview)
+                    // Gestión del Email (Preview)
                     let emailData = taskData.email || taskData.json?.email;
 
-                    // 🔥 NUEVO: Validación mejorada
                     if (emailData && typeof emailData === 'object' && emailData.subject && emailData.body) {
-                        console.log("✨ Email recibido desde n8n (formato correcto).");
                         setEmailPreview(emailData);
                     } else if (emailData && typeof emailData === 'string') {
-                        // 🔥 CASO ESPECIAL: n8n devolvió solo el body como string
-                        console.warn("⚠️ Email recibido como string. Generando objeto completo...");
-                        
+                        // Fallback si viene como string
                         const payload = {
                             organization: organization,
                             campaignId: campaignId,
@@ -120,9 +101,7 @@ if (taskData && taskData.organization && pendingOrgRef.current) {
                         const emailResponse = await apiClient.generatePreview(payload);
                         setEmailPreview(emailResponse.data);
                     } else {
-                        // FALLBACK: Si n8n no mandó el email, lo generamos aquí
-                        console.warn("⚠️ n8n no devolvió el borrador. Generando localmente...");
-                        
+                        // Fallback total
                         const payload = {
                             organization: organization,
                             campaignId: campaignId,
@@ -155,7 +134,6 @@ if (taskData && taskData.organization && pendingOrgRef.current) {
 				});
 			} finally {
 				setIsTaskLoading(false);
-				// 🔥 CRÍTICO: Resetear estado de envío cuando termina de cargar
 				setIsSendingCampaign(false);
 			}
 		},
@@ -168,7 +146,7 @@ if (taskData && taskData.organization && pendingOrgRef.current) {
 		]
 	);
 
-	// FUNCIÓN 1: Generar el borrador (Preview manual)
+	// --- 3. GENERAR PREVIEW (MODO INDIVIDUAL - MANUAL) ---
 	const handleGeneratePreview = useCallback(
 		async (orgToPreview, campaignIdToPreview) => {
 			const organization = orgToPreview || selectedOrg;
@@ -184,9 +162,29 @@ if (taskData && taskData.organization && pendingOrgRef.current) {
 			}
 			setIsPreviewLoading(true);
 			setEmailPreview(null);
+			
 			try {
+                // 🔥 NORMALIZACIÓN DE DATOS (Modo Individual)
+                // Limpiamos los datos "sucios" que puedan venir de la vista de lista (arrays, comillas, etc.)
+                
+                // 1. Limpieza del nombre de contacto
+                let rawContact = organization.nombre_contacto || organization.nombres_org || organization.contacto || "";
+                if (Array.isArray(rawContact)) rawContact = rawContact[0]; 
+                if (typeof rawContact === 'string') {
+                    rawContact = rawContact.replace(/[[\]"]/g, '').trim(); 
+                }
+
+                const safeOrg = {
+                    ...organization,
+                    // Aseguramos propiedades clave para n8n
+                    organizacion: organization.organizacion || organization.nombre || "Empresa",
+                    nombre: organization.nombre || organization.organizacion || "Empresa",
+                    nombre_contacto: rawContact, 
+                    id: organization.id || "unknown"
+                };
+
 				const payload = {
-					organization: organization,
+					organization: safeOrg,
 					campaignId: campaignId,
 				};
 
@@ -212,12 +210,12 @@ if (taskData && taskData.organization && pendingOrgRef.current) {
 		[selectedOrg, selectedCampaignId, setNotification]
 	);
 
-	// FUNCIÓN 2.1: Lógica REAL de envío
+	// --- 4. CONFIRMAR Y ENVIAR (LÓGICA REAL) ---
 	const _executeConfirmAndSend = useCallback(
 		async (finalContent) => {
 			setIsSendingCampaign(true);
 			
-			// 🔥 CRÍTICO: Usamos refs como fallback si los estados están null
+			// Usamos refs como fallback si los estados están null
 			const orgForPayload = selectedOrg || pendingOrgRef.current;
 			const taskForPayload = currentTask || pendingTaskRef.current;
 			
@@ -243,6 +241,11 @@ if (taskData && taskData.organization && pendingOrgRef.current) {
 					organizationId: orgIdForPayload,
 					subject: finalContent.subject,
 					body: finalContent.body,
+                    
+                    // 🔥 NUEVO: Enviamos remitente para enrutamiento y firma
+                    senderEmail: finalContent.senderEmail,
+                    senderName: finalContent.senderName,
+
 					...(taskInfoForPayload && { taskInfo: taskInfoForPayload }),
 					campaignId: selectedCampaignId || undefined,
 					sentAt: new Date().toISOString(),
@@ -263,30 +266,27 @@ if (taskData && taskData.organization && pendingOrgRef.current) {
 						message: `Correo enviado a ${orgNameForNotification}.`,
 					});
 
-                    // --- LÓGICA CRÍTICA DE SEGUIMIENTO ---
+                    // --- LÓGICA DE TRANSICIÓN ---
 					if (isCallCenterMode && currentQueueId) {
-                    console.log("🔄 Mail enviado. Iniciando transición a siguiente tarea...");
+                        console.log("🔄 Mail enviado. Esperando 4 segundos antes de cargar siguiente...");
+                        
+                        // Limpiamos datos de tarea PERO NO la organización (para mantener el modal abierto)
+                        setEmailPreview(null);
+                        setCurrentTask(null);
+                        // ❌ NO HACER: setSelectedOrg(null);
+                        
+                        setIsTaskLoading(true); // Forzamos spinner
 
-                    // 1. LIMPIAR SOLO DATOS DE LA TAREA, NO LA ORGANIZACIÓN (para que el modal no se cierre)
-                    setEmailPreview(null);
-                    setCurrentTask(null);
-                    // ❌ ELIMINADO: setSelectedOrg(null);  <-- ESTO CERRABA EL MODAL
-                    
-                    // 2. ACTIVAR UI DE CARGA INMEDIATAMENTE
-                    setIsTaskLoading(true); // Esto forzará al Modal a mostrar el Spinner
-
-                    // 3. Esperar los 4 segundos para DynamoDB (GSI Consistency)
-                    setTimeout(() => {
-                        fetchNextTask(currentQueueId);
-                    }, 4000); 
-                } else {
-                    // Si NO es Call Center, aquí sí cerramos todo
-                    setIsSendingCampaign(false);
-                    handleRefresh();
-                    setShowCampaignModal(false);
-                    setEmailPreview(null);
-                }
-            
+                        setTimeout(() => {
+						    fetchNextTask(currentQueueId);
+                        }, 4000); 
+					} else {
+                        // Modo Individual: Cerramos todo
+						setIsSendingCampaign(false);
+						handleRefresh();
+						setShowCampaignModal(false);
+						setEmailPreview(null);
+					}
 				} else if (result && result.status === "canceled") {
 					setNotification({
 						type: "warning",
@@ -304,16 +304,14 @@ if (taskData && taskData.organization && pendingOrgRef.current) {
 					title: "Error de Envío",
 					message: "No se pudo enviar el correo. Inténtalo de nuevo.",
 				});
-				setIsSendingCampaign(false); // ⬅️ Siempre resetear en error
+				setIsSendingCampaign(false);
 			}
-			// 🔥 NOTA: Ya no necesitamos finally aquí porque se resetea en fetchNextTask
 		},
 		[selectedOrg, currentTask, setNotification, selectedCampaignId, isCallCenterMode, currentQueueId, fetchNextTask, handleRefresh, setShowCampaignModal]
 	);
 
 	const handleConfirmAndSend = useCallback(
 		(finalContent) => {
-			// 🔥 Usamos ref como fallback
 			const orgForConfirm = selectedOrg || pendingOrgRef.current;
 			
 			setConfirmProps({
@@ -331,6 +329,7 @@ if (taskData && taskData.organization && pendingOrgRef.current) {
 		[_executeConfirmAndSend, closeConfirm, selectedOrg, setConfirmProps]
 	);
 
+	// --- 5. INICIAR MODO CALL CENTER ---
 	const _executeStartCallCenterMode = useCallback(
 		async (selectedOrgs) => {
 			setIsTaskLoading(true);
@@ -338,10 +337,7 @@ if (taskData && taskData.organization && pendingOrgRef.current) {
 				if (!selectedCampaignId) throw new Error("Falta campaña.");
 
 				const orgIds = selectedOrgs.map((org) => org.id);
-                
                 const clientGeneratedQueueId = `q_${Date.now()}`;
-
-                console.log("🔑 Fijando QueueID Cliente:", clientGeneratedQueueId);
 
 				await apiClient.createDynamicQueue(
                     orgIds, 
@@ -354,7 +350,7 @@ if (taskData && taskData.organization && pendingOrgRef.current) {
                 console.log("⏳ Esperando 4 segundos para inicializar cola...");
                 setTimeout(() => {
 				    fetchNextTask(clientGeneratedQueueId);
-                }, 4000); // ⬅️ Aumentado a 4 segundos
+                }, 4000);
 
 			} catch (err) {
 				console.error("Error start CC:", err);
