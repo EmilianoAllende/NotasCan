@@ -1,6 +1,29 @@
 import React from "react";
 import { Plus, Trash2, Save, Mail } from "lucide-react";
 
+// --- DEFINICIÓN DE REMITENTES PREDEFINIDOS ---
+const SENDER_OPTIONS = [
+	{
+		id: "goblab",
+		label: "GobLab Gran Canaria",
+		email: "proyectos@fundacionemprende.org",
+		// Este es el texto que saldrá en el pie de página gris
+		footerText: "Laboratorio de Innovación GobLab Gran Canaria - Fundación Emprende"
+	},
+	{
+		id: "fundacion",
+		label: "Fundación Emprende",
+		email: "proyectos@fundacionemprende.org",
+		footerText: "Fundación Emprende"
+	},
+	{
+		id: "mmi",
+		label: "MMI Analytics",
+		email: "ac.analytics@mmi-e.com",
+		footerText: "MMI Analytics"
+	}
+];
+
 const Campaigns = ({
 	campanasActivas = [],
 	organizaciones = [],
@@ -50,6 +73,7 @@ const Campaigns = ({
 		setEditingTpl(next);
 	};
 
+    // ... (Mantenemos funciones saveTemplate, deleteTemplate, handleSaveClick, etc. IGUAL QUE ANTES) ...
 	const saveTemplate = () => {
 		if (!editingTpl) return;
 		if (!editingTpl.title || !editingTpl.id) return;
@@ -77,14 +101,11 @@ const Campaigns = ({
 				examplesGood: "",
 				examplesBad: "",
 				useMetadata: true,
-				senderName: "", // Se inicializa vacío
+				senderName: "", 
+                // Opcional: Podrías guardar senderEmail aquí también si lo necesitas en el futuro
 			},
 		};
-
-		if (onAddTemplate) {
-			onAddTemplate(draft);
-		}
-
+		if (onAddTemplate) onAddTemplate(draft);
 		setEditingTpl(draft);
 		setSelectedTplId(baseId);
 	};
@@ -160,7 +181,6 @@ const Campaigns = ({
 									Cargando plantillas...
 								</div>
 							)}
-
 							{!isLoadingTemplates && campaignTemplates.length === 0 && (
 								<div className="p-3 text-sm text-slate-600 dark:text-slate-300 text-center">
 									No hay plantillas.
@@ -189,11 +209,7 @@ const Campaigns = ({
 											</p>
 										</button>
 								  ))
-								: !isLoadingTemplates && (
-										<div className="p-3 text-sm text-slate-600 dark:text-slate-300 text-center">
-											No hay plantillas aún.
-										</div>
-								  )}
+								: null}
 						</div>
 					</div>
 
@@ -201,9 +217,7 @@ const Campaigns = ({
 					<div className="md:col-span-2 bg-white dark:bg-slate-800 border-l border-slate-200 dark:border-slate-700">
 						{!editingTpl ? (
 							<div className="p-8 text-center text-sm text-slate-600 dark:text-slate-300 italic">
-								{isLoadingTemplates
-									? "Cargando..."
-									: "Selecciona o crea una plantilla para comenzar a editar."}
+								Selecciona o crea una plantilla.
 							</div>
 						) : (
 							<div className="p-6 space-y-6">
@@ -216,13 +230,10 @@ const Campaigns = ({
 										<input
 											type="text"
 											value={editingTpl.title}
-											onChange={(e) =>
-												handleFieldChange("title", e.target.value)
-											}
-											className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+											onChange={(e) => handleFieldChange("title", e.target.value)}
+											className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 transition"
 										/>
 									</div>
-
 									<div>
 										<label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
 											ID (solo lectura)
@@ -236,7 +247,6 @@ const Campaigns = ({
 									</div>
 								</div>
 
-								{/* Descripción */}
 								<div>
 									<label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
 										Descripción
@@ -244,10 +254,8 @@ const Campaigns = ({
 									<textarea
 										rows={2}
 										value={editingTpl.description}
-										onChange={(e) =>
-											handleFieldChange("description", e.target.value)
-										}
-										className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+										onChange={(e) => handleFieldChange("description", e.target.value)}
+										className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 transition"
 									/>
 								</div>
 
@@ -259,35 +267,64 @@ const Campaigns = ({
 									<select
 										value={editingTpl.mode}
 										onChange={(e) => handleFieldChange("mode", e.target.value)}
-										className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+										className="px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 transition">
 										<option value="builder">Builder</option>
 										<option value="raw">RAW (prompt completo)</option>
 									</select>
 								</div>
 
-								{/* 🔥 CAMPO MOVIDO AQUÍ: Firma del Pie de Página (Sender) 🔥
-								    Ahora está disponible tanto en modo Builder como en RAW. */}
-								<div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
-									<label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-										Firma del Pie de Página (Sender)
-									</label>
-									<input
-										type="text"
-										// Seguimos guardándolo en 'builder.senderName' porque ahí lo espera el modal
-										value={editingTpl.builder?.senderName || ""}
-										onChange={(e) =>
-											handleFieldChange("builder.senderName", e.target.value)
-										}
-										placeholder="Ej: Laboratorio de Innovación GobLab Gran Canaria - Fundación Emprende"
-										className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-									/>
-									<p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-										Este texto aparecerá en el pie de página del email (preview y
-										envío). Si se deja vacío, se usará "MMI Analytics".
-									</p>
-								</div>
+								{/* 🔥 CAMPO DE REMITENTE (SELECT) 🔥 */}
+								{/* ... dentro de Campaigns.jsx ... */}
 
-								{/* --- CONTENIDO CONDICIONAL --- */}
+{/* 🔥 CAMPO DE REMITENTE (SELECT MEJORADO) 🔥 */}
+<div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
+    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+        Remitente (Firma y Email)
+    </label>
+    
+    <select
+    value={editingTpl.builder?.senderName || ""}
+    onChange={(e) => {
+        const selectedFooterText = e.target.value;
+        const selectedOption = SENDER_OPTIONS.find(opt => opt.footerText === selectedFooterText);
+
+        // 1. Clonamos el estado actual para no mutarlo directamente
+        const nextState = JSON.parse(JSON.stringify(editingTpl));
+
+        // 2. Aseguramos que exista el objeto builder
+        if (!nextState.builder) nextState.builder = {};
+
+        // 3. Aplicamos AMBOS cambios sobre la misma copia
+        nextState.builder.senderName = selectedFooterText; // Actualiza el texto del footer
+        
+        if (selectedOption) {
+            nextState.builder.senderEmail = selectedOption.email; // Actualiza el email
+        } else {
+            nextState.builder.senderEmail = ""; // Limpia si seleccionó la opción vacía
+        }
+
+        // 4. Guardamos el estado UNA sola vez
+        setEditingTpl(nextState);
+    }}
+    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 transition"
+>
+    <option value="">-- Seleccionar remitente predefinido --</option>
+    
+    {SENDER_OPTIONS.map((option) => (
+        <option key={option.id} value={option.footerText}>
+            {option.label} ({option.email})
+        </option>
+    ))}
+</select>
+    {/* Mostrar visualmente qué email se usará */}
+    {editingTpl.builder?.senderEmail && (
+        <p className="mt-2 text-xs text-blue-600 dark:text-blue-400 font-mono">
+            ✉️ Se enviará desde: <strong>{editingTpl.builder.senderEmail}</strong>
+        </p>
+    )}
+</div>
+
+								{/* CONTENIDO CONDICIONAL */}
 								{editingTpl.mode === "raw" ? (
 									<div>
 										<label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -296,21 +333,14 @@ const Campaigns = ({
 										<textarea
 											rows={10}
 											value={editingTpl.rawPrompt || ""}
-											onChange={(e) =>
-												handleFieldChange("rawPrompt", e.target.value)
-											}
-											placeholder="Pega o escribe aquí tu prompt completo..."
-											className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition font-mono text-sm"
+											onChange={(e) => handleFieldChange("rawPrompt", e.target.value)}
+											className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 font-mono text-sm transition"
 										/>
-										<p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-											En modo RAW, tú tienes el control total del prompt. El
-											pie de página configurado arriba se añadirá
-											automáticamente al final.
-										</p>
 									</div>
 								) : (
 									<div className="p-5 space-y-5 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-700">
-										<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+										{/* Campos del Builder (Tipo, Metadatos, Instrucciones, Ejemplos) */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 											<div>
 												<label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
 													Tipo de campaña
@@ -318,55 +348,37 @@ const Campaigns = ({
 												<input
 													type="text"
 													value={editingTpl.builder?.campaignType || ""}
-													onChange={(e) =>
-														handleFieldChange(
-															"builder.campaignType",
-															e.target.value
-														)
-													}
-													className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+													onChange={(e) => handleFieldChange("builder.campaignType", e.target.value)}
+													className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 transition"
 												/>
 											</div>
-
-											<div className="flex items-center gap-2 pt-6">
+                                            <div className="flex items-center gap-2 pt-6">
 												<input
 													id="useMetadata"
 													type="checkbox"
 													checked={!!editingTpl.builder?.useMetadata}
-													onChange={(e) =>
-														handleFieldChange(
-															"builder.useMetadata",
-															e.target.checked
-														)
-													}
+													onChange={(e) => handleFieldChange("builder.useMetadata", e.target.checked)}
 													className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500"
 												/>
-												<label
-													htmlFor="useMetadata"
-													className="text-sm text-slate-700 dark:text-slate-300">
+												<label htmlFor="useMetadata" className="text-sm text-slate-700 dark:text-slate-300">
 													Usar metadatos
 												</label>
 											</div>
-										</div>
+                                        </div>
 
-										<div>
+                                        <div>
 											<label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
 												Instrucciones adicionales
 											</label>
 											<textarea
 												rows={4}
 												value={editingTpl.builder?.instructions || ""}
-												onChange={(e) =>
-													handleFieldChange(
-														"builder.instructions",
-														e.target.value
-													)
-												}
-												className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+												onChange={(e) => handleFieldChange("builder.instructions", e.target.value)}
+												className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 transition"
 											/>
 										</div>
 
-										<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 											<div>
 												<label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
 													Ejemplos (Buenos)
@@ -374,16 +386,10 @@ const Campaigns = ({
 												<textarea
 													rows={4}
 													value={editingTpl.builder?.examplesGood || ""}
-													onChange={(e) =>
-														handleFieldChange(
-															"builder.examplesGood",
-															e.target.value
-														)
-													}
-													className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+													onChange={(e) => handleFieldChange("builder.examplesGood", e.target.value)}
+													className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 transition"
 												/>
 											</div>
-
 											<div>
 												<label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
 													Ejemplos (Malos)
@@ -391,13 +397,8 @@ const Campaigns = ({
 												<textarea
 													rows={4}
 													value={editingTpl.builder?.examplesBad || ""}
-													onChange={(e) =>
-														handleFieldChange(
-															"builder.examplesBad",
-															e.target.value
-														)
-													}
-													className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+													onChange={(e) => handleFieldChange("builder.examplesBad", e.target.value)}
+													className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 transition"
 												/>
 											</div>
 										</div>
@@ -405,23 +406,15 @@ const Campaigns = ({
 								)}
 
 								<div className="flex items-center gap-3 justify-end pt-4 border-t border-slate-200 dark:border-slate-700">
-									<button
-										onClick={handleUseClick}
-										className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-blue-600 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/30">
-										<Mail size={16} /> Usar en envío
-									</button>
-
-									<button
-										onClick={handleDeleteClick}
-										className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-red-600 text-red-600 hover:bg-red-50 dark:text-red-400 dark:border-red-700 dark:hover:bg-red-900/30">
-										<Trash2 size={16} /> Eliminar
-									</button>
-
-									<button
-										onClick={handleSaveClick}
-										className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700">
-										<Save size={16} /> Guardar cambios
-									</button>
+                                    <button onClick={handleUseClick} className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-blue-600 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-700">
+                                        <Mail size={16} /> Usar en envío
+                                    </button>
+                                    <button onClick={handleDeleteClick} className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-red-600 text-red-600 hover:bg-red-50 dark:text-red-400 dark:border-red-700">
+                                        <Trash2 size={16} /> Eliminar
+                                    </button>
+                                    <button onClick={handleSaveClick} className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-green-600 text-white hover:bg-green-700">
+                                        <Save size={16} /> Guardar cambios
+                                    </button>
 								</div>
 							</div>
 						)}

@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 
-const HtmlPreviewModal = ({ htmlContent, onClose, selectedOrg, subject }) => {
+const HtmlPreviewModal = ({ htmlContent, onClose, selectedOrg, subject, senderEmail }) => {
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/25 backdrop-blur-sm p-4 animate-fadeIn"
@@ -27,7 +27,7 @@ const HtmlPreviewModal = ({ htmlContent, onClose, selectedOrg, subject }) => {
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-600 text-sm bg-white/80 dark:bg-slate-700/60 backdrop-blur-sm">
           <div className="flex flex-wrap gap-y-1 text-slate-700 dark:text-slate-300">
             <span className="font-medium w-16">De:</span>
-            <span>Email &lt;proyectos@fundacionemprende.org&gt;</span>
+            <span>Email &lt;{senderEmail}&gt;</span>
           </div>
           <div className="flex flex-wrap gap-y-1 text-slate-700 dark:text-slate-300 mt-1">
             <span className="font-medium w-16">Para:</span>
