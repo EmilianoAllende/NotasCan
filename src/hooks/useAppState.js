@@ -77,6 +77,8 @@ export const useAppState = () => {
 		...orgData,
 		...campaigns,
 		...campaignFlow,
+		handleSkipTask: campaignFlow.handleSkipTask, // Exportar la nueva función
+		handleOpenCampaignModal: campaignFlow.handleOpenCampaignModal, // Usar la versión de campaignFlow
 		...dataHandlers,
 		// 4. Exportar los handlers
 		...navigationHandlers,

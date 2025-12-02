@@ -106,10 +106,22 @@ apiClient.getNextInQueue = (queueId, userId, campaignId) => {
 		params: {
             queueId,
             userId,
-            campaignId 
+            campaignId
         }
 	});
 };
+
+// --- ACCIONES DE COLA ---
+apiClient.skipTask = (queueId, organizationId, campaignId) => {
+    // Asumimos que crearás un endpoint en n8n para registrar el "salto"
+    // Si no tienes endpoint aún, el frontend funcionará pero la tarea podría volver a salir
+    return apiClient.post("/webhook/skip-task-log", { 
+        queueId, 
+        organizationId,
+        campaignId 
+    }).catch(err => console.warn("No se pudo registrar el skip en backend:", err));
+};
+
 
 apiClient.login = (usuario, password) => {
 	return apiClient.post("/webhook/notascan-login", { usuario, password });

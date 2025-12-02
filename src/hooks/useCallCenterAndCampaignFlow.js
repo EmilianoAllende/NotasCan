@@ -310,6 +310,40 @@ export const useCallCenterAndCampaignFlow = ({
 		[selectedOrg, currentTask, setNotification, selectedCampaignId, isCallCenterMode, currentQueueId, fetchNextTask, handleRefresh, setShowCampaignModal]
 	);
 
+	// --- AGREGAR ESTA NUEVA FUNCIÓN ---
+    const handleSkipTask = useCallback(async () => {
+        if (!currentQueueId) {
+            console.warn("⚠️ No hay cola activa para saltar.");
+            return;
+        }
+
+        console.log("⏭️ Saltando tarea actual...");
+        const orgToSkip = selectedOrg || pendingOrgRef.current;
+        
+        // 1. UI Feedback inmediato: Limpiar vista
+        setIsTaskLoading(true);
+        setEmailPreview(null);
+        setCurrentTask(null);
+
+        try {
+            // 2. (Opcional) Llamar API para penalizar el score en DynamoDB
+            if (orgToSkip?.id) {
+                // No esperamos el await para no bloquear la UI, se hace en background
+                apiClient.skipTask(currentQueueId, orgToSkip.id, selectedCampaignId);
+            }
+            
+            // 3. Buscar la siguiente tarea inmediatamente
+            // Damos un pequeño delay de 1s para que se sienta la transición
+            setTimeout(() => {
+                fetchNextTask(currentQueueId);
+            }, 1000);
+
+        } catch (error) {
+            console.error("Error al saltar tarea:", error);
+            setIsTaskLoading(false); // Restaurar si falla muy grave
+        }
+    }, [currentQueueId, selectedOrg, selectedCampaignId, fetchNextTask]);
+
 	const handleConfirmAndSend = useCallback(
 		(finalContent) => {
 			const orgForConfirm = selectedOrg || pendingOrgRef.current;
@@ -419,5 +453,7 @@ export const useCallCenterAndCampaignFlow = ({
 		startCallCenterMode,
 		_executeStartCallCenterMode,
 		handleOpenCampaignModal,
+        // --- ¡IMPORTANTE! AGREGAR ESTO AL RETURN ---
+        handleSkipTask 
 	};
 };
