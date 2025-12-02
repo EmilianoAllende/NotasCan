@@ -102,11 +102,11 @@ apiClient.createDynamicQueue = (orgIds, queueId) => {
 apiClient.getNextInQueue = (queueId, userId, campaignId) => {
     // Usamos 'params' de axios para manejar la query string automáticamente
     // Aseguramos enviar campaignId que faltaba antes
-	return apiClient.get("/webhook/siguiente-correo-mod", {
+	return apiClient.get("/webhook/siguiente-correo-test", {
 		params: {
             queueId,
             userId,
-            campaignId 
+            campaignId
         }
 	});
 };
