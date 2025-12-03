@@ -27,7 +27,7 @@ const HtmlPreviewModal = ({ htmlContent, onClose, selectedOrg, subject, senderEm
         <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-600 text-sm bg-white/80 dark:bg-slate-700/60 backdrop-blur-sm">
           <div className="flex flex-wrap gap-y-1 text-slate-700 dark:text-slate-300">
             <span className="font-medium w-16">De:</span>
-            <span>Email &lt;{senderEmail}&gt;</span>
+            <span> {senderEmail}</span>
           </div>
           <div className="flex flex-wrap gap-y-1 text-slate-700 dark:text-slate-300 mt-1">
             <span className="font-medium w-16">Para:</span>
@@ -35,7 +35,7 @@ const HtmlPreviewModal = ({ htmlContent, onClose, selectedOrg, subject, senderEm
               {selectedOrg?.nombre}
             </span>
             <span className="text-slate-500 dark:text-slate-400 ml-1">
-              &lt;{selectedOrg?.id}&gt;
+              {selectedOrg?.id}
             </span>
           </div>
 
