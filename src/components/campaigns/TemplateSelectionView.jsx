@@ -10,6 +10,7 @@ const TemplateSelectionView = ({
   isPreviewLoading,
 }) => (
   <div className="animate-in fade-in duration-500">
+
     {/* Encabezado */}
     <div className="text-center mb-12">
       <h2 className="text-4xl font-bold mb-3 text-slate-900 dark:text-white">

@@ -1,7 +1,5 @@
 import React from "react";
 
-// Nota: Sería ideal importar esta constante desde un archivo de constantes compartido
-// para evitar duplicación, pero por ahora la definimos aquí para que funcione.
 const ESTADOS_CLIENTE = {
 	PENDIENTE: 0,
 	LISTA_BLANCA: 1,
@@ -54,7 +52,7 @@ const StatusBadge = ({ estado }) => {
 			break;
 		case ESTADOS_CLIENTE.PENDIENTE:
 		default:
-			text = "Pendiente"; // O "Sin Clasificar"
+			text = "Pendiente";
 			color =
 				"bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300";
 			break;

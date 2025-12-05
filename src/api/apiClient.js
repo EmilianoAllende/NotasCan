@@ -6,7 +6,6 @@ const apiClient = axios.create({
 	baseURL: N8N_BASE_URL,
 });
 
-// --- Interceptor para Logs de Depuración ---
 apiClient.interceptors.request.use((request) => {
 	console.groupCollapsed(
 		`🚀 API Request: ${request.method.toUpperCase()} ${request.url}`
@@ -31,9 +30,9 @@ const GET_ORGANIZACIONES_PATH = "/webhook/organization-list";
 // --- EDICIÓN DE ORGANIZACIONES EN DYNAMO ---
 const UPDATE_ORGANIZACION_PATH = "/webhook/organizaciones";
 
-// --- ENDPOINTS DE PLANTILLAS (NUEVOS) ---
-const TEMPLATES_PATH = "/webhook/templates"; // Endpoint del flujo TemplateManager
-const GENERATE_PREVIEW_PATH = "/webhook/generate-preview"; // Endpoint del flujo MailWriter
+// --- ENDPOINTS DE PLANTILLAS ---
+const TEMPLATES_PATH = "/webhook/templates";
+const GENERATE_PREVIEW_PATH = "/webhook/generate-preview";
 const CONFIRM_SEND_PATH = "/webhook/confirm-and-send-test";
 
 
@@ -89,19 +88,14 @@ apiClient.getCampaignsHistory = () => {
 	});
 };
 
-// Crear una cola dinámica a partir de una lista de IDs
 apiClient.createDynamicQueue = (orgIds, queueId) => {
-	// Enviamos el ID generado por el frontend
 	return apiClient.post("/webhook/create-dynamic-queue-test", { 
         orgIds, 
         queueId 
     });
 };
 
-// Obtener el siguiente item
 apiClient.getNextInQueue = (queueId, userId, campaignId) => {
-    // Usamos 'params' de axios para manejar la query string automáticamente
-    // Aseguramos enviar campaignId que faltaba antes
 	return apiClient.get("/webhook/siguiente-correo-test", {
 		params: {
             queueId,
@@ -113,8 +107,6 @@ apiClient.getNextInQueue = (queueId, userId, campaignId) => {
 
 // --- ACCIONES DE COLA ---
 apiClient.skipTask = (queueId, organizationId, campaignId) => {
-    // Asumimos que crearás un endpoint en n8n para registrar el "salto"
-    // Si no tienes endpoint aún, el frontend funcionará pero la tarea podría volver a salir
     return apiClient.post("/webhook/skip-task-log", { 
         queueId, 
         organizationId,
@@ -130,7 +122,7 @@ apiClient.login = (usuario, password) => {
 apiClient.createUser = (usuario, password, rol, token) => {
 	return apiClient.post(
 		"/webhook/create-user",
-		{ usuario, password, rol }, // El body que recibe n8n
+		{ usuario, password, rol },
 		{
 			headers: {
 				Authorization: `Bearer ${token}`,

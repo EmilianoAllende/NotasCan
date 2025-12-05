@@ -22,31 +22,28 @@ const SendCampaignModal = ({
     isCallCenterMode,
     onSkipTask,
 }) => {
-    // 1. ESTADO
+    // ESTADO
     const [showHtmlPreview, setShowHtmlPreview] = useState(false);
     const [editableContent, setEditableContent] = useState({
         subject: "",
         body: "",
     });
 
-    // 2. REF DE BLOQUEO (CRÍTICO PARA EVITAR EL BUCLE)
-    // Guardamos el ID de la última solicitud para no repetirla
+    // REF DE BLOQUEO
     const lastRequestRef = useRef(""); 
 
-    // 3. LÓGICA DEL REMITENTE DINÁMICO
+    // LÓGICA DEL REMITENTE DINÁMICO
     const selectedCampaignObj = campaignTemplates.find(t => t.id === selectedCampaignId);
     const dynamicSenderName = selectedCampaignObj?.builder?.senderName || "MMI Analytics";
     const dynamicSenderEmail = selectedCampaignObj?.builder?.senderEmail || "ac.analytics@mmi-e.com";
 
-    // 4. EFECTOS
+    // EFECTOS
 
-    // Sincronizar contenido editable con el preview recibido
     useEffect(() => {
         if (emailPreview) setEditableContent(emailPreview);
         else if (!isPreviewLoading) setEditableContent({ subject: "", body: "" });
     }, [emailPreview, isPreviewLoading]);
 
-    // Resetear el bloqueo cuando se cierra el modal
     useEffect(() => {
         if (!show) {
             lastRequestRef.current = "";
@@ -54,12 +51,9 @@ const SendCampaignModal = ({
         }
     }, [show]);
 
-    // --- AUTO-GENERACIÓN CON PROTECCIÓN ---
     useEffect(() => {
-        // Creamos una clave única para este intento
         const currentKey = `${selectedOrg?.id}-${selectedCampaignId}`;
 
-        // Condiciones estrictas para disparar la generación
         const shouldGenerate = 
             show && 
             !isCallCenterMode && 
@@ -69,12 +63,9 @@ const SendCampaignModal = ({
             !isPreviewLoading;
 
         if (shouldGenerate) {
-            // 🔥 BLOQUEO: Si la clave actual es igual a la última pedida, NO hacemos nada.
             if (lastRequestRef.current === currentKey) {
                 return;
             }
-
-            // Marcamos como pedido y disparamos
             console.log("🚀 Generando borrador para:", currentKey);
             lastRequestRef.current = currentKey;
             onGeneratePreview(selectedOrg, selectedCampaignId);
@@ -89,7 +80,7 @@ const SendCampaignModal = ({
         onGeneratePreview
     ]);
 
-    // 5. VALIDACIONES DE RENDERIZADO
+    // VALIDACIONES DE RENDERIZADO
     if (!show || !selectedOrg) return null;
 
     if (isTaskLoading && isCallCenterMode) {
@@ -103,7 +94,7 @@ const SendCampaignModal = ({
         );
     }
 
-    // 6. MANEJADORES
+    // MANEJADORES
     const handleCancelClick = () => {
         setConfirmProps({
             show: true,
@@ -129,7 +120,6 @@ const SendCampaignModal = ({
             cancelText: "No, volver",
             type: "info",
             onConfirm: () => {
-                // Forzamos el reset para permitir regenerar manualmente
                 lastRequestRef.current = "";
                 onGeneratePreview(selectedOrg, selectedCampaignId);
                 closeConfirm();
@@ -150,7 +140,7 @@ const SendCampaignModal = ({
         setEditableContent((prev) => ({ ...prev, [name]: value }));
     };
 
-    // 7. VISTAS
+    // VISTAS
     const renderInitialView = () => (
         <>
             {(isCallCenterMode || isPreviewLoading || (selectedCampaignId && !emailPreview)) ? (
@@ -200,7 +190,7 @@ const SendCampaignModal = ({
                 </div>
             </div>
 
-           {showHtmlPreview && (
+            {showHtmlPreview && (
                 <HtmlPreviewModal
                     htmlContent={generatePreviewHtml(
                         editableContent,
@@ -210,7 +200,6 @@ const SendCampaignModal = ({
                     onClose={() => setShowHtmlPreview(false)}
                     selectedOrg={selectedOrg}
                     subject={editableContent.subject}
-                    // 🔥 NUEVO: Pasamos el email dinámico
                     senderEmail={dynamicSenderEmail} 
                 />
             )}

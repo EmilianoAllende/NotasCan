@@ -14,11 +14,9 @@ import {
 } from "lucide-react";
 
 const ContactInfo = ({ selectedOrg }) => {
-    // Procesamos toda la lógica antes de renderizar para limpiar datos sucios
     const info = useMemo(() => {
         if (!selectedOrg) return null;
 
-        // 1. Parsear Metadata (que viene como string JSON)
         let meta = {};
         try {
             if (typeof selectedOrg.metadata === "string" && selectedOrg.metadata !== "indefinido") {
@@ -30,7 +28,6 @@ const ContactInfo = ({ selectedOrg }) => {
             console.error("Error parseando metadata", e);
         }
 
-        // 2. Parsear Intereses (vienen como string "['a','b']")
         let interests = [];
         try {
             if (typeof selectedOrg.intereses === "string") {
@@ -38,54 +35,45 @@ const ContactInfo = ({ selectedOrg }) => {
             } else if (Array.isArray(selectedOrg.intereses)) {
                 interests = selectedOrg.intereses;
             }
-            // Si viene de metadata
             if (interests.length === 0 && meta.organizacion?.intereses) {
                 interests = meta.organizacion.intereses;
             }
         } catch (e) {
-            // Fallback si es texto plano separado por comas
             if (typeof selectedOrg.intereses === "string") {
-                 interests = selectedOrg.intereses.split(',').map(s => s.trim());
+                interests = selectedOrg.intereses.split(',').map(s => s.trim());
             }
         }
 
-        // 3. Limpieza de Nombre
         let contactName = selectedOrg.nombres_org;
         if (!contactName || contactName === "[]" || contactName === "indefinido") {
             contactName = selectedOrg.nombre_contacto;
         }
         if (contactName === "[]" || contactName === "indefinido") contactName = null;
 
-        // 4. Limpieza de URL
         let webUrl = selectedOrg.url || meta.organizacion?.url;
         if (webUrl === "indefinido") webUrl = null;
 
-        // 5. Construcción del objeto limpio
         return {
             contactName,
             role: selectedOrg.rol || meta.organizacion?.cargo,
-            // Asumimos que el ID es email si tiene @
             email: selectedOrg.id && selectedOrg.id.includes("@") ? selectedOrg.id : null,
             phone: selectedOrg.telefono || meta.organizacion?.telefono,
             address: selectedOrg.direccion || meta.organizacion?.direccion,
             web: webUrl,
-            // Formatear ubicación: Municipio, Isla (o Provincia)
             location: [
                 selectedOrg.municipio, 
                 selectedOrg.isla, 
-                (!selectedOrg.isla && meta.ubicacion?.provincia) // Fallback a provincia si no hay isla
+                (!selectedOrg.isla && meta.ubicacion?.provincia)
             ].filter(Boolean).join(", "),
             
-            // Nuevos Campos
             interests: Array.isArray(interests) ? interests : [],
-            type: selectedOrg.sub_tipo_entidad || selectedOrg.tipo_entidad, // Preferimos subtipo por ser mas especifico
-            entityName: selectedOrg.organizacion || selectedOrg.nombre // Nombre oficial de la entidad
+            type: selectedOrg.sub_tipo_entidad || selectedOrg.tipo_entidad,
+            entityName: selectedOrg.organizacion || selectedOrg.nombre
         };
     }, [selectedOrg]);
 
     if (!info) return null;
 
-    // Verificar si hay ALGO que mostrar
     const hasData = Object.values(info).some(val => 
         Array.isArray(val) ? val.length > 0 : Boolean(val)
     );
@@ -99,12 +87,10 @@ const ContactInfo = ({ selectedOrg }) => {
                     <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
                         Ficha de Contacto
                     </h3>
-                    {/* Muestra el nombre de la Entidad (ej: Confederación...) */}
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {info.entityName}
                     </p>
                 </div>
-                {/* Badge del tipo de entidad */}
                 {info.type && (
                     <span className="px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded-full dark:bg-blue-900/30 dark:text-blue-300 capitalize">
                         {info.type.replace(/_/g, " ")}
@@ -113,7 +99,7 @@ const ContactInfo = ({ selectedOrg }) => {
             </div>
             
             <div className="space-y-5">
-                {/* 1. Persona de Contacto */}
+                {/* Persona de Contacto */}
                 {info.contactName && (
                     <div className="flex items-start gap-3 group">
                         <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
@@ -135,7 +121,7 @@ const ContactInfo = ({ selectedOrg }) => {
                     </div>
                 )}
 
-                {/* 2. Email & Teléfono */}
+                {/* Email & Teléfono */}
                 {(info.email || info.phone) && (
                     <div className="grid grid-cols-1 gap-4">
                         {info.email && (
@@ -171,7 +157,7 @@ const ContactInfo = ({ selectedOrg }) => {
                     </div>
                 )}
 
-                {/* 3. Intereses (NUEVO) - Muy útil para contexto */}
+                {/* 3. Intereses */}
                 {info.interests.length > 0 && (
                     <div className="flex items-start gap-3">
                         <div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
@@ -192,10 +178,10 @@ const ContactInfo = ({ selectedOrg }) => {
                     </div>
                 )}
 
-                {/* 4. Ubicación y Web */}
+                {/* Ubicación y Web */}
                 {(info.location || info.address || info.web) && (
                     <div className="pt-4 border-t border-gray-100 dark:border-gray-700 space-y-3">
-                         {(info.location || info.address) && (
+                        {(info.location || info.address) && (
                             <div className="flex items-start gap-3">
                                 <MapPin className="w-4 h-4 text-gray-400 mt-1" />
                                 <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -203,9 +189,9 @@ const ContactInfo = ({ selectedOrg }) => {
                                     {info.location && <p className="font-medium text-gray-800 dark:text-gray-200">{info.location}</p>}
                                 </div>
                             </div>
-                         )}
-                         
-                         {info.web && (
+                        )}
+
+                        {info.web && (
                             <div className="flex items-center gap-3">
                                 <Globe className="w-4 h-4 text-gray-400" />
                                 <a 
@@ -217,7 +203,7 @@ const ContactInfo = ({ selectedOrg }) => {
                                     {info.web}
                                 </a>
                             </div>
-                         )}
+                        )}
                     </div>
                 )}
             </div>

@@ -32,13 +32,12 @@ const OrganizationTable = ({
 		setSelectedOrgIds,
 	});
 
-	// --- CAMBIO: Se quitó "Rol" de los headers ---
 	const headers = [
 		"Organización",
-		"Contacto",       // Aquí irá el nombre + rol
+		"Contacto",
 		"Email",
 		"Último contacto",
-		"",               // Acciones
+		"",
 	];
 
 	return (

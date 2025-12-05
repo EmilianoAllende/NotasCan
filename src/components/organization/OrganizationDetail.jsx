@@ -35,7 +35,7 @@ const OrganizationDetail = ({
 	setShowCampaignModal,
 	selectedCampaignId,
 	onSelectCampaignRequired,
-    onBack, // 2. Recibimos la función onBack
+    onBack,
 }) => {
 	if (!selectedOrg) {
 		return (
@@ -62,14 +62,11 @@ const OrganizationDetail = ({
 
     return (
         <div className="space-y-6 max-h-auto overflow-y-auto pr-2 p-4">
-            {/* 3. Botón añadido al inicio (head) */}
-
-           
             <DetailHeader
                 selectedOrg={selectedOrg}
                 orgInfo={orgInfo}
                 StatusBadge={StatusBadge}
-				onBack={onBack} // <--- ¡No olvides esto!
+				onBack={onBack}
             />
             
             <ContactInfo selectedOrg={selectedOrg} orgInfo={orgInfo} />

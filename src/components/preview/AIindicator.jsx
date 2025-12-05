@@ -2,9 +2,7 @@ import { useState } from 'react';
 import { X, Zap } from 'lucide-react';
 
 const AIindicator = ({ metricas, procesando = 0 }) => {
-    // CAMBIO AQUÍ: 'true' para que inicie cerrado (colapsado)
     const [isIndicatorCollapsed, setIsIndicatorCollapsed] = useState(true); 
-    
     const automatizacion = metricas?.automatizacion ?? 0;
     const pendientes = metricas?.pendientes ?? 0;
 
@@ -16,7 +14,6 @@ const AIindicator = ({ metricas, procesando = 0 }) => {
                     : 'max-w-sm p-4 bg-white dark:bg-black border-l-4 border-green-500 dark:border-green-700 rounded-lg'
             }`}
             onClick={() => {
-                // Si está cerrado, al hacer click en el div se abre
                 if (isIndicatorCollapsed) {
                     setIsIndicatorCollapsed(false);
                 }
@@ -28,8 +25,8 @@ const AIindicator = ({ metricas, procesando = 0 }) => {
                 <>
                     <button
                         onClick={(e) => {
-                            e.stopPropagation(); // Evita que el click llegue al div padre
-                            setIsIndicatorCollapsed(true); // Cierra el indicador
+                            e.stopPropagation();
+                            setIsIndicatorCollapsed(true);
                         }}
                         className="absolute text-gray-400 top-2 right-2 hover:text-gray-600"
                     >
