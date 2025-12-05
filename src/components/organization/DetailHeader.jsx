@@ -7,13 +7,10 @@ import {
     Briefcase, 
     Hash,
     Building2,
-    ArrowLeft // 1. Importamos el icono
+    ArrowLeft
 } from "lucide-react";
 
-// 2. Recibimos 'onBack' en los props
 const DetailHeader = ({ selectedOrg, StatusBadge, onBack }) => {
-    
-    // Lógica de procesamiento de datos
     const info = useMemo(() => {
         if (!selectedOrg) return null;
 
@@ -49,8 +46,6 @@ const DetailHeader = ({ selectedOrg, StatusBadge, onBack }) => {
 
     return (
         <div className="p-6 bg-white rounded-2xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
-            
-            {/* 3. Botón 'Volver' integrado DENTRO de la tarjeta */}
             <div className="mb-4">
                 <button
                     onClick={onBack}

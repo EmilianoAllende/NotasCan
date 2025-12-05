@@ -6,10 +6,8 @@ const ActivityAndTopics = ({ selectedOrg }) => {
     const data = useMemo(() => {
         if (!selectedOrg) return null;
 
-        // 1. Lógica de limpieza para Intereses (Tags)
-       let tags = [];
+    let tags = [];
         try {
-            // VERIFICACIÓN AGREGADA: Si es "indefinido", lo ignoramos antes de parsear
             if (selectedOrg.intereses === "indefinido") {
                 tags = [];
             } 
@@ -20,24 +18,23 @@ const ActivityAndTopics = ({ selectedOrg }) => {
                 tags = selectedOrg.intereses;
             }
             
-            // Fallback a metadata si no hay intereses directos
             if ((!tags || tags.length === 0) && typeof selectedOrg.metadata === "string") {
-                 const meta = JSON.parse(selectedOrg.metadata);
-                 if (meta.organizacion?.intereses) {
-                     const metaIntereses = meta.organizacion.intereses;
-                     if (Array.isArray(metaIntereses)) {
-                         tags = metaIntereses;
-                     } else if (typeof metaIntereses === 'string') {
-                         tags = metaIntereses.split(',').map(s => s.trim());
-                     }
-                 }
+                const meta = JSON.parse(selectedOrg.metadata);
+                if (meta.organizacion?.intereses) {
+                    const metaIntereses = meta.organizacion.intereses;
+                    if (Array.isArray(metaIntereses)) {
+                        tags = metaIntereses;
+                    } else if (typeof metaIntereses === 'string') {
+                        tags = metaIntereses.split(',').map(s => s.trim());
+                    }
+                }
             }
         } catch (e) {
             console.error("Error parsing interests", e);
             tags = [];
         }
 
-        // 2. Lógica para Posteos
+        // Lógica para Posteos
         const hasLastPost = selectedOrg.titulo_posteo && selectedOrg.titulo_posteo !== "indefinido";
         const postUrl = (selectedOrg.url_posteo && selectedOrg.url_posteo !== "indefinido") 
             ? selectedOrg.url_posteo 
@@ -56,12 +53,9 @@ const ActivityAndTopics = ({ selectedOrg }) => {
     if (!data) return null;
 
     return (
-        /* CLAVE: 'w-full' fuerza el ancho total.
-           'grid-cols-1 md:grid-cols-2' pone uno al lado del otro en pantallas medianas/grandes.
-        */
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* --- Tarjeta 1: Actividad Digital --- */}
+            {/* --- Actividad Digital --- */}
             <div className="flex flex-col h-full p-6 bg-white rounded-2xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
                 <div className="flex items-center gap-2 mb-6 border-b border-gray-100 dark:border-gray-700 pb-4">
                     <Activity className="w-5 h-5 text-orange-500" />
@@ -127,7 +121,7 @@ const ActivityAndTopics = ({ selectedOrg }) => {
                 </div>
             </div>
 
-            {/* --- Tarjeta 2: Temas Clave --- */}
+            {/* ---Temas Clave --- */}
             <div className="flex flex-col h-full p-6 bg-white rounded-2xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
                 <div className="flex items-center gap-2 mb-6 border-b border-gray-100 dark:border-gray-700 pb-4">
                     <Layers className="w-5 h-5 text-indigo-500" />

@@ -10,21 +10,15 @@ const PreviewEditView = ({
   handleCancelClick,
   onShowHtmlPreview,
 }) => {
-  
-  // --- LÓGICA NUEVA: Determinar qué nombre mostrar ---
   const displayName = React.useMemo(() => {
-      // 1. Si tiene nombre de organización válido
       if (selectedOrg.nombre && selectedOrg.nombre !== "indefinido") {
           return selectedOrg.nombre;
       }
-      // 2. Si no, intentamos con el nombre del contacto (limpiando corchetes si es array)
       if (selectedOrg.nombres_org && selectedOrg.nombres_org !== "indefinido") {
           return selectedOrg.nombres_org.replace(/[[\]"]/g, ''); // Quita [" "] si existen
       }
-      // 3. Último recurso: el ID (email)
       return selectedOrg.id;
   }, [selectedOrg]);
-  // --------------------------------------------------
 
   return (
     <>
@@ -35,11 +29,9 @@ const PreviewEditView = ({
         <div className="flex items-center gap-2 text-sm">
           <span className="text-slate-600 dark:text-slate-400">Enviando a:</span>
           
-          {/* --- AQUÍ USAMOS LA VARIABLE CALCULADA --- */}
           <span className="font-semibold text-blue-600 dark:text-blue-400">
             {displayName}
           </span>
-          {/* ----------------------------------------- */}
 
           <span className="px-2 py-0.5 text-xs bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-full">
             {selectedOrg.id}

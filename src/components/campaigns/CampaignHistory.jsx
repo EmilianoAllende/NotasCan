@@ -4,7 +4,7 @@ import {
 	ChevronRight,
 	RefreshCw,
 	CheckCircle2,
-} from "lucide-react"; // Importamos CheckCircle2
+} from "lucide-react";
 
 const CampaignHistory = ({
 	campanasActivas = [],
@@ -21,11 +21,8 @@ const CampaignHistory = ({
 
 	const [expandedType, setExpandedType] = useState(null);
 	const [expandedDateByType, setExpandedDateByType] = useState({});
-
-	// --- NUEVO ESTADO PARA EL MENSAJE DE ÉXITO ---
 	const [showSuccess, setShowSuccess] = useState(false);
 
-	// --- EFECTO: Sincronización y Carga Inicial ---
 	useEffect(() => {
 		if (historyData) {
 			setDisplayHistory(historyData);
@@ -47,14 +44,10 @@ const CampaignHistory = ({
 		organizaciones,
 	]);
 
-	// --- NUEVA FUNCIÓN PARA MANEJAR EL REFRESCO Y AVISAR ---
 	const handleManualRefresh = async () => {
 		if (onRefresh) {
-			// Esperamos a que la función del padre termine
 			await onRefresh();
-			// Mostramos el mensaje de éxito
 			setShowSuccess(true);
-			// Lo ocultamos después de 3 segundos
 			setTimeout(() => {
 				setShowSuccess(false);
 			}, 3000);
@@ -80,6 +73,7 @@ const CampaignHistory = ({
 	return (
 		<div className={styles.container}>
 			<div className={styles.card}>
+
 				{/* Encabezado con Botón Refresh y Mensaje de Éxito */}
 				<div className="flex items-center justify-between mb-3">
 					<div className="flex items-center gap-3">
@@ -94,7 +88,7 @@ const CampaignHistory = ({
 					</div>
 
 					<button
-						onClick={handleManualRefresh} // Usamos el nuevo handler
+						onClick={handleManualRefresh}
 						disabled={isLoading}
 						className={styles.refreshButton}
 						title="Actualizar historial">

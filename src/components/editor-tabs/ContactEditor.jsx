@@ -1,4 +1,3 @@
-// src/components/editor-tabs/ContactEditor.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import { 
     ArrowLeft, Save, Globe, MapPin, User, Tag, Building, 
@@ -7,8 +6,7 @@ import {
 } from "lucide-react";
 import { TIPOS_ENTIDAD, SUBTIPOS_POR_ENTIDAD } from "../../utils/organizationUtils";
 
-// --- COMPONENTES UI (Externos para evitar re-renderizados) ---
-
+// --- COMPONENTES UI ---
 const SectionHeader = ({ icon: Icon, title, colorClass, bgClass }) => (
     <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-t-xl">
         <div className="flex items-center gap-3">
@@ -79,7 +77,6 @@ const SelectField = ({ label, name, options, disabled = false, value, onChange, 
 );
 
 // --- COMPONENTE PRINCIPAL ---
-
 const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
     const [formData, setFormData] = useState({});
 
@@ -93,7 +90,6 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
         if (selectedOrg) {
             const processedData = { ...selectedOrg };
 
-            // 1. Limpieza SOLO de comillas extra (mantenemos "indefinido" visible)
             Object.keys(processedData).forEach(key => {
                 let val = processedData[key];
                 if (typeof val === 'string') {
@@ -101,11 +97,9 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
                     if (val.startsWith('"') && val.endsWith('"')) {
                         processedData[key] = val.slice(1, -1);
                     }
-                    // NOTA: Se eliminó la limpieza de "indefinido" para que se muestre tal cual.
                 }
             });
 
-            // 2. Arrays a String (Intereses y Nombres)
             ['intereses', 'nombres_org'].forEach(field => {
                 const val = processedData[field];
                 if (typeof val === 'string' && val.startsWith('[')) {
@@ -118,14 +112,13 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
                 }
             });
 
-            // 3. Rol: Tomar solo el primero
             if (typeof processedData.rol === 'string' && processedData.rol.startsWith('[')) {
                 try {
                     const parsedRol = JSON.parse(processedData.rol);
                     if (Array.isArray(parsedRol) && parsedRol.length > 0) {
                         processedData.rol = parsedRol[0];
                     } else if (Array.isArray(parsedRol) && parsedRol.length === 0) {
-                         processedData.rol = "";
+                        processedData.rol = "";
                     }
                 } catch (e) {}
             }
@@ -201,7 +194,7 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
             <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
                 <form onSubmit={handleSubmit} className="max-w-7xl mx-auto space-y-8 pb-10">
                     
-                    {/* SECCIÓN 1: DATOS GENERALES */}
+                    {/* DATOS GENERALES */}
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col">
                         <SectionHeader 
                             icon={Building} 
@@ -273,7 +266,7 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
                         </div>
                     </div>
 
-                    {/* SECCIÓN 2: UBICACIÓN */}
+                    {/* UBICACIÓN */}
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col">
                         <SectionHeader 
                             icon={MapPin} 
@@ -319,7 +312,7 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
                         </div>
                     </div>
 
-                    {/* SECCIÓN 3: CLASIFICACIÓN Y CONTACTO */}
+                    {/* CLASIFICACIÓN Y CONTACTO */}
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col">
                         <SectionHeader 
                             icon={Tag} 

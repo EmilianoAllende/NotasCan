@@ -1,4 +1,3 @@
-// src/layout/AppContentRenderer.jsx
 /* eslint-disable no-unused-vars */
 import React, { useCallback } from "react";
 
@@ -38,7 +37,7 @@ const AppContentRenderer = (props) => {
 		handleOpenCampaignModal,
 		saveContact,
 		selectedOrg,
-		setSelectedOrg, // Aseguramos que esto venga de props
+		setSelectedOrg,
 		campaignTemplates,
 		handleSaveTemplate,
 		handleDeleteTemplate,
@@ -54,8 +53,6 @@ const AppContentRenderer = (props) => {
 		currentUser,
 	} = props;
 
-	// --- NUEVA FUNCIÓN: Volver Atrás ---
-	// Resetea la organización seleccionada y vuelve al listado
 	const handleBack = useCallback(() => {
 		setSelectedOrg(null);
 		setActiveView("listado");
@@ -89,7 +86,6 @@ const AppContentRenderer = (props) => {
 								"Por favor, selecciona una campaña en el listado antes de enviar un email.",
 						});
 					}}
-					// Pasamos la función de volver
 					onBack={handleBack} 
 				/>
 			);
@@ -98,11 +94,10 @@ const AppContentRenderer = (props) => {
 				<ContactEditor
 					selectedOrg={selectedOrg}
 					onSave={saveContact}
-					onCancel={handleBack} // Usamos handleBack para cancelar también
+					onCancel={handleBack}
 					isSaving={isSaving}
 					setConfirmProps={setConfirmProps}
 					closeConfirm={closeConfirm}
-					// Pasamos la función de volver explícita
 					onBack={handleBack}
 				/>
 			);
