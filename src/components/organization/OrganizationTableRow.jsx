@@ -136,7 +136,7 @@ const OrganizationTableRow = ({
 					)}
 					{display.length === 0 && (
 						<span className="text-gray-400 dark:text-gray-600 italic">
-							Sin contacto
+							Sin nombre de contacto
 						</span>
 					)}
 				</div>
@@ -155,7 +155,7 @@ const OrganizationTableRow = ({
 
 			{/* Último contacto */}
 			<td className="py-4 px-3 align-middle text-gray-600 dark:text-gray-400 text-sm font-mono">
-				{org.ultimo_contacto || org.hace_dias ? formatDate(org.ultimo_contacto || org.hace_dias) : "Nunca contactado"}
+				{org.ultimo_contacto  ? formatDate(org.ultimo_contacto ) : "Nunca contactado"}
 			</td>
 
 			{/* --- ACCIONES CON MENÚ DESPLEGABLE --- */}
