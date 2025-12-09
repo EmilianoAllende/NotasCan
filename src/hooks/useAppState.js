@@ -77,10 +77,8 @@ export const useAppState = () => {
 		...orgData,
 		...campaigns,
 		...campaignFlow,
-		handleSkipTask: campaignFlow.handleSkipTask, // Exportar la nueva función
-		handleOpenCampaignModal: campaignFlow.handleOpenCampaignModal, // Usar la versión de campaignFlow
-		...dataHandlers,
-		// 4. Exportar los handlers
+		handleSkipTask: campaignFlow.handleSkipTask,
+		handleOpenCampaignModal: campaignFlow.handleOpenCampaignModal,
 		...navigationHandlers,
 		metricas,
 		estadosData,
@@ -89,7 +87,6 @@ export const useAppState = () => {
 		refreshHistory,
 		islasData,
 		sectoresData,
-		// Alias explícito para seguridad (aunque ...orgData ya lo incluye)
 		onRefresh: orgData.handleRefresh,
 	};
 };

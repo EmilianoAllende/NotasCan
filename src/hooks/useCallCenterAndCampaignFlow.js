@@ -310,7 +310,6 @@ export const useCallCenterAndCampaignFlow = ({
 		[selectedOrg, currentTask, setNotification, selectedCampaignId, isCallCenterMode, currentQueueId, fetchNextTask, handleRefresh, setShowCampaignModal]
 	);
 
-	// --- AGREGAR ESTA NUEVA FUNCIÓN ---
     const handleSkipTask = useCallback(async () => {
         if (!currentQueueId) {
             console.warn("⚠️ No hay cola activa para saltar.");
