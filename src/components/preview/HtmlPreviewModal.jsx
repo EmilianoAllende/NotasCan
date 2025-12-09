@@ -1,6 +1,17 @@
 import { X } from "lucide-react";
 
 const HtmlPreviewModal = ({ htmlContent, onClose, selectedOrg, subject, senderEmail }) => {
+  // Lógica de visualización más robusta
+  const recipientName =
+    // 1. Intenta usar 'nombre', si existe y NO es el string "undefined"
+    (selectedOrg?.nombre && selectedOrg.nombre !== "indefinido")
+      ? selectedOrg.nombre
+      // 2. Si no, intenta usar 'organizacion', si existe y NO es el string "undefined"
+      : (selectedOrg?.organizacion && selectedOrg.organizacion !== "indefinido")
+        ? selectedOrg.organizacion
+        // 3. Si ambos fallan, usa un valor por defecto
+        : "Sin Destinatario";
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/25 backdrop-blur-sm p-4 animate-fadeIn"
@@ -31,9 +42,13 @@ const HtmlPreviewModal = ({ htmlContent, onClose, selectedOrg, subject, senderEm
           </div>
           <div className="flex flex-wrap gap-y-1 text-slate-700 dark:text-slate-300 mt-1">
             <span className="font-medium w-16">Para:</span>
+            
+            {/* --- AQUÍ ESTÁ EL CAMBIO --- */}
             <span className="font-semibold text-slate-900 dark:text-white">
-              {selectedOrg?.nombre}
+              {recipientName}
             </span>
+            {/* --------------------------- */}
+
             <span className="text-slate-500 dark:text-slate-400 ml-1">
               {selectedOrg?.id}
             </span>
