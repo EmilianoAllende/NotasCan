@@ -1,6 +1,4 @@
-// src/components/organization/OrganizationTableRow.jsx
 import React, { useState, useRef, useEffect } from "react";
-// Agregamos MoreVertical para el ícono de los 3 puntitos
 import { Eye, Edit, Mail, MoreVertical } from "lucide-react";
 
 const ESTADOS_CLIENTE = {
@@ -54,19 +52,15 @@ const OrganizationTableRow = ({
     const email = org.id && org.id.includes('@') ? org.id : null;
 	const nombreVisual = org.nombre && org.nombre !== "indefinido" ? org.nombre.replace(/"/g, '') : null;
 	const sectorVisual = org.sector && org.sector !== "indefinido" ? org.sector : null;
-
-	// --- LÓGICA DEL MENÚ DESPLEGABLE ---
 	const [showMenu, setShowMenu] = useState(false);
 	const menuRef = useRef(null);
 
-	// Cerrar el menú si se hace clic fuera
 	useEffect(() => {
 		const handleClickOutside = (event) => {
 			if (menuRef.current && !menuRef.current.contains(event.target)) {
 				setShowMenu(false);
 			}
 		};
-		// Solo agregamos el listener si el menú está abierto
 		if (showMenu) {
 			document.addEventListener("mousedown", handleClickOutside);
 		}

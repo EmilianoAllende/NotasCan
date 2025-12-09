@@ -1,14 +1,11 @@
 import React from "react";
 import OrganizationFilters from "./OrganizationFilters";
 import OrganizationTable from "./OrganizationTable";
-
-// Importaciones de utilidades y componentes movidos
 import { ESTADOS_CLIENTE } from "../../utils/organizationUtils";
 import Pagination from "../shared/Pagination";
 import { useOrganizationList } from "../../hooks/useOrganizationList"; 
 
 const OrganizationList = (props) => {
-	// 1. Llamamos al hook
 	const {
 		searchTerm,
 		setSearchTerm,
@@ -30,9 +27,8 @@ const OrganizationList = (props) => {
 		isLoading,
 	} = useOrganizationList(props);
 
-	// 2. Desestructuramos las props
 	const {
-		openEditor, // <--- CORRECCIÓN 1: Recibimos 'openEditor' (el nombre real que viene de App)
+		openEditor,
 		viewDetail,
 		currentPage,
 		setCurrentPage,
@@ -106,10 +102,7 @@ const OrganizationList = (props) => {
 						selectedOrg={selectedOrg}
 						setSelectedOrg={setSelectedOrg}
 						viewDetail={viewDetail}
-                        
-                        // CORRECCIÓN 2: Pasamos 'openEditor' como 'openEditModal' a la tabla
 						openEditModal={openEditor} 
-						
                         handleCampaignClick={handleCampaignClick}
 						ESTADOS_CLIENTE={ESTADOS_CLIENTE}
 						isLoading={isLoading}

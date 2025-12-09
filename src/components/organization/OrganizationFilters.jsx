@@ -219,7 +219,6 @@ const OrganizationFilters = ({
 							que coinciden con "{searchTerm}"
 						</span>
 					)}
-					{/* --- Lógica de visualización actualizada --- */}
 					{filterStatus !== "todos" && (
 						<span className="mr-1">
 							, estado:{" "}
@@ -252,7 +251,6 @@ const OrganizationFilters = ({
 							</span>
 						</span>
 					)}
-                    {/* --- Mostrar sub-tipo seleccionado en el resumen --- */}
                     {filterSubType && filterSubType !== "todos" && (
 						<span className="mr-1">
 							, subtipo:{" "}

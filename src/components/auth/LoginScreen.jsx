@@ -15,25 +15,18 @@ const LoginScreen = ({ onLoginSuccess }) => {
 		setError(null);
 try {
     const response = await apiClient.login(usuario, password);
-    //dejo un comentario
-    // Verifica qué te devolvió el servidor en consola para estar seguro
     console.log("Respuesta n8n:", response.data); 
 
-    // CASO 1: Login Exitoso
     if (response.data && response.data.status === "success") {
         onLoginSuccess(response.data);
     } 
-    // CASO 2: Login Fallido (Lógica de negocio, pero conexión exitosa)
     else if (response.data && response.data.status === "error") {
-        // Aquí capturas el mensaje que n8n te envía (ej: "Usuario no encontrado")
         setError(response.data.message || "Usuario o contraseña incorrectos.");
     } 
-    // CASO 3: Respuesta desconocida
     else {
         setError("Respuesta inesperada del servidor.");
     }
 		} catch (err) {
-			// 3. Maneja los errores
 			if (err.response && err.response.status === 401) {
 				// Error 401 (Unauthorized) es el esperado para credenciales incorrectas
 				setError("Usuario o contraseña incorrectos.");

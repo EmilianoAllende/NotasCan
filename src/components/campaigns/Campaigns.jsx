@@ -1,13 +1,11 @@
 import React from "react";
 import { Plus, Trash2, Save, Mail } from "lucide-react";
 
-// --- DEFINICIÓN DE REMITENTES PREDEFINIDOS ---
 const SENDER_OPTIONS = [
 	{
 		id: "goblab",
 		label: "GobLab Gran Canaria",
 		email: "proyectos@fundacionemprende.org",
-		// Este es el texto que saldrá en el pie de página gris
 		footerText: "Laboratorio de Innovación GobLab Gran Canaria - Fundación Emprende"
 	},
 	{
@@ -73,7 +71,6 @@ const Campaigns = ({
 		setEditingTpl(next);
 	};
 
-    // ... (Mantenemos funciones saveTemplate, deleteTemplate, handleSaveClick, etc. IGUAL QUE ANTES) ...
 	const saveTemplate = () => {
 		if (!editingTpl) return;
 		if (!editingTpl.title || !editingTpl.id) return;
@@ -101,8 +98,7 @@ const Campaigns = ({
 				examplesGood: "",
 				examplesBad: "",
 				useMetadata: true,
-				senderName: "", 
-                // Opcional: Podrías guardar senderEmail aquí también si lo necesitas en el futuro
+				senderName: "",
 			},
 		};
 		if (onAddTemplate) onAddTemplate(draft);
@@ -208,7 +204,7 @@ const Campaigns = ({
 												{tpl.description}
 											</p>
 										</button>
-								  ))
+								))
 								: null}
 						</div>
 					</div>
@@ -273,56 +269,48 @@ const Campaigns = ({
 									</select>
 								</div>
 
-								{/* 🔥 CAMPO DE REMITENTE (SELECT) 🔥 */}
-								{/* ... dentro de Campaigns.jsx ... */}
+								{/* CAMPO DE REMITENTE */}
+								<div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
+									<label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+										Remitente (Firma y Email)
+									</label>
+									
+									<select
+									value={editingTpl.builder?.senderName || ""}
+									onChange={(e) => {
+										const selectedFooterText = e.target.value;
+										const selectedOption = SENDER_OPTIONS.find(opt => opt.footerText === selectedFooterText);
+										const nextState = JSON.parse(JSON.stringify(editingTpl));
 
-{/* 🔥 CAMPO DE REMITENTE (SELECT MEJORADO) 🔥 */}
-<div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
-    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-        Remitente (Firma y Email)
-    </label>
-    
-    <select
-    value={editingTpl.builder?.senderName || ""}
-    onChange={(e) => {
-        const selectedFooterText = e.target.value;
-        const selectedOption = SENDER_OPTIONS.find(opt => opt.footerText === selectedFooterText);
+										if (!nextState.builder) nextState.builder = {};
 
-        // 1. Clonamos el estado actual para no mutarlo directamente
-        const nextState = JSON.parse(JSON.stringify(editingTpl));
+										nextState.builder.senderName = selectedFooterText;
+										
+										if (selectedOption) {
+											nextState.builder.senderEmail = selectedOption.email;
+										} else {
+											nextState.builder.senderEmail = "";
+										}
 
-        // 2. Aseguramos que exista el objeto builder
-        if (!nextState.builder) nextState.builder = {};
-
-        // 3. Aplicamos AMBOS cambios sobre la misma copia
-        nextState.builder.senderName = selectedFooterText; // Actualiza el texto del footer
-        
-        if (selectedOption) {
-            nextState.builder.senderEmail = selectedOption.email; // Actualiza el email
-        } else {
-            nextState.builder.senderEmail = ""; // Limpia si seleccionó la opción vacía
-        }
-
-        // 4. Guardamos el estado UNA sola vez
-        setEditingTpl(nextState);
-    }}
-    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 transition"
->
-    <option value="">-- Seleccionar remitente predefinido --</option>
-    
-    {SENDER_OPTIONS.map((option) => (
-        <option key={option.id} value={option.footerText}>
-            {option.label} ({option.email})
-        </option>
-    ))}
-</select>
-    {/* Mostrar visualmente qué email se usará */}
-    {editingTpl.builder?.senderEmail && (
-        <p className="mt-2 text-xs text-blue-600 dark:text-blue-400 font-mono">
-            ✉️ Se enviará desde: <strong>{editingTpl.builder.senderEmail}</strong>
-        </p>
-    )}
-</div>
+										setEditingTpl(nextState);
+									}}
+									className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 transition"
+								>
+									<option value="">-- Seleccionar remitente predefinido --</option>
+									
+									{SENDER_OPTIONS.map((option) => (
+										<option key={option.id} value={option.footerText}>
+											{option.label} ({option.email})
+										</option>
+									))}
+								</select>
+									{/* Mostrar visualmente qué email se usará */}
+									{editingTpl.builder?.senderEmail && (
+										<p className="mt-2 text-xs text-blue-600 dark:text-blue-400 font-mono">
+											✉️ Se enviará desde: <strong>{editingTpl.builder.senderEmail}</strong>
+										</p>
+									)}
+								</div>
 
 								{/* CONTENIDO CONDICIONAL */}
 								{editingTpl.mode === "raw" ? (
@@ -339,7 +327,7 @@ const Campaigns = ({
 									</div>
 								) : (
 									<div className="p-5 space-y-5 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-700">
-										{/* Campos del Builder (Tipo, Metadatos, Instrucciones, Ejemplos) */}
+										{/* Campos del Builder */}
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 											<div>
 												<label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">

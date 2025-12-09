@@ -21,22 +21,21 @@ const ConfirmModal = ({
 		? "text-red-600 dark:text-red-400"
 		: "text-blue-600 dark:text-blue-400";
 	const confirmButtonColor = isDanger
-		? "bg-red-600 hover:bg-red-700 focus:ring-red-500" // --- ESTILO ROJO (PELIGRO) ---
-		: "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"; // --- ESTILO AZUL (NORMAL) ---
+		? "bg-red-600 hover:bg-red-700 focus:ring-red-500"
+		: "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500";
 
 	return (
-		// Overlay (fondo oscuro)
 		<div
 			className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
 			aria-labelledby="modal-title"
 			role="dialog"
 			aria-modal="true"
-			onClick={onCancel} // Cierra al hacer clic fuera
+			onClick={onCancel}
 		>
 			{/* Contenedor del Modal */}
 			<div
 				className="relative w-full max-w-md overflow-hidden bg-white dark:bg-slate-800 rounded-lg shadow-xl"
-				onClick={(e) => e.stopPropagation()} // Evita que el clic en el modal cierre el overlay
+				onClick={(e) => e.stopPropagation()}
 			>
 				<div className="p-6">
 					<div className="flex items-start">

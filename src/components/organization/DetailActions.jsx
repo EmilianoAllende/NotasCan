@@ -27,7 +27,7 @@ const DetailActions = ({
 					if (selectedCampaignId) {
 						setShowCampaignModal(true);
 					} else {
-						onSelectCampaignRequired(); // Muestra notificación de error
+						onSelectCampaignRequired();
 					}
 				}}
 				className="flex items-center gap-2 px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700">

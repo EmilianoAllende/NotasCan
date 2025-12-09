@@ -23,14 +23,12 @@ import {
 import MetricCard from "../shared/MetricCard";
 
 const Dashboard = ({ metricas, estadosData, islasData, sectoresData }) => {
-	
-	// Calculamos el valor máximo de sectores para las barras de progreso
+
 	const maxSectorValue = useMemo(() => {
 		if (!sectoresData || sectoresData.length === 0) return 0;
 		return Math.max(...sectoresData.map((s) => s.cantidad));
 	}, [sectoresData]);
 
-	// Protección por si las métricas aún no cargan
 	const safeMetricas = metricas || {
 		total: 0,
 		orgsAutomatizables: 0,
@@ -42,7 +40,7 @@ const Dashboard = ({ metricas, estadosData, islasData, sectoresData }) => {
 
 	return (
 		<div className="space-y-8 p-4 sm:p-8 animate-fade-in">
-			{/* --- Sección de Tarjetas (KPIs) --- */}
+			{/* --- Sección de Tarjetas --- */}
 			<div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
 				<MetricCard
 					icon={Building}
@@ -53,7 +51,7 @@ const Dashboard = ({ metricas, estadosData, islasData, sectoresData }) => {
 				<MetricCard
 					icon={CheckCircle}
 					title="Listas para IA"
-					value={safeMetricas.orgsAutomatizables} // Dato real calculado
+					value={safeMetricas.orgsAutomatizables}
 					color="green"
 					subtext="Email + Activa"
 				/>
@@ -93,15 +91,15 @@ const Dashboard = ({ metricas, estadosData, islasData, sectoresData }) => {
 						<ResponsiveContainer width="100%" height="100%">
 							<PieChart>
 								<Pie
-    data={estadosData}
-    cx="50%"
-    cy="50%"
-    innerRadius={60}
-    outerRadius={80}
-    paddingAngle={5}
-    dataKey="cantidad"      // <--- Ya tienes esto (el valor numérico)
-    nameKey="estado"        // <--- AGREGA ESTO (El nombre de la categoría)
->
+									data={estadosData}
+									cx="50%"
+									cy="50%"
+									innerRadius={60}
+									outerRadius={80}
+									paddingAngle={5}
+									dataKey="cantidad"
+									nameKey="estado"
+								>
 									{estadosData.map((entry, index) => (
 										<Cell 
 											key={`cell-${index}`} 
@@ -119,7 +117,7 @@ const Dashboard = ({ metricas, estadosData, islasData, sectoresData }) => {
 					</div>
 				</div>
 
-				{/* 2. Gráfico de Barras (Islas) */}
+				{/* Gráfico de Barras */}
 				<div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex flex-col">
 					<h3 className="text-lg font-bold mb-4">Distribución por Islas</h3>
 					<div className="flex-1 min-h-[250px]">
@@ -150,12 +148,11 @@ const Dashboard = ({ metricas, estadosData, islasData, sectoresData }) => {
 					</div>
 				</div>
 
-				{/* 3. Lista de Sectores (Con barras de progreso) */}
+				{/* Lista de Sectores */}
 				<div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
 					<h3 className="text-lg font-bold mb-6">Top Sectores</h3>
 					<div className="space-y-5 overflow-y-auto max-h-[300px] pr-2 custom-scrollbar">
 						{sectoresData.map((sector, index) => {
-							// Calculamos porcentaje para la barra visual
 							const percent = maxSectorValue > 0 ? (sector.cantidad / maxSectorValue) * 100 : 0;
 							
 							return (
