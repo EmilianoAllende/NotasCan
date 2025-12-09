@@ -9,6 +9,8 @@ const PreviewEditView = ({
   isSending,
   handleCancelClick,
   onShowHtmlPreview,
+  isCallCenterMode,
+  onSkipTask,
 }) => {
   const displayName = React.useMemo(() => {
       if (selectedOrg.nombre && selectedOrg.nombre !== "indefinido") {
@@ -68,13 +70,26 @@ const PreviewEditView = ({
         </div>
       </div>
 
-      <div className="flex justify-between items-center mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
+      <div className="flex justify-between items-center mx-auto mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
         <button
           onClick={onShowHtmlPreview}
           className="px-5 py-2.5 text-sm font-medium border-2 border-slate-300 dark:border-slate-600 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-400 dark:hover:border-slate-500 transition-all duration-200 active:scale-95"
-        >
+          >
           👁️ Previsualizar
         </button>
+
+          {isCallCenterMode && (
+            <button
+              onClick={() => {
+                console.log("1. Botón 'Saltar' presionado en PreviewEditView.");
+                onSkipTask();
+              }}
+              className="px-4 py-2 text-sm font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors"
+              title="Posponer esta tarea y pasar a la siguiente"
+            >
+              Saltar (Posponer)
+            </button>
+        )}
 
         <div className="flex gap-3">
           <button
