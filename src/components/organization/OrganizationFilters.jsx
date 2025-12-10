@@ -158,7 +158,7 @@ const OrganizationFilters = ({
 						onChange={(e) => setSelectedCampaignId(e.target.value || null)}
 						className={`w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
 							selectedCampaignId
-								? "border-pink-500 bg-pink-50 dark:bg-pink-900/20 dark:border-pink-500"
+								? "border-pink-500 bg-pink-200 dark:bg-pink-900/85 dark:border-pink-500"
 								: "border-gray-300 dark:border-gray-600"
 						}`}>
 						<option value="">Seleccionar Campaña</option>
