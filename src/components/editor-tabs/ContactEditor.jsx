@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import PropTypes from 'prop-types';
 import { 
     ArrowLeft, Save, Globe, MapPin, User, Tag, Building, 
     // eslint-disable-next-line no-unused-vars
@@ -82,7 +83,7 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
 
     const formatLabel = (str) => {
         if (!str) return "";
-        return str.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        return String(str).replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     };
 
     // --- LÓGICA DE CARGA ---
@@ -138,12 +139,18 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSave(formData);
+        if (typeof onSave === 'function') {
+            onSave(formData);
+        } else {
+            console.error("ContactEditor: La prop 'onSave' no está definida o no es una función.");
+        }
     };
 
     const availableSubtypes = useMemo(() => {
         if (!formData.tipo_entidad) return [];
-        return SUBTIPOS_POR_ENTIDAD[formData.tipo_entidad] || [];
+        if (!SUBTIPOS_POR_ENTIDAD) return [];
+        const subtypes = SUBTIPOS_POR_ENTIDAD[formData.tipo_entidad];
+        return Array.isArray(subtypes) ? subtypes : [];
     }, [formData.tipo_entidad]);
 
     if (!formData.id && !formData.nombre && !formData.organizacion) return null;
@@ -329,7 +336,7 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
                                 options={
                                     <>
                                         <option value="">Seleccionar Tipo...</option>
-                                        {Object.values(TIPOS_ENTIDAD).map((type) => (
+                                        {TIPOS_ENTIDAD && Object.values(TIPOS_ENTIDAD).map((type) => (
                                             <option key={type} value={type}>
                                                 {formatLabel(type)}
                                             </option>
@@ -393,6 +400,14 @@ const ContactEditor = ({ selectedOrg, onSave, onCancel, isSaving, onBack }) => {
             </div>
         </div>
     );
+};
+
+ContactEditor.propTypes = {
+    selectedOrg: PropTypes.object,
+    onSave: PropTypes.func.isRequired,
+    onCancel: PropTypes.func,
+    isSaving: PropTypes.bool,
+    onBack: PropTypes.func
 };
 
 export default ContactEditor;

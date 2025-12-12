@@ -54,6 +54,32 @@ export const useAppState = () => {
 			setIsHistoryLoading(false);
 		}
 	};
+
+	const saveContact = async (formData) => {
+		if (orgData.setIsSaving) orgData.setIsSaving(true);
+		try {
+			await apiClient.updateOrganization(formData);
+			// Actualización optimista del estado local
+			if (orgData.setOrganizaciones) {
+				orgData.setOrganizaciones((prev) =>
+					prev.map((org) =>
+						org.id === formData.id ? { ...org, ...formData } : org
+					)
+				);
+			}
+			ui.setNotification({
+				type: "success",
+				message: "Organización guardada correctamente.",
+			});
+			ui.setActiveView("listado");
+		} catch (error) {
+			console.error("Error saving contact:", error);
+			ui.setNotification({ type: "error", message: "Error al guardar." });
+		} finally {
+			if (orgData.setIsSaving) orgData.setIsSaving(false);
+		}
+	};
+
 	const campaignFlow = useCallCenterAndCampaignFlow({
 		...auth,
 		...ui,
@@ -88,5 +114,6 @@ export const useAppState = () => {
 		islasData,
 		sectoresData,
 		onRefresh: orgData.handleRefresh,
+		saveContact,
 	};
 };
